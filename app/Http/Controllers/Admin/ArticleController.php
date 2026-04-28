@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Article;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class ArticleController extends Controller
+{
+    public function index()
+    {
+        return view('admin.articles.index', ['articles' => Article::latest()->get()]);
+    }
+
+    public function create()
+    {
+        return view('admin.articles.create', ['article' => new Article()]);
+    }
+
+    public function store(Request $request)
+    {
+        $data = $this->validated($request);
+        $data['slug'] = Str::slug($data['title']).'-'.Str::random(5);
+        $data['author_id'] = $request->user()->id;
+        $data['published_at'] = $data['is_published'] ? now() : null;
+        Article::create($data);
+
+        return redirect()->route('admin.articles.index')->with('status', 'Article created.');
+    }
+
+    public function edit(Article $article)
+    {
+        return view('admin.articles.edit', compact('article'));
+    }
+
+    public function update(Request $request, Article $article)
+    {
+        $data = $this->validated($request);
+        $data['published_at'] = $data['is_published'] ? ($article->published_at ?? now()) : null;
+        $article->update($data);
+
+        return redirect()->route('admin.articles.index')->with('status', 'Article updated.');
+    }
+
+    private function validated(Request $request): array
+    {
+        return $request->validate([
+            'title' => ['required', 'string', 'max:180'],
+            'excerpt' => ['nullable', 'string', 'max:500'],
+            'body' => ['required', 'string'],
+            'is_published' => ['nullable', 'boolean'],
+        ]) + ['is_published' => false];
+    }
+}

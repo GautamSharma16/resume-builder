@@ -1,0 +1,136 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ResumeController;
+use App\Http\Controllers\ResumeBuilderController;
+use App\Http\Controllers\CoverLetterController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PageController;
+use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\Admin\ArticleController as AdminArticleController;
+use App\Http\Controllers\Admin\PricingController;
+use App\Http\Controllers\Admin\TemplateController as AdminTemplateController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GoogleAuthController;
+
+/*
+|--------------------------------------------------------------------------
+| Public Pages (No Auth Required)
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/', fn() => view('pages.home'))->name('home');
+
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.store')->middleware('throttle:5,1');
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->name('register.store')->middleware('throttle:5,1');
+    Route::get('/forgot-password', [AuthController::class, 'showForgot'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email')->middleware('throttle:5,1');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showReset'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.store');
+    Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+});
+
+Route::get('/verify-otp', [AuthController::class, 'showOtp'])->name('otp.verify.form');
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])->name('otp.verify')->middleware('throttle:10,1');
+Route::post('/resend-otp', [AuthController::class, 'resendOtp'])->name('otp.resend')->middleware('throttle:2,1');
+Route::post('/send-otp', [AuthController::class, 'resendOtp'])->name('otp.send')->middleware('throttle:2,1');
+Route::put('/password', [AuthController::class, 'updatePassword'])->name('password.update')->middleware('auth');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+Route::get('/improve-cv', [ResumeController::class, 'index'])->name('improve-cv');
+Route::post('/analyze-resume', [ResumeController::class, 'analyze'])->name('resume.analyze');
+Route::post('/improve-resume', [ResumeController::class, 'improveAgain'])->name('resume.improve');
+Route::post('/grammar-fix-resume', [ResumeController::class, 'grammarFix'])->name('resume.grammar');
+Route::post('/save-resume', [ResumeController::class, 'saveResume'])->name('resume.save');
+Route::post('/resume-payment/order', [ResumeController::class, 'createPaymentOrder'])->name('resume.payment.order');
+Route::post('/resume-payment/verify', [ResumeController::class, 'verifyPayment'])->name('resume.payment.verify');
+Route::get('/download-resume', [ResumeController::class, 'download'])->name('resume.download-improved');
+Route::get('/cover-letter', [CoverLetterController::class, 'create'])->name('cover-letter');
+Route::post('/cover-letter/generate', [CoverLetterController::class, 'generate'])->name('cover-letter.generate');
+Route::patch('/cover-letter/{coverLetter}', [CoverLetterController::class, 'save'])->name('cover-letter.save');
+Route::get('/cover-letter/{coverLetter}/download/{format?}', [CoverLetterController::class, 'download'])->name('cover-letter.download');
+Route::get('/templates', [PageController::class, 'templates'])->name('templates');
+Route::get('/interview', [PageController::class, 'interview'])->name('interview');
+Route::get('/contact', fn() => view('pages.contact'))->name('contact');
+Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
+
+Route::get('/resume', [ResumeBuilderController::class, 'index'])->name('resume.index');
+Route::get('/resume/create', [ResumeBuilderController::class, 'create'])->name('resume.create');
+Route::post('/resume', [ResumeBuilderController::class, 'store'])->name('resume.store');
+Route::get('/resume/edit/{resume}', [ResumeBuilderController::class, 'edit'])->name('resume.edit');
+Route::patch('/resume/{resume}', [ResumeBuilderController::class, 'update'])->name('resume.update');
+Route::get('/resume/{resume}/preview', [ResumeBuilderController::class, 'preview'])->name('resume.preview');
+Route::get('/resume/{resume}/download/{format?}', [ResumeBuilderController::class, 'download'])->name('resume.download');
+
+
+/*
+|--------------------------------------------------------------------------
+| User Dashboard (Auth + User Role)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'user'])->group(function () {
+    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
+    Route::post('/plans/{plan}/order', [SubscriptionController::class, 'order'])->name('plans.order');
+    Route::post('/purchases/{purchase}/verify', [SubscriptionController::class, 'verify'])->name('plans.verify');
+
+    // Candidate Profile
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+});
+
+Route::middleware(['auth', 'company'])->group(function () {
+    Route::get('/company/dashboard', fn() => view('company.dashboard'))->name('company.dashboard');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Admin Dashboard (Auth + Admin Role)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard');
+
+        // Analytics
+        Route::get('/analytics', fn() => view('admin.analytics'))->name('analytics');
+        Route::get('/visits', fn() => view('admin.visits'))->name('visits');
+        Route::get('/purchases', fn() => view('admin.purchases'))->name('purchases');
+
+        // Content Management
+        Route::resource('templates', AdminTemplateController::class)->except(['show', 'destroy']);
+
+        Route::resource('articles', AdminArticleController::class)->except(['show', 'destroy']);
+
+        // Payment Management
+        Route::get('/payments', [PricingController::class, 'index'])->name('payments');
+        Route::patch('/plans/{plan}', [PricingController::class, 'update'])->name('plans.update');
+    });
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Profile (Authenticated Users Only)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Auth Routes
+|--------------------------------------------------------------------------
+*/
