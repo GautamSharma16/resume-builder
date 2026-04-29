@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        @page { margin: 34px 42px; }
+        body {
+            color: #111827;
+            font-family: DejaVu Sans, Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.42;
+        }
+        h1 {
+            border-bottom: 2px solid #111827;
+            font-size: 26px;
+            letter-spacing: 0;
+            margin: 0 0 14px;
+            padding-bottom: 9px;
+            text-transform: uppercase;
+        }
+        h2 {
+            color: #0f766e;
+            font-size: 12px;
+            letter-spacing: 0;
+            margin: 18px 0 7px;
+            text-transform: uppercase;
+        }
+        p { margin: 0 0 8px; }
+        ul { margin: 6px 0 0 18px; padding: 0; }
+        li { margin-bottom: 4px; }
+        .skills span {
+            display: inline-block;
+            margin: 0 6px 6px 0;
+        }
+        .item { margin-bottom: 12px; }
+        .item-title { font-weight: bold; }
+        .muted { color: #4b5563; }
+        .contact { color: #4b5563; margin: -6px 0 12px; }
+    </style>
+</head>
+<body>
+    <h1>{{ $resume['name'] ?: 'Your Name' }}</h1>
+    @if(!empty($resume['contact']) || !empty($resume['address']))
+        <p class="contact">{{ $resume['contact'] ?? '' }} @if(!empty($resume['address'])) | {{ $resume['address'] }} @endif</p>
+    @endif
+
+    @if($resume['summary'])
+        <h2>Summary</h2>
+        <p>{{ $resume['summary'] }}</p>
+    @endif
+
+    @if(count($resume['skills']))
+        <h2>Skills</h2>
+        <p class="skills">
+            @foreach($resume['skills'] as $skill)
+                <span>{{ $skill }}</span>
+            @endforeach
+        </p>
+    @endif
+
+    @if(count($resume['experience']))
+        <h2>Experience</h2>
+        @foreach($resume['experience'] as $experience)
+            <div class="item">
+                <div class="item-title">{{ $experience['role'] ?: 'Role' }}</div>
+                @if($experience['company'])
+                    <div class="muted">{{ $experience['company'] }}</div>
+                @endif
+                @if(count($experience['points']))
+                    <ul>
+                        @foreach($experience['points'] as $point)
+                            <li>{{ $point }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
+        @endforeach
+    @endif
+
+    @if(count($resume['education']))
+        <h2>Education</h2>
+        <ul>
+            @foreach($resume['education'] as $education)
+                <li>{{ $education }}</li>
+            @endforeach
+        </ul>
+    @endif
+</body>
+</html>
