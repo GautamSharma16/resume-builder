@@ -13,6 +13,7 @@ class Template extends Model
         'slug',
         'category',
         'html',
+        'preview_image',
         'is_active',
     ];
 

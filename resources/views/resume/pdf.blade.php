@@ -85,5 +85,14 @@
             @endforeach
         </ul>
     @endif
+
+    @if(count($resume['projects']))
+        <h2>Projects</h2>
+        <ul>
+            @foreach($resume['projects'] as $project)
+                <li>{{ $project }}</li>
+            @endforeach
+        </ul>
+    @endif
 </body>
 </html>

@@ -6,8 +6,14 @@
         <h1 class="text-2xl font-bold text-gray-950">Preview</h1>
         <a href="{{ route('resume.edit', $resume) }}" class="text-sm font-semibold text-teal-700">Edit</a>
     </div>
-    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
-        @include('resume.partials.preview', ['resume' => $resume->data])
+    <div class="overflow-auto bg-slate-100 border border-gray-200 rounded-lg p-6 shadow-sm">
+        <div class="mx-auto w-[794px] bg-white shadow-xl">
+            @if($renderedTemplate)
+                {!! $renderedTemplate !!}
+            @else
+                <div class="p-8">@include('resume.partials.preview', ['resume' => $resume->data])</div>
+            @endif
+        </div>
     </div>
 </div>
 @endsection

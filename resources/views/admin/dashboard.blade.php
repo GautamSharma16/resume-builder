@@ -17,9 +17,13 @@
         @endforeach
     </div>
     <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-5">
-        <a href="{{ route('admin.templates.index') }}" class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm font-semibold">Manage Templates</a>
-        <a href="{{ route('admin.articles.index') }}" class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm font-semibold">Manage Articles</a>
-        <a href="{{ route('admin.payments') }}" class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm font-semibold">Pricing Control</a>
+        @if(auth()->user()->hasRole(['admin','super_admin','developer','dev']))
+            <a href="{{ route('admin.templates.index') }}" class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm font-semibold">Manage Templates</a>
+            <a href="{{ route('admin.payments') }}" class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm font-semibold">Pricing Control</a>
+        @endif
+        @if(auth()->user()->hasRole(['admin','super_admin','seo','article','article_writer']))
+            <a href="{{ route('admin.articles.index') }}" class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm font-semibold">Manage Articles</a>
+        @endif
     </div>
 </div>
 @endsection

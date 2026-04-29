@@ -22,27 +22,17 @@
     </div>
 
     <section class="bg-white border border-gray-200 rounded-lg p-5 sm:p-6 shadow-sm mb-6">
-        <form id="resume-upload-form" class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div class="lg:col-span-4">
+        <form id="resume-upload-form" class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-end">
+            <div class="lg:col-span-6">
                 <label for="resume-file" class="block text-sm font-semibold text-gray-800 mb-2">Resume file</label>
                 <input id="resume-file" name="resume" type="file" accept=".pdf,.doc,.docx" required class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-teal-600 focus:ring-teal-600">
                 <p class="mt-2 text-xs text-gray-500">PDF, DOC, or DOCX up to 10 MB.</p>
             </div>
 
-            <div class="lg:col-span-3">
-                <label for="job-role" class="block text-sm font-semibold text-gray-800 mb-2">Job role</label>
-                <input id="job-role" name="job_role" type="text" required placeholder="Frontend Developer" class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-teal-600 focus:ring-teal-600">
-            </div>
-
-            <div class="lg:col-span-5">
-                <label for="job-description" class="block text-sm font-semibold text-gray-800 mb-2">Job description</label>
-                <textarea id="job-description" name="job_description" rows="3" placeholder="Paste the role requirements, tools, and responsibilities." class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-teal-600 focus:ring-teal-600"></textarea>
-            </div>
-
-            <div class="lg:col-span-12 flex flex-wrap items-center gap-3">
+            <div class="lg:col-span-6 flex flex-wrap items-center gap-3">
                 <button id="analyze-button" type="submit" class="inline-flex items-center gap-2 rounded-md bg-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.36-6.36-2.12 2.12M7.76 16.24l-2.12 2.12m12.72 0-2.12-2.12M7.76 7.76 5.64 5.64"/><circle cx="12" cy="12" r="3"/></svg>
-                    Analyze Resume
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M13 10V3 L4 14h7v7l9-11h-7z"/></svg>
+                    Enhance with AI
                 </button>
                 <span id="app-status" class="text-sm text-gray-600" role="status"></span>
             </div>
@@ -138,6 +128,17 @@
                     </div>
                     <div id="education-editor" class="space-y-3"></div>
                 </div>
+
+                <div>
+                    <div class="flex items-center justify-between gap-3 mb-3">
+                        <h3 class="text-sm font-bold text-gray-950">Projects</h3>
+                        <button id="add-projects" type="button" class="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                            Add
+                        </button>
+                    </div>
+                    <div id="projects-editor" class="space-y-3"></div>
+                </div>
             </div>
         </div>
 
@@ -147,10 +148,16 @@
                     <h2 class="text-lg font-bold text-gray-950">Live Preview</h2>
                     <p class="text-sm text-gray-500">This HTML structure is reused for the PDF.</p>
                 </div>
-                <button id="download-button" type="button" class="inline-flex items-center gap-2 rounded-md bg-gray-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
+                <div class="flex gap-3">
+                    <button id="apply-to-resume-maker" type="button" class="hidden inline-flex items-center gap-2 rounded-md border border-teal-700 px-4 py-3 text-sm font-semibold text-teal-800 hover:bg-teal-50">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                        Use in Resume Maker
+                    </button>
+                    <button id="download-button" type="button" class="inline-flex items-center gap-2 rounded-md bg-gray-950 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
                     <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
                     Download
-                </button>
+                    </button>
+                </div>
             </div>
 
             <article id="resume-preview" class="min-h-[900px] bg-white border border-gray-200 rounded-lg shadow-sm p-8 text-gray-950"></article>

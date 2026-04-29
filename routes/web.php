@@ -5,8 +5,11 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ResumeController;
 use App\Http\Controllers\ResumeBuilderController;
 use App\Http\Controllers\CoverLetterController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ManualTestActivationController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\RazorpayWebhookController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\ArticleController as AdminArticleController;
 use App\Http\Controllers\Admin\PricingController;
@@ -50,6 +53,7 @@ Route::post('/save-resume', [ResumeController::class, 'saveResume'])->name('resu
 Route::post('/resume-payment/order', [ResumeController::class, 'createPaymentOrder'])->name('resume.payment.order');
 Route::post('/resume-payment/verify', [ResumeController::class, 'verifyPayment'])->name('resume.payment.verify');
 Route::get('/download-resume', [ResumeController::class, 'download'])->name('resume.download-improved');
+Route::get('/enhance-cv', [ResumeController::class, 'index'])->name('enhance-cv');
 Route::get('/cover-letter', [CoverLetterController::class, 'create'])->name('cover-letter');
 Route::post('/cover-letter/generate', [CoverLetterController::class, 'generate'])->name('cover-letter.generate');
 Route::patch('/cover-letter/{coverLetter}', [CoverLetterController::class, 'save'])->name('cover-letter.save');
@@ -57,10 +61,14 @@ Route::get('/cover-letter/{coverLetter}/download/{format?}', [CoverLetterControl
 Route::get('/templates', [PageController::class, 'templates'])->name('templates');
 Route::get('/interview', [PageController::class, 'interview'])->name('interview');
 Route::get('/contact', fn() => view('pages.contact'))->name('contact');
+Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
+Route::post('/razorpay/webhook', RazorpayWebhookController::class)->name('razorpay.webhook');
+Route::get('/test/activate-plan/{userId}/{plan}', ManualTestActivationController::class)->name('test.activate-plan');
 
 Route::get('/resume', [ResumeBuilderController::class, 'index'])->name('resume.index');
 Route::get('/resume/create', [ResumeBuilderController::class, 'create'])->name('resume.create');
+Route::get('/resume-maker/{category?}', [ResumeBuilderController::class, 'create'])->name('resume-maker');
 Route::post('/resume', [ResumeBuilderController::class, 'store'])->name('resume.store');
 Route::get('/resume/edit/{resume}', [ResumeBuilderController::class, 'edit'])->name('resume.edit');
 Route::patch('/resume/{resume}', [ResumeBuilderController::class, 'update'])->name('resume.update');
@@ -105,13 +113,19 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/purchases', fn() => view('admin.purchases'))->name('purchases');
 
         // Content Management
-        Route::resource('templates', AdminTemplateController::class)->except(['show', 'destroy']);
+        Route::middleware('role:admin,super_admin,developer,dev')->group(function () {
+            Route::resource('templates', AdminTemplateController::class)->except(['show', 'destroy']);
+        });
 
-        Route::resource('articles', AdminArticleController::class)->except(['show', 'destroy']);
+        Route::middleware('role:admin,super_admin,seo,article,article_writer')->group(function () {
+            Route::resource('articles', AdminArticleController::class)->except(['show', 'destroy']);
+        });
 
         // Payment Management
-        Route::get('/payments', [PricingController::class, 'index'])->name('payments');
-        Route::patch('/plans/{plan}', [PricingController::class, 'update'])->name('plans.update');
+        Route::middleware('role:admin,super_admin,developer,dev')->group(function () {
+            Route::get('/payments', [PricingController::class, 'index'])->name('payments');
+            Route::patch('/plans/{plan}', [PricingController::class, 'update'])->name('plans.update');
+        });
     });
 });
 

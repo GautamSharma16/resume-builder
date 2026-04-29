@@ -7,6 +7,7 @@
     <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
         @forelse($articles as $article)
             <article class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <p class="text-xs font-semibold uppercase text-teal-700">{{ $article->category ?? 'Preparation' }}</p>
                 <h2 class="text-xl font-bold text-gray-950">{{ $article->title }}</h2>
                 <p class="mt-2 text-gray-600">{{ $article->excerpt }}</p>
                 <div class="mt-4 text-sm leading-6 text-gray-700">{{ $article->body }}</div>

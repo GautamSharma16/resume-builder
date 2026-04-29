@@ -35,10 +35,13 @@ if (app) {
         education: document.getElementById('education-editor'),
         addExperience: document.getElementById('add-experience'),
         addEducation: document.getElementById('add-education'),
+        projects: document.getElementById('projects-editor'),
+        addProjects: document.getElementById('add-projects'),
         preview: document.getElementById('resume-preview'),
         modal: document.getElementById('payment-modal'),
         closeModal: document.getElementById('close-payment-modal'),
         payButton: document.getElementById('pay-button'),
+        applyToResumeMaker: document.getElementById('apply-to-resume-maker'),
     };
 
     let analysisId = null;
@@ -50,6 +53,7 @@ if (app) {
         skills: [],
         experience: [],
         education: [],
+        projects: [],
     };
 
     const setBusy = (busy, message = '') => {
@@ -87,12 +91,19 @@ if (app) {
             points: Array.isArray(item.points) ? item.points.map(String).filter(Boolean) : [],
         })) : [],
         education: Array.isArray(resume.education) ? resume.education.map(String).filter(Boolean) : [],
+        projects: Array.isArray(resume.projects) ? resume.projects.map(String).filter(Boolean) : [],
     });
 
     const replaceState = (resume) => {
         Object.assign(state, normalizeResume(resume));
         if (!state.experience.length) {
             state.experience.push({ company: '', role: '', points: [''] });
+        }
+        if (!state.education.length) {
+            state.education = [''];
+        }
+        if (!state.projects.length) {
+            state.projects = [''];
         }
         renderEditor();
         renderPreview();
@@ -166,6 +177,15 @@ if (app) {
                 </button>
             </div>
         `).join('');
+
+        els.projects.innerHTML = (state.projects.length ? state.projects : ['']).map((item, index) => `
+            <div class="flex gap-2" data-project-index="${index}">
+                <input type="text" value="${escapeHtml(item)}" class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-teal-600 focus:ring-teal-600">
+                <button type="button" data-action="remove-project" class="rounded-md border border-gray-300 px-3 text-gray-600 hover:bg-gray-50" aria-label="Remove project">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14"/></svg>
+                </button>
+            </div>
+        `).join('');
     };
 
     const renderPreview = () => {
@@ -188,6 +208,10 @@ if (app) {
         const educationHtml = state.education.length
             ? `<ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-gray-700">${state.education.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
             : '<p class="text-sm text-gray-400">Add education in the editor.</p>';
+
+        const projectsHtml = state.projects.length
+            ? `<ul class="list-disc space-y-1 pl-5 text-sm leading-6 text-gray-700">${state.projects.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+            : '<p class="text-sm text-gray-400">Add projects in the editor.</p>';
 
         els.preview.innerHTML = `
             <header class="border-b-2 border-gray-950 pb-5">
@@ -213,6 +237,11 @@ if (app) {
                 <h2 class="text-xs font-bold uppercase tracking-wide text-teal-700">Education</h2>
                 <div class="mt-3">${educationHtml}</div>
             </section>
+
+            <section class="mt-6">
+                <h2 class="text-xs font-bold uppercase tracking-wide text-teal-700">Projects</h2>
+                <div class="mt-3">${projectsHtml}</div>
+            </section>
         `;
     };
 
@@ -222,6 +251,9 @@ if (app) {
         renderDashboard(payload);
         replaceState(payload.improved_resume);
         els.workspace.classList.remove('hidden');
+        if (els.applyToResumeMaker) {
+            els.applyToResumeMaker.classList.remove('hidden');
+        }
     };
 
     const saveCurrentResume = async () => {
@@ -362,6 +394,30 @@ if (app) {
         renderPreview();
     });
 
+    els.projects.addEventListener('input', (event) => {
+        const row = event.target.closest('[data-project-index]');
+        if (!row) return;
+        state.projects[Number(row.dataset.projectIndex)] = event.target.value;
+        state.projects = state.projects.filter((item, index, items) => item || index === items.length - 1);
+        renderPreview();
+    });
+
+    els.projects.addEventListener('click', (event) => {
+        const action = event.target.closest('[data-action]')?.dataset.action;
+        const row = event.target.closest('[data-project-index]');
+        if (action === 'remove-project' && row) {
+            state.projects.splice(Number(row.dataset.projectIndex), 1);
+            renderEditor();
+            renderPreview();
+        }
+    });
+
+    els.addProjects.addEventListener('click', () => {
+        state.projects.push('');
+        renderEditor();
+        renderPreview();
+    });
+
     els.improveButton.addEventListener('click', async () => {
         setBusy(true, 'Refining the edited resume...');
 
@@ -460,4 +516,12 @@ if (app) {
     });
 
     renderPreview();
+
+    if (els.applyToResumeMaker) {
+        els.applyToResumeMaker.addEventListener('click', () => {
+            if (!analysisId) return;
+            // Redirect with prefilled analysis content
+            window.location.href = `/resume/create?analysis_id=${encodeURIComponent(analysisId)}`;
+        });
+    }
 }

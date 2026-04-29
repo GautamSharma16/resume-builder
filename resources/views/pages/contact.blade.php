@@ -25,33 +25,51 @@
                     Send us a message
                 </h2>
 
-                <form class="space-y-5">
+                @if(session('status'))
+                    <p class="mb-4 text-sm text-teal-700">{{ session('status') }}</p>
+                @endif
+
+                <form method="POST" action="{{ route('contact.store') }}" class="space-y-5">
+                    @csrf
 
                     <div>
                         <label class="text-sm font-medium text-gray-700 mb-1 block">
                             Your Name
                         </label>
-                        <input type="text"
+                        <input type="text" name="name" value="{{ old('name') }}" required
                             placeholder="e.g. Gaurav Kumar"
                             class="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-3 rounded-lg outline-none transition">
+                        @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
 
                     <div>
                         <label class="text-sm font-medium text-gray-700 mb-1 block">
                             Email Address
                         </label>
-                        <input type="email"
+                        <input type="email" name="email" value="{{ old('email') }}" required
                             placeholder="you@example.com"
                             class="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-3 rounded-lg outline-none transition">
+                        @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div>
+                        <label class="text-sm font-medium text-gray-700 mb-1 block">
+                            Subject
+                        </label>
+                        <input type="text" name="subject" value="{{ old('subject') }}"
+                            placeholder="How can we help?"
+                            class="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-3 rounded-lg outline-none transition">
+                        @error('subject')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
 
                     <div>
                         <label class="text-sm font-medium text-gray-700 mb-1 block">
                             Message
                         </label>
-                        <textarea rows="5"
+                        <textarea rows="5" name="message" required
                             placeholder="Tell us what you need help with..."
-                            class="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-3 rounded-lg outline-none transition"></textarea>
+                            class="w-full border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 p-3 rounded-lg outline-none transition">{{ old('message') }}</textarea>
+                        @error('message')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                     </div>
 
                     <button type="submit"

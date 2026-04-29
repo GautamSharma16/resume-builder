@@ -5,17 +5,31 @@ namespace App\Http\Controllers;
 use App\Models\CoverLetter;
 use App\Models\Resume;
 use App\Models\Template;
+use App\Services\PlanActivationService;
+use App\Services\TemplateRenderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Arr;
 
 class CoverLetterController extends Controller
 {
-    public function create()
+    public function create(TemplateRenderService $renderer)
     {
+        $templates = Template::where('type', 'cover_letter')->where('is_active', true)->get();
+        $user = auth()->user();
+        $sample = $renderer->coverLetterSampleData([
+            'name' => $user?->name ?: 'John Doe',
+            'email' => $user?->email ?: 'john.doe@example.com',
+            'mobile' => $user?->mobile ?: '+91 98765 43210',
+        ]);
+
         return view('pages.cover-letter', [
             'resumes' => Resume::where('user_id', auth()->id())->latest()->get(),
-            'templates' => Template::where('type', 'cover_letter')->where('is_active', true)->get(),
+            'templates' => $templates,
+            'renderedTemplates' => $templates->mapWithKeys(fn (Template $template) => [
+                $template->id => (string) $renderer->renderCoverLetter($template, $sample),
+            ]),
+            'prefill' => $sample,
         ]);
     }
 
@@ -23,26 +37,39 @@ class CoverLetterController extends Controller
     {
         $validated = $request->validate([
             'resume_id' => ['nullable', 'exists:resumes,id'],
+            'template_id' => ['nullable', 'exists:templates,id'],
             'name' => ['required_without:resume_id', 'nullable', 'string', 'max:160'],
+            'email' => ['nullable', 'email', 'max:190'],
+            'mobile' => ['nullable', 'string', 'max:30'],
+            'location' => ['nullable', 'string', 'max:160'],
             'company' => ['nullable', 'string', 'max:160'],
-            'job_role' => ['required', 'string', 'max:160'],
+            'company_name' => ['nullable', 'string', 'max:160'],
+            'job_role' => ['nullable', 'string', 'max:160'],
+            'skills' => ['nullable', 'string', 'max:500'],
             'job_description' => ['nullable', 'string', 'max:8000'],
         ]);
 
         $resume = isset($validated['resume_id']) ? Resume::find($validated['resume_id']) : null;
         $name = $resume ? Arr::get($resume->data, 'name', '') : ($validated['name'] ?? '');
-        $body = $this->generateWithGemini($name, $validated['job_role'], $validated['company'] ?? '', $validated['job_description'] ?? '', $resume?->data ?? []);
+        $company = $validated['company_name'] ?? $validated['company'] ?? '';
+        $body = $this->generateWithGemini($name, $validated['job_role'], $company, $validated['job_description'] ?? '', $resume?->data ?? [], $validated['skills'] ?? '');
 
         $letter = CoverLetter::create([
             'user_id' => $request->user()?->id,
             'session_id' => $request->session()->getId(),
+            'template_id' => $validated['template_id'] ?? null,
             'resume_id' => $resume?->id,
             'job_role' => $validated['job_role'],
-            'company' => $validated['company'] ?? null,
+            'company' => $company ?: null,
             'data' => [
                 'name' => $name,
-                'company' => $validated['company'] ?? '',
+                'email' => $validated['email'] ?? $request->user()?->email ?? '',
+                'mobile' => $validated['mobile'] ?? $request->user()?->mobile ?? '',
+                'location' => $validated['location'] ?? '',
+                'company' => $company,
+                'company_name' => $company,
                 'job_role' => $validated['job_role'],
+                'skills' => $validated['skills'] ?? '',
                 'body' => $body,
             ],
         ]);
@@ -54,7 +81,10 @@ class CoverLetterController extends Controller
     {
         $this->authorizeLetter($coverLetter);
         $validated = $request->validate(['letter' => ['required', 'array']]);
-        $coverLetter->update(['data' => $validated['letter']]);
+        $coverLetter->update([
+            'template_id' => $validated['letter']['template_id'] ?? $coverLetter->template_id,
+            'data' => $validated['letter'],
+        ]);
 
         return response()->json(['ok' => true]);
     }
@@ -67,11 +97,18 @@ class CoverLetterController extends Controller
             return redirect()->route('login');
         }
 
-        if (! $coverLetter->is_paid && ! $request->user()->subscription?->plan) {
+        if (! $coverLetter->is_paid && ! $request->user()->activeSubscription?->hasDownloadsRemaining()) {
             return redirect()->route('plans')->with('status', 'Choose a plan to unlock downloads.');
         }
 
-        $html = view('cover-letter.pdf', ['letter' => $coverLetter->data])->render();
+        if (! $coverLetter->is_paid) {
+            app(PlanActivationService::class)->consumeDownload($request->user());
+            $coverLetter->forceFill(['is_paid' => true])->save();
+        }
+
+        $html = $coverLetter->template
+            ? view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderCoverLetter($coverLetter->template, $coverLetter->data)])->render()
+            : view('cover-letter.pdf', ['letter' => $coverLetter->data])->render();
         $filename = 'cover-letter-'.$coverLetter->id;
 
         if ($format === 'doc') {
@@ -85,15 +122,15 @@ class CoverLetterController extends Controller
         return \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4')->download("{$filename}.pdf");
     }
 
-    private function generateWithGemini(string $name, string $role, string $company, string $description, array $resume): string
+    private function generateWithGemini(string $name, string $role, string $company, string $description, array $resume, string $skills = ''): string
     {
         $key = config('services.gemini.key');
 
         if (! $key) {
-            return "Dear Hiring Manager,\n\nI am excited to apply for the {$role} role".($company ? " at {$company}" : '').". My background and skills align well with the requirements, and I would welcome the opportunity to contribute measurable value.\n\nSincerely,\n{$name}";
+            return "Dear Hiring Manager,\n\nI am excited to apply for the {$role} role".($company ? " at {$company}" : '').". My background in {$skills} aligns well with the requirements, and I would welcome the opportunity to contribute measurable value.\n\nSincerely,\n{$name}";
         }
         
-        $prompt = "Write a concise professional cover letter. Return only JSON: {\"body\":\"...\"}.\nName: {$name}\nRole: {$role}\nCompany: {$company}\nJob Description: {$description}\nResume JSON: ".json_encode($resume);
+        $prompt = "Write a concise professional cover letter. Return only JSON: {\"body\":\"...\"}.\nName: {$name}\nRole: {$role}\nCompany: {$company}\nSkills: {$skills}\nJob Description: {$description}\nResume JSON: ".json_encode($resume);
         $model = config('services.gemini.model');
         $response = Http::timeout(60)->post("https://generativelanguage.googleapis.com/v1/models/{$model}:generateContent?key=".urlencode($key), [
             'contents' => [['parts' => [['text' => $prompt]]]],

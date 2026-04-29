@@ -17,6 +17,8 @@ class PricingController extends Controller
     {
         $validated = $request->validate([
             'price_paise' => ['required', 'integer', 'min:0'],
+            'downloads_allowed' => ['nullable', 'integer', 'min:1'],
+            'duration_days' => ['required', 'integer', 'min:1'],
             'resume_limit' => ['nullable', 'integer', 'min:1'],
             'cover_letter_limit' => ['nullable', 'integer', 'min:1'],
             'ai_enabled' => ['nullable', 'boolean'],

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Resume;
+use App\Models\ResumeAnalysis;
 use App\Models\Template;
+use App\Services\PlanActivationService;
+use App\Services\TemplateRenderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
@@ -18,9 +21,34 @@ class ResumeBuilderController extends Controller
 
     public function create(Request $request)
     {
+        $templates = Template::where('type', 'resume')->where('is_active', true)->get();
+        $selectedTemplateId = $request->query('template_id');
+        $selectedTemplate = null;
+        $initialResume = null;
+
+        if ($selectedTemplateId) {
+            $selectedTemplate = Template::where('type', 'resume')->where('is_active', true)->findOrFail($selectedTemplateId);
+            $selectedTemplateId = $selectedTemplate->id;
+        }
+
+        $analysisId = $request->query('analysis_id');
+        if ($analysisId) {
+            $analysis = ResumeAnalysis::findOrFail($analysisId);
+            $authorized = ($request->user() && $analysis->user_id === $request->user()->id) ||
+                (!$request->user() && $analysis->session_id === $request->session()->getId());
+
+            if (! $authorized) {
+                abort(403, 'You do not have access to this resume analysis.');
+            }
+
+            $initialResume = $analysis->improved_resume_json ?? [];
+        }
+
         return view('resume.create', [
-            'templates' => Template::where('type', 'resume')->where('is_active', true)->get(),
-            'selectedTemplate' => $request->query('template'),
+            'templates' => $templates,
+            'selectedTemplate' => $selectedTemplate,
+            'selectedTemplateId' => $selectedTemplateId,
+            'initialResume' => $initialResume,
         ]);
     }
 
@@ -48,15 +76,23 @@ class ResumeBuilderController extends Controller
     {
         $this->authorizeResume($resume);
 
-        return view('resume.edit', ['resume' => $resume]);
+        $templates = Template::where('type', 'resume')->where('is_active', true)->get();
+
+        return view('resume.edit', [
+            'resume' => $resume,
+            'templates' => $templates,
+        ]);
     }
 
     public function update(Request $request, Resume $resume)
     {
         $this->authorizeResume($resume);
 
-        $validated = $request->validate(['resume' => ['required', 'array']]);
-        $resume->update(['data' => $this->normalizeResume($validated['resume'])]);
+        $validated = $request->validate(['resume' => ['required', 'array'], 'template_id' => ['nullable', 'exists:templates,id']]);
+        $resume->update([
+            'data' => $this->normalizeResume($validated['resume']),
+            'template_id' => $validated['template_id'] ?? $resume->template_id,
+        ]);
 
         return response()->json(['ok' => true]);
     }
@@ -65,7 +101,11 @@ class ResumeBuilderController extends Controller
     {
         $this->authorizeResume($resume);
 
-        return view('resume.preview', ['resume' => $resume]);
+        $renderedTemplate = $resume->template
+            ? app(TemplateRenderService::class)->renderResume($resume->template, $this->normalizeResume($resume->data))
+            : null;
+
+        return view('resume.preview', ['resume' => $resume, 'renderedTemplate' => $renderedTemplate]);
     }
 
     public function download(Request $request, Resume $resume, string $format = 'pdf')
@@ -76,11 +116,19 @@ class ResumeBuilderController extends Controller
             return redirect()->route('login');
         }
 
-        if (! $resume->is_paid && ! $request->user()->subscription?->plan) {
+        if (! $resume->is_paid && ! $request->user()->activeSubscription?->hasDownloadsRemaining()) {
             return redirect()->route('plans')->with('status', 'Choose a plan to unlock downloads.');
         }
 
-        $html = view('resume.pdf', ['resume' => $this->normalizeResume($resume->data)])->render();
+        if (! $resume->is_paid) {
+            app(PlanActivationService::class)->consumeDownload($request->user());
+            $resume->forceFill(['is_paid' => true])->save();
+        }
+
+        $normalized = $this->normalizeResume($resume->data);
+        $html = $resume->template
+            ? view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderResume($resume->template, $normalized)])->render()
+            : view('resume.pdf', ['resume' => $normalized])->render();
         $filename = str($resume->title ?: 'resume')->slug()->toString();
 
         if ($format === 'doc') {
@@ -111,12 +159,24 @@ class ResumeBuilderController extends Controller
     {
         return [
             'name' => (string) ($resume['name'] ?? ''),
-            'contact' => (string) ($resume['contact'] ?? ''),
-            'address' => (string) ($resume['address'] ?? ''),
+            'mobile' => (string) ($resume['mobile'] ?? $resume['contact'] ?? ''),
+            'email' => (string) ($resume['email'] ?? ''),
+            'location' => (string) ($resume['location'] ?? $resume['address'] ?? ''),
+            'contact' => (string) ($resume['contact'] ?? $resume['mobile'] ?? ''),
+            'address' => (string) ($resume['address'] ?? $resume['location'] ?? ''),
             'summary' => (string) ($resume['summary'] ?? ''),
             'skills' => array_values(array_filter(array_map('strval', $resume['skills'] ?? []))),
-            'experience' => array_values($resume['experience'] ?? []),
+            'experience' => array_values(array_map(function ($item) {
+                return [
+                    'company' => (string) ($item['company'] ?? ''),
+                    'role' => (string) ($item['role'] ?? ''),
+                    'period' => (string) ($item['period'] ?? ''),
+                    'points' => array_values(array_filter(array_map('strval', $item['points'] ?? []))),
+                ];
+            }, $resume['experience'] ?? [])),
             'education' => array_values(array_filter(array_map('strval', $resume['education'] ?? []))),
+            'projects' => array_values(array_filter(array_map('strval', $resume['projects'] ?? []))),
+            'social_links' => array_values($resume['social_links'] ?? []),
         ];
     }
 }

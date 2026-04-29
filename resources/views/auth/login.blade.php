@@ -11,6 +11,12 @@
             @if(session('status'))<p class="mt-4 rounded-md bg-teal-50 p-3 text-sm text-teal-800">{{ session('status') }}</p>@endif
             @if($errors->any())<p class="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{{ $errors->first() }}</p>@endif
 
+            <div class="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
+                <p class="font-semibold text-gray-900">Demo user</p>
+                <p class="mt-1 text-gray-600">Email: <span class="font-mono">user@resumebuilder.com</span></p>
+                <p class="text-gray-600">Password: <span class="font-mono">user@123</span></p>
+            </div>
+
             <a href="{{ route('auth.google') }}" class="mt-6 flex w-full items-center justify-center gap-3 rounded-md border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-800 hover:bg-gray-50">
                 <span class="text-lg font-bold">G</span> Continue with Google
             </a>
@@ -39,6 +45,22 @@
             <p class="text-sm font-semibold uppercase text-teal-300">Company / Admin</p>
             <h2 class="mt-2 text-3xl font-bold">Secure staff login</h2>
             <p class="mt-2 text-gray-300">For company, admin, SEO, developer, and article writer accounts.</p>
+
+            <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                @foreach([
+                    'Admin' => ['admin@resumebuilder.com', 'Admin@123'],
+                    'Developer' => ['developer@resumebuilder.com', 'Dev@123'],
+                    'SEO' => ['seo@resumebuilder.com', 'Seo@123'],
+                    'Article' => ['article@resumebuilder.com', 'Article@123'],
+                    'Company' => ['company@resumebuilder.com', 'Company@123'],
+                ] as $role => [$email, $password])
+                    <div class="rounded-md border border-gray-800 bg-gray-900 p-3">
+                        <p class="font-semibold text-white">{{ $role }}</p>
+                        <p class="mt-1 text-gray-300 font-mono break-all">{{ $email }}</p>
+                        <p class="text-gray-300 font-mono">{{ $password }}</p>
+                    </div>
+                @endforeach
+            </div>
 
             <form method="POST" action="{{ route('login.store') }}" class="mt-8 space-y-4">
                 @csrf

@@ -1,4 +1,9 @@
 <input name="title" value="{{ old('title', $article->title) }}" class="w-full rounded-md border-gray-300" placeholder="Title" required>
+<select name="category" class="w-full rounded-md border-gray-300" required>
+    @foreach(['Freshers', 'Experienced', 'Preparation'] as $category)
+        <option value="{{ $category }}" @selected(old('category', $article->category ?? 'Preparation') === $category)>{{ $category }}</option>
+    @endforeach
+</select>
 <textarea name="excerpt" rows="2" class="w-full rounded-md border-gray-300" placeholder="Excerpt">{{ old('excerpt', $article->excerpt) }}</textarea>
 <textarea name="body" rows="10" class="w-full rounded-md border-gray-300" placeholder="Article body" required>{{ old('body', $article->body) }}</textarea>
 <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="is_published" value="1" @checked(old('is_published', $article->is_published ?? false))> Published</label>

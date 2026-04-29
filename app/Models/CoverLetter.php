@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CoverLetter extends Model
 {
@@ -23,5 +24,10 @@ class CoverLetter extends Model
             'data' => 'array',
             'is_paid' => 'boolean',
         ];
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(Template::class);
     }
 }

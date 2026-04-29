@@ -43,6 +43,7 @@ return [
     'razorpay' => [
         'key' => env('RAZORPAY_KEY_ID'),
         'secret' => env('RAZORPAY_KEY_SECRET'),
+        'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
         'download_amount' => (int) env('RAZORPAY_DOWNLOAD_AMOUNT', 4900),
         'currency' => env('RAZORPAY_CURRENCY', 'INR'),
     ],

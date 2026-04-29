@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ResumeAnalysis;
+use App\Services\PlanActivationService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,8 +29,6 @@ class ResumeController extends Controller
     {
         $validated = $request->validate([
             'resume' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
-            'job_role' => ['required', 'string', 'max:160'],
-            'job_description' => ['nullable', 'string', 'max:12000'],
         ]);
 
         $text = $this->cleanText($this->extractText($request->file('resume')));
@@ -41,17 +40,19 @@ class ResumeController extends Controller
         }
 
         $resumeJson = $this->structureResume($text);
+        $jobRole = 'General';
+        $jobDescription = null;
         $analysis = $this->askGeminiForAnalysis(
             $resumeJson,
-            $validated['job_role'],
-            $validated['job_description'] ?? null
+            $jobRole,
+            $jobDescription
         );
 
         $analysisRecord = ResumeAnalysis::create([
             'user_id' => $request->user()?->id,
             'session_id' => $request->session()->getId(),
-            'job_role' => $validated['job_role'],
-            'job_description' => $validated['job_description'] ?? null,
+            'job_role' => $jobRole,
+            'job_description' => $jobDescription,
             'original_filename' => $request->file('resume')->getClientOriginalName(),
             'extracted_text' => $text,
             'resume_json' => $resumeJson,
@@ -239,11 +240,24 @@ class ResumeController extends Controller
 
         $analysisRecord = $this->findAuthorizedAnalysis($request, (int) $validated['analysis_id']);
 
-        if (!$analysisRecord->is_paid) {
+        if (! $request->user()) {
+            return redirect()->route('login');
+        }
+
+        if (! $analysisRecord->is_paid && ! $request->user()->activeSubscription?->hasDownloadsRemaining()) {
             return response()->json([
-                'message' => 'Please unlock download before generating the PDF.',
+                'message' => 'Choose a plan to unlock downloads.',
                 'requires_payment' => true,
+                'pricing_url' => route('plans'),
             ], 402);
+        }
+
+        if (! $analysisRecord->is_paid) {
+            app(PlanActivationService::class)->consumeDownload($request->user());
+            $analysisRecord->forceFill([
+                'is_paid' => true,
+                'paid_at' => now(),
+            ])->save();
         }
 
         $resume = $this->normalizeResume($analysisRecord->improved_resume_json ?? []);
@@ -311,6 +325,7 @@ class ResumeController extends Controller
         $skills = $this->extractSectionItems($text, ['skills', 'technical skills', 'core skills']);
         $education = $this->extractSectionItems($text, ['education', 'academic']);
         $experienceLines = $this->extractSectionItems($text, ['experience', 'work experience', 'professional experience']);
+        $projects = $this->extractSectionItems($text, ['projects', 'project', 'portfolio', 'projects & accomplishments', 'selected projects']);
 
         $summaryLines = $lines
             ->reject(fn($line) => str_contains(strtolower($line), '@') || preg_match('/\+?\d[\d\s().-]{7,}/', $line))
@@ -330,6 +345,7 @@ class ResumeController extends Controller
                 ]
             ],
             'education' => $education,
+            'projects' => $projects,
         ]);
     }
 
@@ -388,7 +404,8 @@ FORMAT:
     "experience": [
       { "company": "", "role": "", "points": [] }
     ],
-    "education": []
+    "education": [],
+    "projects": []
   }
 }
 
@@ -448,26 +465,32 @@ PROMPT;
 
     private function decodeGeminiJson(string $text): array
     {
-        if (!$text) {
+        if (! $text) {
             return $this->fallbackResponse();
         }
 
-        $text = trim($text);
+        $candidate = trim($text);
 
-        // remove markdown
-        $text = preg_replace('/^```json|```$/m', '', $text);
+        // Remove common markdown fences
+        $candidate = preg_replace('/```(?:json)?/i', '', $candidate);
+        $candidate = str_replace('```', '', $candidate);
 
-        // try direct decode
-        $decoded = json_decode($text, true);
+        // Extract first {...} block to avoid extra commentary
+        $start = strpos($candidate, '{');
+        $end = strrpos($candidate, '}');
+        if ($start !== false && $end !== false && $end > $start) {
+            $candidate = substr($candidate, $start, $end - $start + 1);
+        }
+
+        $decoded = json_decode($candidate, true);
 
         if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
             return $decoded;
         }
 
-        // try extracting JSON
-        if (preg_match('/\{.*\}/s', $text, $match)) {
-            $decoded = json_decode($match[0], true);
-
+        // Fallback: non-greedy search for a JSON object
+        if (preg_match('/\{.*?\}/s', $candidate, $m)) {
+            $decoded = json_decode($m[0], true);
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 return $decoded;
             }
@@ -479,16 +502,17 @@ PROMPT;
     {
         return [
             'score' => 50,
-            'strengths' => ['Basic resume detected'],
-            'weaknesses' => ['AI response parsing failed'],
+            'strengths' => [],
+            'weaknesses' => [],
             'missing_keywords' => [],
-            'suggestions' => ['Try again with better job description'],
+            'suggestions' => [],
             'improved_resume' => [
                 'name' => '',
                 'summary' => '',
                 'skills' => [],
                 'experience' => [],
                 'education' => [],
+                'projects' => [],
             ],
         ];
     }
@@ -507,6 +531,7 @@ PROMPT;
                 ];
             }, $resume['experience'] ?? [])),
             'education' => array_values(array_filter(array_map('strval', $resume['education'] ?? []))),
+            'projects' => array_values(array_filter(array_map('strval', $resume['projects'] ?? []))),
         ];
     }
 

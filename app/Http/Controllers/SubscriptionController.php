@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Plan;
 use App\Models\Purchase;
-use App\Models\Subscription;
+use App\Services\PlanActivationService;
 use Illuminate\Http\Request;
 use Razorpay\Api\Api;
 use Throwable;
@@ -18,33 +18,54 @@ class SubscriptionController extends Controller
 
     public function order(Request $request, Plan $plan)
     {
+        abort_unless($plan->is_active, 404);
+
         $api = new Api(config('services.razorpay.key'), config('services.razorpay.secret'));
-        $order = $api->order->create([
-            'receipt' => 'plan_'.$plan->id.'_user_'.auth()->id(),
+        $reference = 'plan_'.$plan->slug.'_user_'.$request->user()->id.'_'.now()->timestamp;
+
+        $link = $api->paymentLink->create([
             'amount' => $plan->price_paise,
             'currency' => config('services.razorpay.currency', 'INR'),
-            'payment_capture' => 1,
+            'accept_partial' => false,
+            'reference_id' => $reference,
+            'description' => $plan->name.' Resume Builder Plan',
+            'customer' => [
+                'name' => $request->user()->name,
+                'email' => $request->user()->email,
+                'contact' => $request->user()->mobile,
+            ],
+            'notify' => [
+                'sms' => false,
+                'email' => true,
+            ],
+            'callback_url' => route('dashboard'),
+            'callback_method' => 'get',
+            'notes' => [
+                'user_id' => (string) $request->user()->id,
+                'plan' => $plan->slug,
+            ],
         ]);
 
         $purchase = Purchase::create([
-            'user_id' => auth()->id(),
+            'user_id' => $request->user()->id,
             'plan_id' => $plan->id,
+            'plan_slug' => $plan->slug,
             'amount_paise' => $plan->price_paise,
-            'currency' => 'INR',
+            'currency' => config('services.razorpay.currency', 'INR'),
             'status' => 'created',
-            'razorpay_order_id' => $order['id'],
+            'razorpay_payment_link_id' => $link['id'],
+            'razorpay_payment_link_reference_id' => $reference,
+            'razorpay_payment_link_url' => $link['short_url'],
+            'notes' => [
+                'user_id' => $request->user()->id,
+                'plan' => $plan->slug,
+            ],
         ]);
 
-        return response()->json([
-            'purchase_id' => $purchase->id,
-            'order_id' => $order['id'],
-            'key' => config('services.razorpay.key'),
-            'amount' => $plan->price_paise,
-            'currency' => 'INR',
-        ]);
+        return redirect()->away($purchase->razorpay_payment_link_url);
     }
 
-    public function verify(Request $request, Purchase $purchase)
+    public function verify(Request $request, Purchase $purchase, PlanActivationService $plans)
     {
         $validated = $request->validate([
             'razorpay_order_id' => ['required'],
@@ -67,10 +88,7 @@ class SubscriptionController extends Controller
             'paid_at' => now(),
         ]);
 
-        Subscription::updateOrCreate(
-            ['user_id' => $purchase->user_id],
-            ['plan_id' => $purchase->plan_id, 'status' => 'active', 'starts_at' => now()]
-        );
+        $plans->activate($purchase->user, $purchase->plan);
 
         return response()->json(['ok' => true]);
     }

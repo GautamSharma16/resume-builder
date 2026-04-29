@@ -64,7 +64,7 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return in_array($this->role, ['admin', 'super_admin', 'developer', 'seo', 'article_writer'], true);
+        return in_array(strtolower((string) $this->role), ['admin', 'super_admin', 'dev', 'developer', 'seo', 'article', 'article_writer'], true);
     }
 
     /**
@@ -72,12 +72,12 @@ class User extends Authenticatable
      */
     public function isUser(): bool
     {
-        return $this->role === 'user';
+        return strtolower((string) $this->role) === 'user';
     }
 
     public function isCompany(): bool
     {
-        return $this->role === 'company';
+        return strtolower((string) $this->role) === 'company';
     }
 
     public function generateOtp(): string
@@ -109,8 +109,19 @@ class User extends Authenticatable
         return $this->hasOne(Subscription::class)->latestOfMany();
     }
 
+    public function activeSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)
+            ->where('status', 'active')
+            ->where('expiry_date', '>', now())
+            ->latestOfMany();
+    }
+
     public function hasRole(string|array $roles): bool
     {
-        return in_array($this->role, (array) $roles, true);
+        $role = strtolower((string) $this->role);
+        $allowed = array_map(fn ($item) => strtolower((string) $item), (array) $roles);
+
+        return in_array($role, $allowed, true);
     }
 }

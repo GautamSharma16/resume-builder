@@ -1,3 +1,274 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+    .resume-sheet-preview {
+        width: 794px;
+        min-height: 1123px;
+        background: #fff;
+        transform-origin: top left;
+    }
+
+    .tpl-resume {
+        width: 794px;
+        min-height: 1123px;
+        background: #fff;
+        padding: 46px;
+        font-size: 15px;
+        line-height: 1.55;
+    }
+
+    .tpl-resume h1 {
+        font-size: 36px;
+        line-height: 1.05;
+        font-weight: 800;
+        letter-spacing: 0;
+        margin: 0;
+    }
+
+    .tpl-resume h2 {
+        font-size: 13px;
+        text-transform: uppercase;
+        font-weight: 800;
+        letter-spacing: 0;
+        margin: 22px 0 9px;
+        border-bottom: 1px solid #d1d5db;
+        padding-bottom: 5px;
+    }
+
+    .tpl-resume p {
+        margin: 0 0 8px;
+    }
+
+    .tpl-resume ul {
+        margin: 6px 0 0;
+        padding-left: 18px;
+    }
+
+    .tpl-resume li {
+        margin: 3px 0;
+    }
+
+    .tpl-role {
+        margin: 0 0 14px;
+    }
+
+    .tpl-role-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .tpl-role-head span {
+        color: #64748b;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .tpl-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+    }
+
+    .tpl-badge {
+        display: inline-flex;
+        border: 1px solid #d1d5db;
+        border-radius: 999px;
+        padding: 3px 9px;
+        margin: 0 5px 6px 0;
+        font-size: 12px;
+        background: #fff;
+    }
+
+    .tpl-two {
+        display: grid;
+        grid-template-columns: 245px 1fr;
+        padding: 0;
+    }
+
+    .tpl-two aside {
+        padding: 42px 28px;
+    }
+
+    .tpl-two main {
+        padding: 42px 38px;
+    }
+
+    .tpl-centered {
+        text-align: center;
+    }
+
+    .tpl-rule {
+        height: 4px;
+        margin: 22px 0;
+    }
+
+    .tpl-cols {
+        display: grid;
+        grid-template-columns: 0.8fr 1.2fr;
+        gap: 28px;
+    }
+
+    .tpl-carded {
+        padding: 0;
+    }
+
+    .tpl-carded header {
+        padding: 38px 46px;
+    }
+
+    .tpl-carded section {
+        margin: 18px 36px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        padding: 18px;
+    }
+
+    .tpl-leftline footer,
+    .tpl-links {
+        margin-top: 18px;
+        color: #64748b;
+    }
+
+    .tpl-band {
+        padding-top: 0;
+    }
+
+    .tpl-band header {
+        margin: 0 -46px 28px;
+        padding: 38px 46px;
+    }
+
+    .tpl-panel {
+        background: #f8fafc;
+        padding: 14px 16px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .tpl-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px 30px;
+    }
+
+    .tpl-grid header,
+    .tpl-grid .span,
+    .tpl-grid footer {
+        grid-column: 1 / -1;
+    }
+
+    .tpl-grid header {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 3px solid #111827;
+        padding-bottom: 18px;
+    }
+
+    .tpl-minimal h2 {
+        border-bottom: 0;
+        border-top: 1px solid #111827;
+        padding-top: 10px;
+    }
+
+    .tpl-accentbox header div {
+        width: 58px;
+        height: 10px;
+        margin-bottom: 16px;
+    }
+
+    .tpl-highlight {
+        border-left: 5px solid;
+        padding-left: 18px;
+    }
+
+    .tpl-dense {
+        font-size: 14px;
+        padding: 38px;
+    }
+
+    .tpl-dense h2 {
+        margin-top: 16px;
+    }
+
+    .tpl-cover {
+        width: 794px;
+        min-height: 1123px;
+        background: #fff;
+        padding: 64px;
+        font-family: Inter, Arial, sans-serif;
+        color: #111827;
+        font-size: 16px;
+        line-height: 1.75;
+    }
+
+    .tpl-cover h1 {
+        font-size: 34px;
+        font-weight: 800;
+        margin: 0 0 6px;
+    }
+
+    .tpl-cover h2 {
+        font-size: 20px;
+        font-weight: 800;
+        margin: 24px 0 8px;
+    }
+
+    .tpl-cover main,
+    .tpl-cover section {
+        margin-top: 48px;
+    }
+
+    .tpl-cover-modern header {
+        border-bottom: 4px solid #0f766e;
+        padding-bottom: 22px;
+    }
+
+    .tpl-cover-modern aside {
+        margin-top: 28px;
+        background: #ecfdf5;
+        padding: 18px;
+        font-weight: 700;
+    }
+
+    .tpl-cover-executive {
+        font-family: Georgia, Times New Roman, serif;
+    }
+
+    .tpl-cover-executive header {
+        text-align: center;
+        border-bottom: 1px solid #111827;
+        padding-bottom: 28px;
+    }
+
+    .tpl-cover-fresher header {
+        background: #eff6ff;
+        margin: -64px -64px 36px;
+        padding: 54px 64px 32px;
+    }
+
+    .tpl-cover-switch {
+        border-left: 16px solid #7c3aed;
+    }
+
+    .tpl-cover-minimal {
+        font-family: Georgia, Times New Roman, serif;
+    }
+
+    .tpl-cover-minimal header {
+        border-bottom: 1px solid #d1d5db;
+        padding-bottom: 20px;
+    }
+
+    .tpl-cover-clean header {
+        border-top: 8px solid #111827;
+        padding-top: 26px;
+    }
+
+    .tpl-kicker,
+    .tpl-company {
+        font-weight: 800;
+        color: #0f766e;
+    }
+}

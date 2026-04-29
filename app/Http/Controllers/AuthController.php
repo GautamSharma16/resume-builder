@@ -55,7 +55,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if (($validated['role_scope'] ?? 'user') === 'staff' && ! $user->hasRole(['admin', 'company', 'seo', 'developer', 'article_writer', 'super_admin'])) {
+        if (($validated['role_scope'] ?? 'user') === 'staff' && ! $user->hasRole(['admin', 'company', 'seo', 'dev', 'developer', 'article', 'article_writer', 'super_admin'])) {
             throw ValidationException::withMessages(['email' => 'This login panel is for company and admin accounts.']);
         }
 
@@ -233,7 +233,7 @@ class AuthController extends Controller
     private function redirectPath(User $user): string
     {
         return match ($user->role) {
-            'admin', 'super_admin', 'seo', 'developer', 'article_writer' => route('admin.dashboard'),
+            'admin', 'super_admin', 'seo', 'dev', 'developer', 'article', 'article_writer' => route('admin.dashboard'),
             'company' => route('company.dashboard'),
             default => route('dashboard'),
         };

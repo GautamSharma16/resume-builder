@@ -48,6 +48,7 @@ class ArticleController extends Controller
     {
         return $request->validate([
             'title' => ['required', 'string', 'max:180'],
+            'category' => ['required', 'in:Freshers,Experienced,Preparation'],
             'excerpt' => ['nullable', 'string', 'max:500'],
             'body' => ['required', 'string'],
             'is_published' => ['nullable', 'boolean'],
