@@ -1,0 +1,28 @@
+<?php $__env->startPush('scripts'); ?>
+<script>
+(() => {
+    const app = document.getElementById('create-cv-app');
+    if (!app) return;
+    const state = Object.assign({name:'', contact:'', address:'', summary:'', skills:[], experience:[{company:'', role:'', points:['']}], education:['']}, JSON.parse(app.dataset.initial || '{}'));
+    let source = 'manual';
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+    const list = (v) => String(v).split(',').map(x => x.trim()).filter(Boolean);
+    function renderEditor() {
+        $('cv-name').value = state.name || ''; $('cv-contact').value = state.contact || ''; $('cv-address').value = state.address || ''; $('cv-summary').value = state.summary || ''; $('cv-skills').value = (state.skills || []).join(', ');
+        $('exp-editor').innerHTML = (state.experience || []).map((e,i) => `<div class="border border-gray-200 rounded-lg p-3" data-exp="${i}"><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><input class="rounded-md border-gray-300 text-sm" data-k="company" value="${esc(e.company)}" placeholder="Company"><input class="rounded-md border-gray-300 text-sm" data-k="role" value="${esc(e.role)}" placeholder="Role"></div><textarea class="mt-3 w-full rounded-md border-gray-300 text-sm" data-k="points" rows="3" placeholder="One bullet per line">${esc((e.points || []).join('\n'))}</textarea><button type="button" data-remove-exp class="mt-2 text-sm font-semibold text-red-600">Remove</button></div>`).join('');
+        $('edu-editor').innerHTML = (state.education || []).map((e,i) => `<div class="flex gap-2" data-edu="${i}"><input class="w-full rounded-md border-gray-300 text-sm" value="${esc(e)}" placeholder="Degree, institution, year"><button type="button" data-remove-edu class="px-3 rounded-md border border-gray-300">-</button></div>`).join('');
+    }
+    function renderPreview() {
+        $('cv-preview').innerHTML = `<header class="border-b-2 border-gray-950 pb-4"><h1 class="text-3xl font-bold uppercase text-gray-950">${esc(state.name || 'Your Name')}</h1><p class="mt-2 text-sm text-gray-600">${esc(state.contact)}</p><p class="text-sm text-gray-600">${esc(state.address)}</p></header><section class="mt-6"><h2 class="text-xs font-bold uppercase text-teal-700">Summary</h2><p class="mt-2 text-sm leading-6 text-gray-700">${esc(state.summary)}</p></section><section class="mt-6"><h2 class="text-xs font-bold uppercase text-teal-700">Skills</h2><p class="mt-2 text-sm text-gray-700">${esc((state.skills || []).join(', '))}</p></section><section class="mt-6"><h2 class="text-xs font-bold uppercase text-teal-700">Experience</h2>${(state.experience || []).map(e => `<div class="mt-3"><h3 class="font-bold text-gray-950">${esc(e.role)}</h3><p class="text-sm text-gray-500">${esc(e.company)}</p><ul class="mt-2 list-disc pl-5 text-sm text-gray-700">${(e.points || []).map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>`).join('')}</section><section class="mt-6"><h2 class="text-xs font-bold uppercase text-teal-700">Education</h2><ul class="mt-2 list-disc pl-5 text-sm text-gray-700">${(state.education || []).filter(Boolean).map(e => `<li>${esc(e)}</li>`).join('')}</ul></section>`;
+    }
+    document.querySelectorAll('.cv-field').forEach(input => input.addEventListener('input', e => { const f=e.target.dataset.field; state[f] = f === 'skills' ? list(e.target.value) : e.target.value; renderPreview(); }));
+    $('exp-editor').addEventListener('input', e => { const box=e.target.closest('[data-exp]'); if(!box) return; const i=+box.dataset.exp; const k=e.target.dataset.k; state.experience[i][k] = k === 'points' ? e.target.value.split('\n').map(x=>x.trim()).filter(Boolean) : e.target.value; renderPreview(); });
+    $('edu-editor').addEventListener('input', e => { const row=e.target.closest('[data-edu]'); if(!row) return; state.education[+row.dataset.edu] = e.target.value; renderPreview(); });
+    app.addEventListener('click', e => { if(e.target.matches('.source-btn')) { source=e.target.dataset.source; document.querySelectorAll('.source-btn').forEach(b=>b.classList.remove('bg-teal-700','text-white')); e.target.classList.add('bg-teal-700','text-white'); } if(e.target.id==='add-exp'){ state.experience.push({company:'',role:'',points:['']}); renderEditor(); renderPreview(); } if(e.target.id==='add-edu'){ state.education.push(''); renderEditor(); renderPreview(); } if(e.target.dataset.removeExp!==undefined){ state.experience.splice(+e.target.closest('[data-exp]').dataset.exp,1); renderEditor(); renderPreview(); } if(e.target.dataset.removeEdu!==undefined){ state.education.splice(+e.target.closest('[data-edu]').dataset.edu,1); renderEditor(); renderPreview(); } });
+    $('save-cv').addEventListener('click', async () => { $('cv-status').textContent='Saving...'; const url=app.dataset.updateUrl || app.dataset.storeUrl; const method=app.dataset.updateUrl ? 'patch' : 'post'; const payload=app.dataset.updateUrl ? {resume:state} : {source, template_id:$('template-id')?.value || null, resume:state}; const res=await axios[method](url,payload); if(res.data.redirect) location.href=res.data.redirect; else $('cv-status').textContent='Saved.'; });
+    renderEditor(); renderPreview();
+})();
+</script>
+<?php $__env->stopPush(); ?>
+<?php /**PATH C:\xampp\htdocs\resume-builder\resume-builder\resources\views\resume\partials\editor-script.blade.php ENDPATH**/ ?>
