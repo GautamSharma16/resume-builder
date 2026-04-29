@@ -301,9 +301,6 @@
                 <div id="successMsg" class="success-msg">
                     ✓ Message sent! We'll respond shortly.
                 </div>
-
-                
-
                     <div class="form-field">
                         <label>Name <span class="req">*</span></label>
                         <input type="text" name="name" placeholder="Your name" required>

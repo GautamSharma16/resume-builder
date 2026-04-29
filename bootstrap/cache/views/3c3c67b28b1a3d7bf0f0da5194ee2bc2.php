@@ -1053,11 +1053,7 @@
     <div class="hero-grid"></div>
 
     <div class="hero-content">
-        <div class="hero-badge-pill">
-            <span class="dot"></span>
-            AI-Powered Resume Builder
-            <span class="badge-new">NEW</span>
-        </div>
+    
 
         <h1 class="hero-headline">
             Get Hired Faster<br>with 
