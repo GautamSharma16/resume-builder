@@ -1,9 +1,6 @@
-{{-- resources/views/pages/home.blade.php --}}
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Cvbliss - Build a Resume That Commands Attention'); ?>
 
-@section('title', 'Cvbliss - Build a Resume That Commands Attention')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 
@@ -1048,7 +1045,7 @@
 
 <div class="noise-overlay"></div>
 
-{{-- HERO SECTION --}}
+
 <section class="hero">
     <div class="hero-orb-1"></div>
     <div class="hero-orb-2"></div>
@@ -1118,7 +1115,7 @@
         <div class="resume-preview">
             <div class="preview-ring"></div>
             <div class="resume-preview-card">
-                <img src="{{ asset('resume.png') }}" alt="Resume Preview"
+                <img src="<?php echo e(asset('resume.png')); ?>" alt="Resume Preview"
                      onerror="this.src='https://placehold.co/400x520/e2e8f0/64748b?text=Resume+Preview'">
             </div>
 
@@ -1142,7 +1139,7 @@
     </div>
 </section>
 
-{{-- STATS BAND --}}
+
 <div class="stats-band">
     <div class="stat-item">
         <div class="stat-number" data-count="15000">15,000<span>+</span></div>
@@ -1162,7 +1159,7 @@
     </div>
 </div>
 
-{{-- FEATURES STRIP --}}
+
 <section class="features-strip">
     <div class="features-strip-header">
         <div class="section-label">Powerful Features</div>
@@ -1215,7 +1212,7 @@
     </div>
 </section>
 
-{{-- TEMPLATES --}}
+
 <section class="templates-section">
     <div class="templates-header">
         <div>
@@ -1277,7 +1274,7 @@
     </div>
 </section>
 
-{{-- PRICING --}}
+
 <section class="pricing-section">
     <div class="pricing-glow"></div>
     <div class="pricing-glow-2"></div>
@@ -1289,7 +1286,7 @@
     </div>
 
     <div class="pricing-cards">
-        {{-- Basic --}}
+        
         <div class="plan-card">
             <div class="plan-icon-wrap dark">
                 <svg width="22" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -1309,7 +1306,7 @@
             <a href="/templates" class="btn-plan btn-plan-dark">Get Started</a>
         </div>
 
-        {{-- Silver (featured) --}}
+        
         <div class="plan-card featured">
             <div class="plan-badge">🔥 Most Popular</div>
             <div class="plan-icon-wrap light">
@@ -1331,7 +1328,7 @@
             <a href="/templates" class="btn-plan btn-plan-primary">Choose Silver →</a>
         </div>
 
-        {{-- Gold --}}
+        
         <div class="plan-card">
             <div class="plan-icon-wrap dark">
                 <svg width="22" fill="none" stroke="#f59e0b" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
@@ -1356,7 +1353,7 @@
     <p class="pricing-footnote">✨ All plans include a free preview. No credit card needed to start.</p>
 </section>
 
-{{-- CTA --}}
+
 <section class="cta-section">
     <div class="cta-inner">
         <h2>Ready to Build Your<br><em>Dream Career?</em></h2>
@@ -1374,9 +1371,9 @@
     </div>
 </section>
 
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 /* Intersection Observer: reveal on scroll */
 const revealObserver = new IntersectionObserver((entries) => {
@@ -1469,4 +1466,5 @@ document.querySelectorAll('.stat-item').forEach(item => {
     });
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\Resume_Builder\resources\views/pages/home.blade.php ENDPATH**/ ?>

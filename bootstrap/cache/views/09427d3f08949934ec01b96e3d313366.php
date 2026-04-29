@@ -1,8 +1,6 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Contact Us - CVBliss'); ?>
 
-@section('title', 'Contact Us - CVBliss')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 
@@ -281,7 +279,7 @@
 
     <div class="contact-wrap">
 
-        {{-- HEADER --}}
+        
         <div class="contact-header">
             <div class="contact-badge">
                 <span class="badge-dot"></span>
@@ -293,7 +291,7 @@
 
         <div class="contact-main">
 
-            {{-- LEFT: FORM --}}
+            
             <div class="form-card">
                 <div class="form-header">
                     <h2>Send us a message</h2>
@@ -303,6 +301,9 @@
                 <div id="successMsg" class="success-msg">
                     ✓ Message sent! We'll respond shortly.
                 </div>
+
+                
+
                     <div class="form-field">
                         <label>Name <span class="req">*</span></label>
                         <input type="text" name="name" placeholder="Your name" required>
@@ -340,10 +341,10 @@
                 </form>
             </div>
 
-            {{-- RIGHT: INFO --}}
+            
             <div class="right-content">
                 <div class="image-card">
-                    <img src="{{ asset('contact-support.jpg') }}" alt="Customer support" onerror="this.style.display='none'">
+                    <img src="<?php echo e(asset('contact-support.jpg')); ?>" alt="Customer support" onerror="this.style.display='none'">
                     <div class="image-caption">
                         <h4>Real people, real care</h4>
                         <p>No bots. No automated responses. Just humans who want to help you succeed.</p>
@@ -379,7 +380,7 @@
             </div>
         </div>
 
-        {{-- FAQ SECTION --}}
+        
         <div class="faq-section">
             <div class="faq-header">
                 <h2>Frequently asked <em>questions</em></h2>
@@ -491,4 +492,5 @@
     }
 </script>
 
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH D:\Resume_Builder\resources\views/pages/contact.blade.php ENDPATH**/ ?>
