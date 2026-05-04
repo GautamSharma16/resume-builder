@@ -79,7 +79,6 @@ class SaasSeeder extends Seeder
         }
 
         $permissions = [
-            'super_admin' => ['templates.manage', 'articles.manage', 'users.manage', 'pricing.manage'],
             'developer' => ['templates.manage', 'pricing.manage'],
             'seo' => ['articles.manage'],
             'article_writer' => ['articles.manage'],

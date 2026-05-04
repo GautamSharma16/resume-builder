@@ -69,7 +69,10 @@ class ResumeBuilderController extends Controller
             'data' => $this->normalizeResume($validated['resume']),
         ]);
 
-        return response()->json(['resume_id' => $resume->id, 'redirect' => route('resume.edit', $resume)]);
+        return response()->json([
+            'resume' => ['id' => $resume->id],
+            'redirect' => $request->user() ? null : route('login').'?redirect='.urlencode(route('resume.edit', $resume))
+        ]);
     }
 
     public function edit(Resume $resume)
@@ -102,7 +105,7 @@ class ResumeBuilderController extends Controller
         $this->authorizeResume($resume);
 
         $renderedTemplate = $resume->template
-            ? app(TemplateRenderService::class)->renderResume($resume->template, $this->normalizeResume($resume->data))
+            ? app(TemplateRenderService::class)->renderResume($resume->template, $resume->data)
             : null;
 
         return view('resume.preview', ['resume' => $resume, 'renderedTemplate' => $renderedTemplate]);
@@ -157,26 +160,119 @@ class ResumeBuilderController extends Controller
 
     private function normalizeResume(array $resume): array
     {
-        return [
-            'name' => (string) ($resume['name'] ?? ''),
-            'mobile' => (string) ($resume['mobile'] ?? $resume['contact'] ?? ''),
-            'email' => (string) ($resume['email'] ?? ''),
-            'location' => (string) ($resume['location'] ?? $resume['address'] ?? ''),
-            'contact' => (string) ($resume['contact'] ?? $resume['mobile'] ?? ''),
-            'address' => (string) ($resume['address'] ?? $resume['location'] ?? ''),
-            'summary' => (string) ($resume['summary'] ?? ''),
-            'skills' => array_values(array_filter(array_map('strval', $resume['skills'] ?? []))),
-            'experience' => array_values(array_map(function ($item) {
-                return [
-                    'company' => (string) ($item['company'] ?? ''),
-                    'role' => (string) ($item['role'] ?? ''),
-                    'period' => (string) ($item['period'] ?? ''),
-                    'points' => array_values(array_filter(array_map('strval', $item['points'] ?? []))),
-                ];
-            }, $resume['experience'] ?? [])),
-            'education' => array_values(array_filter(array_map('strval', $resume['education'] ?? []))),
-            'projects' => array_values(array_filter(array_map('strval', $resume['projects'] ?? []))),
-            'social_links' => array_values($resume['social_links'] ?? []),
-        ];
+        return array_merge($resume, [
+            'name' => $this->toText($resume['name'] ?? ''),
+            'mobile' => $this->toText($resume['mobile'] ?? $resume['contact'] ?? ''),
+            'email' => $this->toText($resume['email'] ?? ''),
+            'location' => $this->toText($resume['location'] ?? $resume['address'] ?? ''),
+            'contact' => $this->toText($resume['contact'] ?? $resume['mobile'] ?? ''),
+            'address' => $this->toText($resume['address'] ?? $resume['location'] ?? ''),
+            'summary' => $this->toText($resume['summary'] ?? ''),
+            'linkedin' => $this->toText($resume['linkedin'] ?? ''),
+            'github' => $this->toText($resume['github'] ?? ''),
+            'tech_stack' => $this->toText($resume['tech_stack'] ?? ''),
+            'skills' => $this->normalizeArray($resume['skills'] ?? []),
+            'experience' => $this->normalizeNestedItems($resume['experience'] ?? []),
+            'education' => $this->normalizeArray($resume['education'] ?? []),
+            'projects' => $this->normalizeNestedItems($resume['projects'] ?? []),
+            'social_links' => $this->normalizeArray($resume['social_links'] ?? []),
+            'certifications' => $this->normalizeArray($resume['certifications'] ?? []),
+        ]);
+    }
+
+    private function normalizeArray(array|string|null $items): array
+    {
+        if ($items === null) {
+            return [];
+        }
+
+        if (! is_array($items)) {
+            return $this->stringList($items);
+        }
+
+        return array_values(array_filter(array_map(function ($item) {
+            if (is_array($item)) {
+                return collect($item)->map(function ($value) {
+                    return is_array($value) ? $this->normalizeArray($value) : $this->toText($value);
+                })->all();
+            }
+
+            return $this->toText($item);
+        }, $items), fn ($item) => $item !== null && $item !== ''));
+    }
+
+    private function normalizeNestedItems(array|string|null $items): array
+    {
+        if ($items === null) {
+            return [];
+        }
+
+        if (! is_array($items)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(function ($item) {
+            if (! is_array($item)) {
+                return null;
+            }
+
+            return collect($item)->map(function ($value) {
+                if (is_array($value)) {
+                    return $this->normalizeArray($value);
+                }
+
+                return $this->toText($value);
+            })->all();
+        }, $items), fn ($item) => ! empty($item)));
+    }
+
+    private function stringList(array|string|null $items): array
+    {
+        if ($items === null) {
+            return [];
+        }
+
+        $items = is_array($items) ? $items : explode(',', $items);
+
+        return array_values(array_filter(array_map(fn ($item) => $this->toText($item), $items)));
+    }
+
+    private function projectList(array|string|null $items): array
+    {
+        if ($items === null) {
+            return [];
+        }
+
+        $items = is_array($items) ? $items : explode(',', $items);
+
+        return array_values(array_filter(array_map(function ($item) {
+            if (is_array($item)) {
+                $name = $this->toText($item['name'] ?? '');
+                $description = $this->toText($item['description'] ?? '');
+
+                if ($name === '' && $description === '') {
+                    return null;
+                }
+
+                return compact('name', 'description');
+            }
+
+            $name = $this->toText($item);
+
+            return $name === '' ? null : ['name' => $name, 'description' => ''];
+        }, $items)));
+    }
+
+    private function toText(mixed $value): string
+    {
+        if (is_array($value)) {
+            return collect($value)
+                ->flatten()
+                ->map(fn ($part) => is_scalar($part) ? trim((string) $part) : '')
+                ->filter()
+                ->join(' - ');
+        }
+
+        return trim((string) ($value ?? ''));
     }
 }

@@ -11,18 +11,79 @@ class TemplateRenderService
     public function resumeSampleData(): array
     {
         return [
+            'type' => 'resume',
             'name' => 'John Doe',
             'email' => 'john.doe@example.com',
             'mobile' => '+91 98765 43210',
             'location' => 'Bengaluru, India',
+            'link' => 'https://example.com',
             'summary' => 'Senior Developer with 3+ years of experience building SaaS products, scalable Laravel APIs, and clean user workflows.',
-            'skills' => ['Laravel', 'PHP', 'MySQL', 'Tailwind CSS', 'REST APIs', 'Git'],
+            'linkedin' => 'linkedin.com/in/johndoe',
+            'github' => 'github.com/johndoe',
+            'skills' => ['React.js', 'Node.js', 'Express.js', 'MongoDB', 'REST APIs', 'JWT Authentication'],
             'experience' => [
-                ['role' => 'Senior Developer', 'company' => 'Acme SaaS', 'period' => '2022 - Present', 'points' => ['Built subscription and payment workflows in Laravel.', 'Improved application performance by 35%.']],
-                ['role' => 'PHP Developer', 'company' => 'BrightTech', 'period' => '2020 - 2022', 'points' => ['Delivered CRM features with MySQL reporting.', 'Integrated third-party APIs for operations teams.']],
+                [
+                    'role' => 'MERN Stack Developer Intern',
+                    'company' => 'Companyvista Inc',
+                    'duration' => 'Feb 2024 - Present',
+                    'location' => 'On-site',
+                    'link' => 'https://companyvista.com',
+                    'highlights' => [
+                        'Engineered full-stack features across the platform using MongoDB, Express.js, React.js, and Node.js.',
+                        'Architected RESTful APIs powering core business workflows, reducing frontend-backend integration time and improving response consistency.',
+                    ],
+                ],
+                [
+                    'role' => 'Frontend Developer',
+                    'company' => 'BrightTech',
+                    'duration' => '2022 - 2024',
+                    'location' => 'Remote',
+                    'link' => 'https://brighttech.com',
+                    'highlights' => [
+                        'Delivered responsive React-based dashboards with reusable UI components.',
+                        'Collaborated with backend teams to integrate APIs and improve data visibility.',
+                    ],
+                ],
             ],
-            'education' => ['B.Tech in Computer Science, Delhi Technical University', 'Certified Laravel Developer'],
-            'projects' => ['Resume Builder SaaS with Razorpay downloads', 'ATS score analyzer using Gemini API'],
+            'education' => [
+                [
+                    'degree' => 'Master of Computer Applications (MCA)',
+                    'institution' => 'Galgotia College of Engineering and Technology',
+                    'duration' => '2024 - Present',
+                    'cgpa' => '7.70',
+                ],
+                [
+                    'degree' => 'B.Sc. Computer Science',
+                    'institution' => 'Delhi University',
+                    'duration' => '2021 - 2024',
+                    'cgpa' => '7.85',
+                ],
+            ],
+            'projects' => [
+                [
+                    'name' => 'TrimNet — URL Shortener',
+                    'link' => 'https://trimnet.vercel.app',
+                    'tech_stack' => 'React.js · Spring Boot · PostgreSQL',
+                    'highlights' => [
+                        'Designed and delivered a full-stack URL shortening system with RESTful APIs supporting link creation, intelligent redirection, and per-link usage analytics.',
+                        'Built a responsive React.js frontend with seamless backend integration and robust server-side validation.',
+                    ],
+                ],
+                [
+                    'name' => 'AI Research Browser Extension',
+                    'link' => 'https://github.com/GautamSharma16/Research-Assistant',
+                    'tech_stack' => 'React.js · Spring Boot · Gemini API',
+                    'highlights' => [
+                        'Developed a browser extension using Google Gemini API to deliver real-time text summarization and context-aware question generation.',
+                        'Engineered secure backend APIs for AI request routing and response optimization.',
+                    ],
+                ],
+            ],
+            'certifications' => [
+                'AWS Certified Developer – Associate',
+                'MongoDB Certified Developer',
+                'Certified React.js Specialist',
+            ],
             'social_links' => ['linkedin.com/in/johndoe', 'github.com/johndoe'],
         ];
     }
@@ -30,6 +91,7 @@ class TemplateRenderService
     public function coverLetterSampleData(?array $overrides = []): array
     {
         return array_merge([
+            'type' => 'cover_letter',
             'name' => 'John Doe',
             'email' => 'john.doe@example.com',
             'mobile' => '+91 98765 43210',
@@ -44,12 +106,26 @@ class TemplateRenderService
 
     public function renderResume(Template $template, ?array $data = null): HtmlString
     {
-        return new HtmlString($this->render($template->html ?: '', $this->normalizeResume($data ?: $this->resumeSampleData())));
+        $data = $data ?: $this->resumeSampleData();
+        $html = $template->html ?: '';
+
+        if ($this->shouldRenderWithBlade($html)) {
+            return new HtmlString($this->renderBlade($html, $this->bladeRenderDataForResume($data)));
+        }
+
+        return new HtmlString($this->render($html, $this->normalizeResume($data)));
     }
 
     public function renderCoverLetter(Template $template, ?array $data = null): HtmlString
     {
-        return new HtmlString($this->render($template->html ?: '', $this->normalizeCoverLetter($data ?: $this->coverLetterSampleData())));
+        $data = $data ?: $this->coverLetterSampleData();
+        $html = $template->html ?: '';
+
+        if ($this->shouldRenderWithBlade($html)) {
+            return new HtmlString($this->renderBlade($html, $this->bladeRenderDataForCoverLetter($data)));
+        }
+
+        return new HtmlString($this->render($html, $this->normalizeCoverLetter($data)));
     }
 
     private function render(string $html, array $data): string
@@ -81,15 +157,15 @@ class TemplateRenderService
     private function normalizeResume(array $data): array
     {
         return [
-            'name' => e((string) Arr::get($data, 'name', '')),
-            'email' => e((string) Arr::get($data, 'email', '')),
-            'mobile' => e((string) Arr::get($data, 'mobile', Arr::get($data, 'contact', ''))),
-            'location' => e((string) Arr::get($data, 'location', Arr::get($data, 'address', ''))),
-            'summary' => e((string) Arr::get($data, 'summary', '')),
+            'name' => e($this->text(Arr::get($data, 'name', ''))),
+            'email' => e($this->text(Arr::get($data, 'email', ''))),
+            'mobile' => e($this->text(Arr::get($data, 'mobile', Arr::get($data, 'contact', '')))),
+            'location' => e($this->text(Arr::get($data, 'location', Arr::get($data, 'address', '')))),
+            'summary' => e($this->text(Arr::get($data, 'summary', ''))),
             'skills' => $this->badges(Arr::get($data, 'skills', [])),
             'experience' => $this->experience(Arr::get($data, 'experience', [])),
             'education' => $this->list(Arr::get($data, 'education', [])),
-            'projects' => $this->list(Arr::get($data, 'projects', [])),
+            'projects' => $this->projectList(Arr::get($data, 'projects', [])),
             'social_links' => $this->inline(Arr::get($data, 'social_links', [])),
         ];
     }
@@ -97,53 +173,174 @@ class TemplateRenderService
     private function normalizeCoverLetter(array $data): array
     {
         return [
-            'name' => e((string) Arr::get($data, 'name', '')),
-            'email' => e((string) Arr::get($data, 'email', '')),
-            'mobile' => e((string) Arr::get($data, 'mobile', '')),
-            'location' => e((string) Arr::get($data, 'location', '')),
-            'company' => e((string) Arr::get($data, 'company', Arr::get($data, 'company_name', ''))),
-            'company_name' => e((string) Arr::get($data, 'company_name', Arr::get($data, 'company', ''))),
-            'job_role' => e((string) Arr::get($data, 'job_role', '')),
-            'skills' => e((string) Arr::get($data, 'skills', '')),
-            'body' => nl2br(e((string) Arr::get($data, 'body', ''))),
+            'name' => e($this->text(Arr::get($data, 'name', ''))),
+            'email' => e($this->text(Arr::get($data, 'email', ''))),
+            'mobile' => e($this->text(Arr::get($data, 'mobile', ''))),
+            'location' => e($this->text(Arr::get($data, 'location', ''))),
+            'company' => e($this->text(Arr::get($data, 'company', Arr::get($data, 'company_name', '')))),
+            'company_name' => e($this->text(Arr::get($data, 'company_name', Arr::get($data, 'company', '')))),
+            'job_role' => e($this->text(Arr::get($data, 'job_role', ''))),
+            'skills' => e($this->text(Arr::get($data, 'skills', ''))),
+            'body' => nl2br(e($this->text(Arr::get($data, 'body', '')))),
         ];
     }
 
-    private function badges(array|string $items): string
+    private function shouldRenderWithBlade(string $html): bool
     {
-        $items = is_array($items) ? $items : explode(',', $items);
-
-        return collect($items)->filter()->map(fn ($item) => '<span class="tpl-badge">'.e((string) $item).'</span>')->join('');
+        return preg_match('/\{\{\s*\$resume|\{\{\s*\$coverLetter|\@foreach\s*\(\s*\$resume|\@foreach\s*\(\s*\$coverLetter|\@if\s*\(\s*\$resume|\@if\s*\(\s*\$coverLetter/i', $html) === 1;
     }
 
-    private function list(array|string $items): string
+    private function renderBlade(string $html, array $data): string
     {
+        try {
+            return \Illuminate\Support\Facades\Blade::render($html, $data);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Template Blade render failed: ' . $e->getMessage(), ['html' => str($html)->limit(200)]);
+            return '<div style="background:#fee2e2;padding:1rem;color:#991b1b;font-family:sans-serif;margin:0 20px 20px;">Preview Blade render failed: ' . e($e->getMessage()) . '</div>' . $html;
+        }
+    }
+
+    private function bladeRenderDataForResume(array $data): array
+    {
+        $resume = [
+            'type' => 'resume',
+            'name' => $this->text(Arr::get($data, 'name', '')),
+            'email' => $this->text(Arr::get($data, 'email', '')),
+            'mobile' => $this->text(Arr::get($data, 'mobile', Arr::get($data, 'contact', ''))),
+            'location' => $this->text(Arr::get($data, 'location', Arr::get($data, 'address', ''))),
+            'summary' => $this->text(Arr::get($data, 'summary', '')),
+            'linkedin' => $this->text(Arr::get($data, 'linkedin', '')),
+            'github' => $this->text(Arr::get($data, 'github', '')),
+            'tech_stack' => $this->text(Arr::get($data, 'tech_stack', '')),
+            'skills' => $this->normalizeBladeArray(Arr::get($data, 'skills', [])),
+            'experience' => $this->normalizeBladeArray(Arr::get($data, 'experience', [])),
+            'education' => $this->normalizeBladeArray(Arr::get($data, 'education', [])),
+            'projects' => $this->normalizeBladeArray(Arr::get($data, 'projects', [])),
+            'certifications' => $this->normalizeBladeArray(Arr::get($data, 'certifications', [])),
+            'social_links' => $this->normalizeBladeArray(Arr::get($data, 'social_links', [])),
+            'link' => $this->text(Arr::get($data, 'link', '')),
+            'contact' => $this->text(Arr::get($data, 'contact', '')),
+            'address' => $this->text(Arr::get($data, 'address', '')),
+        ];
+
+        return array_merge(['resume' => $resume], $resume);
+    }
+
+    private function bladeRenderDataForCoverLetter(array $data): array
+    {
+        $coverLetter = [
+            'type' => 'cover_letter',
+            'name' => $this->text(Arr::get($data, 'name', '')),
+            'email' => $this->text(Arr::get($data, 'email', '')),
+            'mobile' => $this->text(Arr::get($data, 'mobile', '')),
+            'location' => $this->text(Arr::get($data, 'location', '')),
+            'company' => $this->text(Arr::get($data, 'company', Arr::get($data, 'company_name', ''))),
+            'company_name' => $this->text(Arr::get($data, 'company_name', Arr::get($data, 'company', ''))),
+            'job_role' => $this->text(Arr::get($data, 'job_role', '')),
+            'skills' => $this->text(Arr::get($data, 'skills', '')),
+            'body' => $this->text(Arr::get($data, 'body', '')),
+        ];
+
+        return array_merge(['coverLetter' => $coverLetter], $coverLetter);
+    }
+
+    private function normalizeBladeArray(array|string|null $items): array
+    {
+        $items ??= [];
+
+        if (! is_array($items)) {
+            $items = array_filter(array_map('trim', explode("\n", (string) $items)));
+        }
+
+        return array_values(collect($items)->map(function ($item) {
+            if (is_array($item)) {
+                return collect($item)->map(function ($value) {
+                    return is_array($value) ? $this->normalizeBladeArray($value) : $this->text($value);
+                })->filter()->all();
+            }
+
+            return $this->text($item);
+        })->filter()->all());
+    }
+
+    private function badges(array|string|null $items): string
+    {
+        $items ??= [];
+        $items = is_array($items) ? $items : explode(',', $items);
+
+        return collect($items)->map(fn ($item) => $this->text($item))->filter()->map(fn ($item) => '<span class="tpl-badge">'.e($item).'</span>')->join('');
+    }
+
+    private function list(array|string|null $items): string
+    {
+        $items ??= [];
         $items = is_array($items) ? $items : explode("\n", $items);
 
-        return '<ul>'.collect($items)->filter()->map(fn ($item) => '<li>'.e(is_array($item) ? implode(' - ', $item) : (string) $item).'</li>')->join('').'</ul>';
+        return '<ul>'.collect($items)->map(fn ($item) => $this->text($item))->filter()->map(fn ($item) => '<li>'.e($item).'</li>')->join('').'</ul>';
     }
 
-    private function inline(array|string $items): string
+    private function projectList(array|string|null $items): string
     {
+        $items ??= [];
+        $items = is_array($items) ? $items : explode("\n", $items);
+
+        return '<ul>'.collect($items)->map(function ($item) {
+            if (! is_array($item)) {
+                $name = $this->text($item);
+
+                return $name === '' ? '' : '<li>'.e($name).'</li>';
+            }
+
+            $name = $this->text($item['name'] ?? '');
+            $description = $this->text($item['description'] ?? '');
+
+            if ($name === '' && $description === '') {
+                return '';
+            }
+
+            $title = $name !== '' ? '<strong>'.e($name).'</strong>' : '';
+            $body = $description !== '' ? '<span class="tpl-description">'.e($description).'</span>' : '';
+
+            return '<li>'.$title.$body.'</li>';
+        })->filter()->join('').'</ul>';
+    }
+
+    private function inline(array|string|null $items): string
+    {
+        $items ??= [];
         $items = is_array($items) ? $items : explode(',', $items);
 
-        return collect($items)->filter()->map(fn ($item) => e((string) $item))->join(' | ');
+        return collect($items)->map(fn ($item) => $this->text($item))->filter()->map(fn ($item) => e($item))->join(' | ');
     }
 
-    private function experience(array|string $items): string
+    private function experience(array|string|null $items): string
     {
+        $items ??= [];
         if (! is_array($items)) {
             return '<p>'.e($items).'</p>';
         }
 
         return collect($items)->map(function ($item) {
             if (! is_array($item)) {
-                return '<div class="tpl-role"><p>'.e((string) $item).'</p></div>';
+                return '<div class="tpl-role"><p>'.e($this->text($item)).'</p></div>';
             }
 
             $points = $this->list($item['points'] ?? []);
 
-            return '<div class="tpl-role"><div class="tpl-role-head"><strong>'.e((string) ($item['role'] ?? '')).'</strong><span>'.e((string) ($item['period'] ?? '')).'</span></div><p>'.e((string) ($item['company'] ?? '')).'</p>'.$points.'</div>';
+            return '<div class="tpl-role"><div class="tpl-role-head"><strong>'.e($this->text($item['role'] ?? '')).'</strong><span>'.e($this->text($item['period'] ?? '')).'</span></div><p>'.e($this->text($item['company'] ?? '')).'</p>'.$points.'</div>';
         })->join('');
+    }
+
+    private function text(mixed $value): string
+    {
+        if (is_array($value)) {
+            return collect($value)
+                ->flatten()
+                ->map(fn ($part) => is_scalar($part) ? trim((string) $part) : '')
+                ->filter()
+                ->join(' - ');
+        }
+
+        return trim((string) ($value ?? ''));
     }
 }

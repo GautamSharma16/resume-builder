@@ -15,13 +15,11 @@ class Article extends Model
         'body',
         'is_published',
         'published_at',
+        'thumbnail',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'is_published' => 'boolean',
-            'published_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'is_published' => 'boolean',
+        'published_at' => 'datetime',
+    ];
 }

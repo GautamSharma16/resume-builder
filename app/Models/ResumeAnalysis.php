@@ -27,16 +27,13 @@ class ResumeAnalysis extends Model
         'paid_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'resume_json' => 'array',
-            'analysis_json' => 'array',
-            'improved_resume_json' => 'array',
-            'is_paid' => 'boolean',
-            'paid_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'resume_json' => 'array',
+        'analysis_json' => 'array',
+        'improved_resume_json' => 'array',
+        'is_paid' => 'boolean',
+        'paid_at' => 'datetime',
+    ];
 
     public function user(): BelongsTo
     {

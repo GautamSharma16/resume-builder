@@ -20,7 +20,7 @@ class UserSeeder extends Seeder
             ['Developer', 'dev@test.com', 'developer', 'password123'],
             ['Article Writer', 'article@test.com', 'article_writer', 'password123'],
             ['User', 'user@test.com', 'user', 'password123'],
-            ['Super Admin', 'superadmin@cvbliss.test', 'super_admin', 'Super@123'],
+            ['Admin User', 'admin@cvbliss.test', 'admin', 'Super@123'],
             ['SEO Manager', 'seo@cvbliss.test', 'seo', 'Seo@123'],
             ['Developer', 'developer@cvbliss.test', 'developer', 'Dev@123'],
             ['Article Writer', 'writer@cvbliss.test', 'article_writer', 'Writer@123'],
@@ -40,7 +40,7 @@ class UserSeeder extends Seeder
                     'name' => $name,
                     'password' => Hash::make($password),
                     'role' => $role,
-                    'mobile' => '9999999999',
+                    'mobile' => '9876543210',
                     'provider' => 'email',
                     'email_verified_at' => now(),
                 ]

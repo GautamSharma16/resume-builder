@@ -3,13 +3,51 @@
 @tailwind utilities;
 
 @layer components {
+    /* Resume Sheet Preview Styles */
     .resume-sheet-preview {
         width: 794px;
         min-height: 1123px;
         background: #fff;
         transform-origin: top left;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
+    .resume-preview-stage {
+        min-width: 794px;
+        display: flex;
+        justify-content: center;
+        padding: 12px;
+    }
+
+    .resume-maker-preview .resume-sheet-preview {
+        transform: scale(0.72);
+        transform-origin: top center;
+        margin-bottom: -300px;
+    }
+
+    @media (max-width: 1024px) {
+        .resume-maker-preview .resume-sheet-preview {
+            transform: scale(0.62);
+            margin-bottom: -420px;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .resume-preview-stage {
+            justify-content: flex-start;
+            padding: 8px;
+        }
+
+        .resume-maker-preview .resume-sheet-preview {
+            transform: scale(0.5);
+            transform-origin: top left;
+            margin-bottom: -560px;
+        }
+    }
+
+    /* Base Resume Template Styles */
     .tpl-resume {
         width: 794px;
         min-height: 1123px;
@@ -17,28 +55,50 @@
         padding: 46px;
         font-size: 15px;
         line-height: 1.55;
+        color: #1a202c;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .tpl-resume *,
+    .tpl-cover * {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .tpl-resume h1 {
         font-size: 36px;
         line-height: 1.05;
         font-weight: 800;
-        letter-spacing: 0;
-        margin: 0;
+        letter-spacing: -0.01em;
+        margin: 0 0 4px 0;
+        color: #0f172a;
     }
 
     .tpl-resume h2 {
         font-size: 13px;
         text-transform: uppercase;
         font-weight: 800;
-        letter-spacing: 0;
+        letter-spacing: 0.05em;
         margin: 22px 0 9px;
         border-bottom: 1px solid #d1d5db;
         padding-bottom: 5px;
+        color: #334155;
+    }
+
+    .tpl-resume h3 {
+        font-size: 16px;
+        font-weight: 700;
+        margin: 0 0 4px 0;
+        color: #0f172a;
     }
 
     .tpl-resume p {
         margin: 0 0 8px;
+        line-height: 1.5;
     }
 
     .tpl-resume ul {
@@ -48,8 +108,19 @@
 
     .tpl-resume li {
         margin: 3px 0;
+        line-height: 1.45;
     }
 
+    .tpl-resume a {
+        color: #0f766e;
+        text-decoration: none;
+    }
+
+    .tpl-resume a:hover {
+        text-decoration: underline;
+    }
+
+    /* Role/Experience Item */
     .tpl-role {
         margin: 0 0 14px;
     }
@@ -58,18 +129,28 @@
         display: flex;
         justify-content: space-between;
         gap: 16px;
+        flex-wrap: wrap;
     }
 
     .tpl-role-head span {
         color: #64748b;
         font-size: 13px;
-        white-space: nowrap;
+        white-space: normal;
+        text-align: right;
     }
 
+    .tpl-role-title {
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 2px;
+    }
+
+    /* Skills Badges */
     .tpl-badges {
         display: flex;
         flex-wrap: wrap;
         gap: 7px;
+        margin-top: 8px;
     }
 
     .tpl-badge {
@@ -80,8 +161,19 @@
         margin: 0 5px 6px 0;
         font-size: 12px;
         background: #fff;
+        color: #374151;
+        max-width: 100%;
     }
 
+    .tpl-description {
+        display: block;
+        margin-top: 2px;
+        color: #64748b;
+        font-size: 0.92em;
+        line-height: 1.45;
+    }
+
+    /* Two Column Layout */
     .tpl-two {
         display: grid;
         grid-template-columns: 245px 1fr;
@@ -90,33 +182,54 @@
 
     .tpl-two aside {
         padding: 42px 28px;
+        background: #f8fafc;
     }
 
     .tpl-two main {
         padding: 42px 38px;
     }
 
+    /* Centered Layout */
     .tpl-centered {
         text-align: center;
     }
 
+    .tpl-centered h1 {
+        text-align: center;
+    }
+
+    /* Rule/Divider */
     .tpl-rule {
         height: 4px;
         margin: 22px 0;
+        background: #0f766e;
     }
 
+    /* Two Columns Grid */
     .tpl-cols {
         display: grid;
         grid-template-columns: 0.8fr 1.2fr;
         gap: 28px;
     }
 
+    /* Carded Layout */
     .tpl-carded {
         padding: 0;
     }
 
     .tpl-carded header {
         padding: 38px 46px;
+        background: #0f172a;
+        color: #fff;
+    }
+
+    .tpl-carded header h1 {
+        color: #fff;
+    }
+
+    .tpl-carded header h2 {
+        border-bottom-color: rgba(255,255,255,0.2);
+        color: rgba(255,255,255,0.8);
     }
 
     .tpl-carded section {
@@ -124,14 +237,18 @@
         background: #fff;
         border: 1px solid #e5e7eb;
         padding: 18px;
+        border-radius: 8px;
     }
 
+    /* Sidebar & Links */
     .tpl-leftline footer,
     .tpl-links {
         margin-top: 18px;
         color: #64748b;
+        font-size: 13px;
     }
 
+    /* Band Layout */
     .tpl-band {
         padding-top: 0;
     }
@@ -139,14 +256,23 @@
     .tpl-band header {
         margin: 0 -46px 28px;
         padding: 38px 46px;
+        background: #0f172a;
+        color: #fff;
     }
 
+    .tpl-band header h1 {
+        color: #fff;
+    }
+
+    /* Panel Style */
     .tpl-panel {
         background: #f8fafc;
         padding: 14px 16px;
         border: 1px solid #e5e7eb;
+        border-radius: 8px;
     }
 
+    /* Grid Layout */
     .tpl-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -166,23 +292,28 @@
         padding-bottom: 18px;
     }
 
+    /* Minimal Layout */
     .tpl-minimal h2 {
         border-bottom: 0;
         border-top: 1px solid #111827;
         padding-top: 10px;
     }
 
+    /* Accent Box */
     .tpl-accentbox header div {
         width: 58px;
         height: 10px;
         margin-bottom: 16px;
+        background: #0f766e;
     }
 
+    /* Highlight Style */
     .tpl-highlight {
-        border-left: 5px solid;
+        border-left: 5px solid #0f766e;
         padding-left: 18px;
     }
 
+    /* Dense Layout */
     .tpl-dense {
         font-size: 14px;
         padding: 38px;
@@ -192,12 +323,13 @@
         margin-top: 16px;
     }
 
+    /* Cover Letter Templates */
     .tpl-cover {
         width: 794px;
         min-height: 1123px;
         background: #fff;
         padding: 64px;
-        font-family: Inter, Arial, sans-serif;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
         color: #111827;
         font-size: 16px;
         line-height: 1.75;
@@ -207,12 +339,14 @@
         font-size: 34px;
         font-weight: 800;
         margin: 0 0 6px;
+        letter-spacing: -0.01em;
     }
 
     .tpl-cover h2 {
         font-size: 20px;
         font-weight: 800;
         margin: 24px 0 8px;
+        color: #0f172a;
     }
 
     .tpl-cover main,
@@ -230,10 +364,11 @@
         background: #ecfdf5;
         padding: 18px;
         font-weight: 700;
+        border-radius: 8px;
     }
 
     .tpl-cover-executive {
-        font-family: Georgia, Times New Roman, serif;
+        font-family: Georgia, 'Times New Roman', Times, serif;
     }
 
     .tpl-cover-executive header {
@@ -253,7 +388,7 @@
     }
 
     .tpl-cover-minimal {
-        font-family: Georgia, Times New Roman, serif;
+        font-family: Georgia, 'Times New Roman', Times, serif;
     }
 
     .tpl-cover-minimal header {
@@ -266,9 +401,140 @@
         padding-top: 26px;
     }
 
-    .tpl-kicker,
+    /* Helper Classes */
+    .tpl-kicker {
+        font-weight: 800;
+        color: #0f766e;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+    }
+
     .tpl-company {
         font-weight: 800;
         color: #0f766e;
     }
+
+    /* Contact Info */
+    .tpl-contact {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin: 12px 0 20px;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .tpl-contact span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Date/Location */
+    .tpl-date-location {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 8px;
+    }
+
+    /* Summary Section */
+    .tpl-summary {
+        background: #f8fafc;
+        padding: 16px;
+        border-radius: 8px;
+        margin: 16px 0;
+    }
+
+    /* List Styles */
+    .tpl-list-compact ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+    }
+
+    .tpl-list-compact li {
+        margin: 2px 0;
+    }
+    
+
+    /* Print Styles */
+    @media print {
+        .tpl-resume, .tpl-cover {
+            box-shadow: none;
+            margin: 0;
+            padding: 0.5in;
+        }
+        
+        .tpl-resume {
+            page-break-after: avoid;
+            page-break-inside: avoid;
+        }
+        
+        .tpl-carded section {
+            break-inside: avoid;
+        }
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 640px) {
+        .tpl-two {
+            grid-template-columns: 1fr;
+        }
+        
+        .tpl-cols {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        
+        .tpl-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .tpl-resume, .tpl-cover {
+            padding: 24px;
+        }
+        
+        .tpl-carded section {
+            margin: 12px 20px;
+        }
+    }
+}
+
+/* Modal Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal-fade-in {
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Custom Scrollbar */
+.modal-scroll-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.modal-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.modal-scroll-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.modal-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }

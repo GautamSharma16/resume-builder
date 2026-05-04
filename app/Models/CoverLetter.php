@@ -18,13 +18,10 @@ class CoverLetter extends Model
         'is_paid',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'data' => 'array',
-            'is_paid' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'data' => 'array',
+        'is_paid' => 'boolean',
+    ];
 
     public function template(): BelongsTo
     {

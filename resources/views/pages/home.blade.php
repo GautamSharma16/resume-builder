@@ -5,7 +5,6 @@
 
 @section('content')
 
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 
 <style>
     /* ─── TOKENS ─────────────────────────────────────────────── */
@@ -683,77 +682,66 @@
     .templates-header a:hover { gap: 0.6rem; text-decoration: none; }
 
     .templates-scroller {
-    display: flex;
-    gap: 1.5rem;
-    overflow-x: auto;
-    padding-bottom: 1.5rem;
+        display: flex;
+        gap: 1.5rem;
+        overflow-x: auto;
+        padding-bottom: 2rem;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    .templates-scroller::-webkit-scrollbar { display: none; }
 
-    /* Hide scrollbar */
-    scrollbar-width: none;      /* Firefox */
-    -ms-overflow-style: none;   /* IE & Edge */
-}
-
-/* Chrome, Safari */
-.templates-scroller::-webkit-scrollbar {
-    display: none;
-}
-
-.template-card {
-    flex-shrink: 0;
-    width: 180px;
-    border-radius: var(--r-xl);
-    border: 2px solid transparent;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.4s var(--ease-spring);
-    background: white;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-}
-
-.template-card:hover { 
-    transform: translateY(-8px); 
-    box-shadow: 0 20px 40px rgba(0,0,0,0.12); 
-}
-
-.template-card.active { 
-    border-color: var(--blue); 
-    box-shadow: 0 8px 30px rgba(37,99,235,0.25);
-}
+    /* ─── LIVE PREVIEW IN SCROLLER ──────────────────────────── */
     .template-thumb {
-        background: linear-gradient(160deg, #f8fafc, #f1f5f9);
-        height: 200px;
-        padding: 1rem;
+        background: white;
+        height: 240px;
         position: relative;
         overflow: hidden;
+        border-bottom: 1px solid var(--border);
     }
-    .template-thumb::after {
-        content: '';
+    .template-preview-container {
+        pointer-events: none;
         position: absolute;
-        inset: 0;
-        background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.03));
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%) scale(0.23);
+        transform-origin: top center;
+        width: 794px; /* A4 width */
+        background: white;
+        box-shadow: 0 0 40px rgba(0,0,0,0.05);
     }
-    .template-mini-header { 
-        height: 28px; 
-        border-radius: 8px; 
-        margin-bottom: 12px; 
+    .template-card:hover .template-preview-container {
+        transform: translateX(-50%) scale(0.24);
     }
-    .template-mini-line { 
-        height: 6px; 
-        background: #e2e8f0; 
-        border-radius: 3px; 
-        margin-bottom: 8px; 
-    }
-    .template-mini-line.short { width: 65%; }
-    .template-mini-line.xshort { width: 45%; }
-
     .template-label {
-        padding: 0.8rem;
-        text-align: center;
-        font-size: 0.8rem;
-        font-weight: 800;
-        border-top: 1px solid rgba(0,0,0,0.05);
-        color: var(--ink);
-        letter-spacing: 0.03em;
+        padding: 1rem;
+        background: white;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--navy);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .template-card:hover .template-label {
+        color: var(--blue);
+    }
+    .template-card {
+        display: block; /* Make <a> tag work */
+        text-decoration: none !important;
+        flex-shrink: 0;
+        width: 200px;
+        border-radius: var(--r-lg);
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border: 1px solid var(--border);
+        transition: all 0.4s var(--ease-spring);
+    }
+    .template-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(37,99,235,0.12);
+        border-color: var(--blue);
     }
 
     /* ─── PRICING ─────────────────────────────────────────────── */
@@ -1056,7 +1044,6 @@
     <div class="hero-grid"></div>
 
     <div class="hero-content">
-    
 
         <h1 class="hero-headline">
             Get Hired Faster<br>with 
@@ -1221,6 +1208,19 @@
         <a href="/templates">View All Templates →</a>
     </div>
     <div class="templates-scroller">
+        @forelse($professionalTemplates as $index => $template)
+        <a href="{{ route('resume.create', ['template_id' => $template->id]) }}" class="template-card">
+            <div class="template-thumb">
+                <div class="template-preview-container">
+                    {!! $rendered[$template->id] !!}
+                </div>
+            </div>
+            <div class="template-label">
+                {{ $template->name }}
+                <svg width="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+        </a>
+        @empty
         <div class="template-card active">
             <div class="template-thumb">
                 <div class="template-mini-header" style="background:linear-gradient(90deg, var(--blue), var(--purple));"></div>
@@ -1270,6 +1270,7 @@
             </div>
             <div class="template-label">Startup</div>
         </div>
+        @endforelse
     </div>
 </section>
 
@@ -1285,68 +1286,37 @@
     </div>
 
     <div class="pricing-cards">
-        {{-- Basic --}}
-        <div class="plan-card">
-            <div class="plan-icon-wrap dark">
-                <svg width="22" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        @foreach($plans as $index => $plan)
+        <div class="plan-card {{ $index === 1 ? 'featured' : '' }}">
+            @if($index === 1)
+                <div class="plan-badge">🔥 Most Popular</div>
+            @endif
+            <div class="plan-icon-wrap {{ $index === 1 ? 'light' : 'dark' }}">
+                @if($plan->slug === 'gold' || $plan->price_paise > 100000)
+                    <svg width="22" fill="none" stroke="#f59e0b" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+                @elseif($index === 1)
+                    <svg width="22" fill="none" stroke="var(--blue)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                @else
+                    <svg width="22" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                @endif
             </div>
-            <div class="plan-name">Basic</div>
+            <div class="plan-name">{{ $plan->name }}</div>
             <div class="plan-price">
-                <span class="currency">₹</span>299
+                <span class="currency">₹</span>{{ number_format($plan->price_paise / 100, 0) }}
             </div>
-            <div class="plan-period">valid for 14 days</div>
+            <div class="plan-period">valid for {{ $plan->duration_days }} days</div>
             <div class="plan-divider"></div>
             <ul class="plan-features">
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>1 Resume</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Unlimited Cover Letters</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>AI Writing Features</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>PDF & DOCX Export</li>
+                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>{{ $plan->resume_limit ?: 'Unlimited' }} Resumes</li>
+                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>{{ $plan->cover_letter_limit ?: 'Unlimited' }} Cover Letters</li>
+                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>{{ $plan->ai_enabled ? 'Advanced AI Features' : 'Basic Features' }}</li>
+                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>{{ $plan->downloads_allowed ?: 'Unlimited' }} Downloads</li>
             </ul>
-            <a href="/templates" class="btn-plan btn-plan-dark">Get Started</a>
+            <a href="{{ auth()->check() ? route('plans.checkout', $plan) : route('login', ['redirect' => route('plans.checkout', $plan)]) }}" class="btn-plan {{ $index === 1 ? 'btn-plan-primary' : 'btn-plan-dark' }}">
+                {{ $index === 1 ? 'Choose ' . $plan->name . ' →' : 'Get Started' }}
+            </a>
         </div>
-
-        {{-- Silver (featured) --}}
-        <div class="plan-card featured">
-            <div class="plan-badge">🔥 Most Popular</div>
-            <div class="plan-icon-wrap light">
-                <svg width="22" fill="none" stroke="var(--blue)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            </div>
-            <div class="plan-name">Silver</div>
-            <div class="plan-price">
-                <span class="currency">₹</span>699
-            </div>
-            <div class="plan-period">valid for 45 days</div>
-            <div class="plan-divider"></div>
-            <ul class="plan-features">
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>3 Resumes</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Unlimited Cover Letters</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Advanced AI Writing</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>ATS Score Checker</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Priority Support</li>
-            </ul>
-            <a href="/templates" class="btn-plan btn-plan-primary">Choose Silver →</a>
-        </div>
-
-        {{-- Gold --}}
-        <div class="plan-card">
-            <div class="plan-icon-wrap dark">
-                <svg width="22" fill="none" stroke="#f59e0b" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
-            </div>
-            <div class="plan-name">Gold</div>
-            <div class="plan-price">
-                <span class="currency">₹</span>2500
-            </div>
-            <div class="plan-period">valid for 1 full year</div>
-            <div class="plan-divider"></div>
-            <ul class="plan-features">
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Unlimited Resumes</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Unlimited Cover Letters</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Advanced AI Features</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>ATS Score + Full Analysis</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Dedicated Support</li>
-            </ul>
-            <a href="/templates" class="btn-plan btn-plan-dark">Go Gold</a>
-        </div>
+        @endforeach
     </div>
 
     <p class="pricing-footnote">✨ All plans include a free preview. No credit card needed to start.</p>

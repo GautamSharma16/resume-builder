@@ -27,13 +27,10 @@ class Purchase extends Model
         'paid_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'notes' => 'array',
-            'paid_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'notes' => 'array',
+        'paid_at' => 'datetime',
+    ];
 
     public function user(): BelongsTo
     {

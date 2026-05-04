@@ -23,7 +23,7 @@ use App\Http\Controllers\GoogleAuthController;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', fn() => view('pages.home'))->name('home');
+Route::get('/', [PageController::class, 'home'])->name('home');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -60,9 +60,11 @@ Route::patch('/cover-letter/{coverLetter}', [CoverLetterController::class, 'save
 Route::get('/cover-letter/{coverLetter}/download/{format?}', [CoverLetterController::class, 'download'])->name('cover-letter.download');
 Route::get('/templates', [PageController::class, 'templates'])->name('templates');
 Route::get('/interview', [PageController::class, 'interview'])->name('interview');
+Route::get('/interview/{slug}', [PageController::class, 'blogShow'])->name('blog.show');
 Route::get('/contact', fn() => view('pages.contact'))->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
+Route::get('/plans/payment/callback', [SubscriptionController::class, 'paymentLinkCallback'])->name('plans.callback');
 Route::post('/razorpay/webhook', RazorpayWebhookController::class)->name('razorpay.webhook');
 Route::get('/test/activate-plan/{userId}/{plan}', ManualTestActivationController::class)->name('test.activate-plan');
 
@@ -84,6 +86,7 @@ Route::get('/resume/{resume}/download/{format?}', [ResumeBuilderController::clas
 
 Route::middleware(['auth', 'user'])->group(function () {
     Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
+    Route::get('/plans/{plan}/checkout', [SubscriptionController::class, 'checkout'])->name('plans.checkout');
     Route::post('/plans/{plan}/order', [SubscriptionController::class, 'order'])->name('plans.order');
     Route::post('/purchases/{purchase}/verify', [SubscriptionController::class, 'verify'])->name('plans.verify');
 
@@ -106,25 +109,34 @@ Route::middleware(['auth', 'company'])->group(function () {
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard');
+        Route::get('/dashboard-data', [DashboardController::class, 'getData'])->name('dashboard.data');
 
         // Analytics
-        Route::get('/analytics', fn() => view('admin.analytics'))->name('analytics');
-        Route::get('/visits', fn() => view('admin.visits'))->name('visits');
-        Route::get('/purchases', fn() => view('admin.purchases'))->name('purchases');
+        Route::get('/analytics', fn() => view('admin.analytics'))->name('analytics')->middleware('permission:analytics');
+        Route::get('/visits', [DashboardController::class, 'visits'])->name('visits')->middleware('permission:visits');
 
         // Content Management
-        Route::middleware('role:admin,super_admin,developer,dev')->group(function () {
+        Route::middleware('permission:templates')->group(function () {
             Route::resource('templates', AdminTemplateController::class)->except(['show', 'destroy']);
+            Route::get('templates/{template}/preview', [AdminTemplateController::class, 'preview'])->name('templates.preview');
+            Route::get('templates/{template}/download', [AdminTemplateController::class, 'download'])->name('templates.download');
         });
 
-        Route::middleware('role:admin,super_admin,seo,article,article_writer')->group(function () {
+        Route::middleware('permission:articles')->group(function () {
             Route::resource('articles', AdminArticleController::class)->except(['show', 'destroy']);
         });
 
-        // Payment Management
-        Route::middleware('role:admin,super_admin,developer,dev')->group(function () {
-            Route::get('/payments', [PricingController::class, 'index'])->name('payments');
-            Route::patch('/plans/{plan}', [PricingController::class, 'update'])->name('plans.update');
+        // Financial Management
+        Route::middleware('admin')->group(function () {
+            Route::get('/purchases', fn() => view('admin.purchases'))->name('purchases')->middleware('permission:purchases');
+            Route::get('/payments', [PricingController::class, 'index'])->name('payments')->middleware('permission:pricing');
+            Route::patch('/plans/{plan}', [PricingController::class, 'update'])->name('plans.update')->middleware('permission:pricing');
+            Route::get('/transactions', [App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('transactions')->middleware('permission:transactions');
+        });
+
+        // User Management (Admin only)
+        Route::middleware('permission:team')->group(function () {
+            Route::resource('users', App\Http\Controllers\Admin\UserController::class)->except(['show']);
         });
     });
 });

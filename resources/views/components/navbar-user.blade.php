@@ -1,11 +1,14 @@
 <!-- User Navbar (Authenticated Regular Users) -->
 <nav x-data="{ open: false }" class="bg-white border-b border-gray-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-full mx-auto px-4 sm:px-10 lg:px-16">
         <div class="flex justify-between items-center h-16">
             <!-- Logo -->
-            <div class="flex-shrink-0">
-                <a href="{{ route('home') }}" class="text-2xl font-bold text-blue-600">
-                    Cvbliss
+            <div class="flex-shrink-0 group">
+                <a href="{{ route('home') }}" class="flex items-center gap-2">
+                    <!-- Logo Image with Animation -->
+                    <img src="{{ asset('Logo.png') }}" 
+                         alt="Cvbliss Logo"
+                         class="h-20 w-auto lg:h-20 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
                 </a>
             </div>
 

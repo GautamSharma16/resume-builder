@@ -25,6 +25,7 @@ class User extends Authenticatable
         'mobile',
         'password',
         'role',
+        'permissions',
         'otp',
         'otp_expires_at',
         'otp_attempts',
@@ -45,26 +46,58 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'otp_expires_at' => 'datetime',
-            'otp_last_sent_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'otp_expires_at' => 'datetime',
+        'otp_last_sent_at' => 'datetime',
+        'password' => 'hashed',
+        'permissions' => 'array',
+    ];
 
     /**
      * Check if user is admin
      */
     public function isAdmin(): bool
     {
-        return in_array(strtolower((string) $this->role), ['admin', 'super_admin', 'dev', 'developer', 'seo', 'article', 'article_writer'], true);
+        return in_array(strtolower((string) $this->role), ['admin', 'dev', 'developer', 'seo', 'article', 'article_writer'], true);
+    }
+
+    /**
+     * Check if user has a specific permission
+     */
+    public function hasPermission(string $permission): bool
+    {
+        // Admins have all permissions
+        if ($this->role === 'admin') {
+            return true;
+        }
+
+        $userPermissions = $this->permissions;
+
+        // If no permissions are explicitly set, use defaults for the role
+        if ($userPermissions === null) {
+            $userPermissions = $this->getDefaultPermissions($this->role);
+        }
+
+        return in_array($permission, $userPermissions);
+    }
+
+    /**
+     * Get default permissions for a role
+     */
+    public function getDefaultPermissions(?string $role): array
+    {
+        return match ($role) {
+            'developer', 'dev' => ['analytics', 'visits', 'templates', 'pricing'],
+            'seo' => ['articles'],
+            'article_writer', 'article' => ['articles'],
+            'company' => ['analytics', 'purchases'],
+            default => [],
+        };
     }
 
     /**
