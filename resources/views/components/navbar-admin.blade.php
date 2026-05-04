@@ -3,7 +3,9 @@
 @endphp
 
 <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center">
+    <div class="flex items-center gap-4">
+     
+        
         @if($isAdminArea)
             <h2 class="text-xl font-semibold text-gray-900">Admin Panel</h2>
         @else

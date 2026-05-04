@@ -18,15 +18,12 @@ class Plan extends Model
         'is_active',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'ai_enabled' => 'boolean',
-            'is_active' => 'boolean',
-            'downloads_allowed' => 'integer',
-            'duration_days' => 'integer',
-        ];
-    }
+    protected $casts = [
+        'ai_enabled' => 'boolean',
+        'is_active' => 'boolean',
+        'downloads_allowed' => 'integer',
+        'duration_days' => 'integer',
+    ];
 
     public function getIsUnlimitedAttribute(): bool
     {

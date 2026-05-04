@@ -22,17 +22,14 @@ class Subscription extends Model
         'ends_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'downloads_allowed' => 'integer',
-            'downloads_used' => 'integer',
-            'plan_started_at' => 'datetime',
-            'expiry_date' => 'datetime',
-            'starts_at' => 'datetime',
-            'ends_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'downloads_allowed' => 'integer',
+        'downloads_used' => 'integer',
+        'plan_started_at' => 'datetime',
+        'expiry_date' => 'datetime',
+        'starts_at' => 'datetime',
+        'ends_at' => 'datetime',
+    ];
 
     public function plan(): BelongsTo
     {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Article;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ArticleController extends Controller
@@ -25,6 +26,11 @@ class ArticleController extends Controller
         $data['slug'] = Str::slug($data['title']).'-'.Str::random(5);
         $data['author_id'] = $request->user()->id;
         $data['published_at'] = $data['is_published'] ? now() : null;
+
+        if ($request->hasFile('thumbnail')) {
+            $data['thumbnail'] = $request->file('thumbnail')->store('articles', 'public');
+        }
+
         Article::create($data);
 
         return redirect()->route('admin.articles.index')->with('status', 'Article created.');
@@ -39,6 +45,15 @@ class ArticleController extends Controller
     {
         $data = $this->validated($request);
         $data['published_at'] = $data['is_published'] ? ($article->published_at ?? now()) : null;
+
+        if ($request->hasFile('thumbnail')) {
+            // Delete old thumbnail if exists
+            if ($article->thumbnail) {
+                Storage::disk('public')->delete($article->thumbnail);
+            }
+            $data['thumbnail'] = $request->file('thumbnail')->store('articles', 'public');
+        }
+
         $article->update($data);
 
         return redirect()->route('admin.articles.index')->with('status', 'Article updated.');
@@ -51,6 +66,7 @@ class ArticleController extends Controller
             'category' => ['required', 'in:Freshers,Experienced,Preparation'],
             'excerpt' => ['nullable', 'string', 'max:500'],
             'body' => ['required', 'string'],
+            'thumbnail' => ['nullable', 'image', 'max:2048'],
             'is_published' => ['nullable', 'boolean'],
         ]) + ['is_published' => false];
     }

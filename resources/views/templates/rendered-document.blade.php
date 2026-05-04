@@ -7,8 +7,10 @@
         body { background: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
 
         .tpl-resume, .tpl-cover {
-            width: 100%; max-width: 794px; margin: 0 auto; background: #fff; padding: 38px; color: #111827; font-size: 12px; line-height: 1.6;
+            width: 100%; max-width: 794px; margin: 0 auto; background: #fff; padding: 38px; color: #111827; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word;
         }
+
+        .tpl-resume *, .tpl-cover * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
 
         .tpl-resume h1, .tpl-cover h1 { font-size: 26px; line-height: 1.1; margin: 0 0 8px; font-weight: 800; }
         .tpl-resume h2, .tpl-cover h2 { font-size: 12px; text-transform: uppercase; margin: 16px 0 7px; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; font-weight: 700; }
@@ -20,9 +22,10 @@
         .tpl-role { margin: 0 0 10px; }
         .tpl-role-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
         .tpl-role-head strong { display: block; font-weight: 700; }
-        .tpl-role-head span { color: #64748b; font-size: 11px; }
-        .tpl-badge { display: inline-block; border: 1px solid #d1d5db; border-radius: 999px; padding: 2px 7px; margin: 0 4px 5px 0; font-size: 10px; }
+        .tpl-role-head span { color: #64748b; font-size: 11px; text-align: right; }
+        .tpl-badge { display: inline-block; border: 1px solid #d1d5db; border-radius: 999px; padding: 2px 7px; margin: 0 4px 5px 0; font-size: 10px; max-width: 100%; }
         .tpl-badges { margin: 5px 0; }
+        .tpl-description { display: block; margin-top: 2px; color: #64748b; font-size: 0.92em; line-height: 1.45; }
 
         /* Two column layout */
         .tpl-two { display: grid; grid-template-columns: 200px 1fr; gap: 0; }

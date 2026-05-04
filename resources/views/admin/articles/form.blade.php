@@ -1,4 +1,14 @@
 <input name="title" value="{{ old('title', $article->title) }}" class="w-full rounded-md border-gray-300" placeholder="Title" required>
+
+<label class="block mt-4 mb-2 text-sm font-medium text-gray-700">Thumbnail Image</label>
+<input type="file" name="thumbnail" accept="image/*" class="w-full rounded-md border-gray-300">
+@if($article->thumbnail ?? false)
+    <div class="mt-2">
+        <img src="{{ asset('storage/' . $article->thumbnail) }}" alt="Current thumbnail" class="w-32 h-32 object-cover rounded">
+        <p class="text-sm text-gray-500 mt-1">Current thumbnail</p>
+    </div>
+@endif
+
 <select name="category" class="w-full rounded-md border-gray-300" required>
     @foreach(['Freshers', 'Experienced', 'Preparation'] as $category)
         <option value="{{ $category }}" @selected(old('category', $article->category ?? 'Preparation') === $category)>{{ $category }}</option>

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Template;
 use App\Models\ResumeAnalysis;
 use App\Services\PlanActivationService;
+use App\Services\TemplateRenderService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,128 +18,177 @@ use ZipArchive;
 
 class ResumeController extends Controller
 {
-    public function index()
+    public function index(TemplateRenderService $renderer)
     {
+        $templates = Template::where('type', 'resume')
+            ->where('is_active', true)
+            ->get();
+
         return view('pages.improve', [
             'razorpayKey' => config('services.razorpay.key'),
             'downloadAmount' => config('services.razorpay.download_amount'),
             'downloadCurrency' => config('services.razorpay.currency'),
+            'templates' => $templates,
+            'renderedTemplates' => $templates->mapWithKeys(fn (Template $template) => [
+                $template->id => (string) $renderer->renderResume($template),
+            ]),
         ]);
     }
 
     public function analyze(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'resume' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
-        ]);
-
-        $text = $this->cleanText($this->extractText($request->file('resume')));
-
-        if (mb_strlen($text) < 80) {
-            throw ValidationException::withMessages([
-                'resume' => 'We could not extract enough readable text from this resume. Please upload a text-based PDF or DOCX.',
+        try {
+            $validated = $request->validate([
+                'resume' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
             ]);
+
+            $text = $this->cleanText($this->extractText($request->file('resume')));
+
+            if (mb_strlen($text) < 80) {
+                throw ValidationException::withMessages([
+                    'resume' => 'We could not extract enough readable text from this resume. Please upload a text-based PDF or DOCX.',
+                ]);
+            }
+
+            $resumeJson = $this->structureResume($text);
+            $jobRole = 'General';
+            $jobDescription = null;
+
+            $analysis = $this->askGeminiForAnalysis(
+                $resumeJson,
+                $jobRole,
+                $jobDescription
+            );
+
+            if (!Arr::get($analysis, 'success', true)) {
+                 return response()->json([
+                    'success' => false,
+                    'message' => Arr::get($analysis, 'message', 'AI analysis failed.')
+                ], 500);
+            }
+
+            $analysisRecord = ResumeAnalysis::create([
+                'user_id' => $request->user()?->id,
+                'session_id' => $request->session()->getId(),
+                'job_role' => $jobRole,
+                'job_description' => $jobDescription,
+                'original_filename' => $request->file('resume')->getClientOriginalName(),
+                'extracted_text' => $text,
+                'resume_json' => $resumeJson,
+                'analysis_json' => $analysis,
+                'improved_resume_json' => $this->normalizeResume(Arr::get($analysis, 'improved_resume', $resumeJson)),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'analysis_id' => $analysisRecord->id,
+                'is_paid' => false,
+                'score' => (int) Arr::get($analysis, 'score', 0),
+                'strengths' => Arr::get($analysis, 'strengths', []),
+                'weaknesses' => Arr::get($analysis, 'weaknesses', []),
+                'missing_keywords' => Arr::get($analysis, 'missing_keywords', []),
+                'suggestions' => Arr::get($analysis, 'suggestions', []),
+                'improved_resume' => $analysisRecord->improved_resume_json,
+            ]);
+
+        } catch (ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            \Log::error('Resume Analysis Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['success' => false, 'message' => 'AI analysis failed: ' . $e->getMessage()], 500);
         }
-
-        $resumeJson = $this->structureResume($text);
-        $jobRole = 'General';
-        $jobDescription = null;
-        $analysis = $this->askGeminiForAnalysis(
-            $resumeJson,
-            $jobRole,
-            $jobDescription
-        );
-
-        $analysisRecord = ResumeAnalysis::create([
-            'user_id' => $request->user()?->id,
-            'session_id' => $request->session()->getId(),
-            'job_role' => $jobRole,
-            'job_description' => $jobDescription,
-            'original_filename' => $request->file('resume')->getClientOriginalName(),
-            'extracted_text' => $text,
-            'resume_json' => $resumeJson,
-            'analysis_json' => $analysis,
-            'improved_resume_json' => $this->normalizeResume(Arr::get($analysis, 'improved_resume', $resumeJson)),
-        ]);
-
-        return response()->json([
-            'analysis_id' => $analysisRecord->id,
-            'is_paid' => false,
-            'score' => (int) Arr::get($analysis, 'score', 0),
-            'strengths' => Arr::get($analysis, 'strengths', []),
-            'weaknesses' => Arr::get($analysis, 'weaknesses', []),
-            'missing_keywords' => Arr::get($analysis, 'missing_keywords', []),
-            'suggestions' => Arr::get($analysis, 'suggestions', []),
-            'improved_resume' => $analysisRecord->improved_resume_json,
-        ]);
     }
 
     public function improveAgain(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'analysis_id' => ['required', 'integer', 'exists:resume_analyses,id'],
-            'resume' => ['required', 'array'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'analysis_id' => ['required', 'integer', 'exists:resume_analyses,id'],
+                'resume' => ['required', 'array'],
+            ]);
 
-        $analysisRecord = $this->findAuthorizedAnalysis($request, (int) $validated['analysis_id']);
-        $resume = $this->normalizeResume($validated['resume']);
+            $analysisRecord = $this->findAuthorizedAnalysis($request, (int) $validated['analysis_id']);
+            $resume = $this->normalizeResume($validated['resume']);
 
-        $analysis = $this->askGeminiForAnalysis(
-            $resume,
-            $analysisRecord->job_role,
-            $analysisRecord->job_description,
-            true
-        );
+            $analysis = $this->askGeminiForAnalysis(
+                $resume,
+                $analysisRecord->job_role,
+                $analysisRecord->job_description,
+                true
+            );
 
-        $analysisRecord->update([
-            'analysis_json' => $analysis,
-            'improved_resume_json' => $this->normalizeResume(Arr::get($analysis, 'improved_resume', $resume)),
-        ]);
+            if (!Arr::get($analysis, 'success', true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => Arr::get($analysis, 'message', 'AI improvement failed.')
+                ], 500);
+            }
 
-        return response()->json([
-            'analysis_id' => $analysisRecord->id,
-            'is_paid' => $analysisRecord->is_paid,
-            'score' => (int) Arr::get($analysis, 'score', 0),
-            'strengths' => Arr::get($analysis, 'strengths', []),
-            'weaknesses' => Arr::get($analysis, 'weaknesses', []),
-            'missing_keywords' => Arr::get($analysis, 'missing_keywords', []),
-            'suggestions' => Arr::get($analysis, 'suggestions', []),
-            'improved_resume' => $analysisRecord->improved_resume_json,
-        ]);
+            $analysisRecord->update([
+                'analysis_json' => $analysis,
+                'improved_resume_json' => $this->normalizeResume(Arr::get($analysis, 'improved_resume', $resume)),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'analysis_id' => $analysisRecord->id,
+                'is_paid' => $analysisRecord->is_paid,
+                'score' => (int) Arr::get($analysis, 'score', 0),
+                'strengths' => Arr::get($analysis, 'strengths', []),
+                'weaknesses' => Arr::get($analysis, 'weaknesses', []),
+                'missing_keywords' => Arr::get($analysis, 'missing_keywords', []),
+                'suggestions' => Arr::get($analysis, 'suggestions', []),
+                'improved_resume' => $analysisRecord->improved_resume_json,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function grammarFix(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'analysis_id' => ['required', 'integer', 'exists:resume_analyses,id'],
-            'resume' => ['required', 'array'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'analysis_id' => ['required', 'integer', 'exists:resume_analyses,id'],
+                'resume' => ['required', 'array'],
+            ]);
 
-        $analysisRecord = $this->findAuthorizedAnalysis($request, (int) $validated['analysis_id']);
-        $resume = $this->normalizeResume($validated['resume']);
-        $analysis = $this->askGeminiForAnalysis(
-            $resume,
-            $analysisRecord->job_role,
-            $analysisRecord->job_description,
-            true,
-            'Fix grammar, clarity, tense, and bullet consistency. Do not invent facts.'
-        );
+            $analysisRecord = $this->findAuthorizedAnalysis($request, (int) $validated['analysis_id']);
+            $resume = $this->normalizeResume($validated['resume']);
+            $analysis = $this->askGeminiForAnalysis(
+                $resume,
+                $analysisRecord->job_role,
+                $analysisRecord->job_description,
+                true,
+                'Fix grammar, clarity, tense, and bullet consistency. Do not invent facts.'
+            );
 
-        $analysisRecord->update([
-            'analysis_json' => $analysis,
-            'improved_resume_json' => $this->normalizeResume(Arr::get($analysis, 'improved_resume', $resume)),
-        ]);
+            if (!Arr::get($analysis, 'success', true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => Arr::get($analysis, 'message', 'AI grammar fix failed.')
+                ], 500);
+            }
 
-        return response()->json([
-            'analysis_id' => $analysisRecord->id,
-            'is_paid' => $analysisRecord->is_paid,
-            'score' => (int) Arr::get($analysis, 'score', 0),
-            'strengths' => Arr::get($analysis, 'strengths', []),
-            'weaknesses' => Arr::get($analysis, 'weaknesses', []),
-            'missing_keywords' => Arr::get($analysis, 'missing_keywords', []),
-            'suggestions' => Arr::get($analysis, 'suggestions', []),
-            'improved_resume' => $analysisRecord->improved_resume_json,
-        ]);
+            $analysisRecord->update([
+                'analysis_json' => $analysis,
+                'improved_resume_json' => $this->normalizeResume(Arr::get($analysis, 'improved_resume', $resume)),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'analysis_id' => $analysisRecord->id,
+                'is_paid' => $analysisRecord->is_paid,
+                'score' => (int) Arr::get($analysis, 'score', 0),
+                'strengths' => Arr::get($analysis, 'strengths', []),
+                'weaknesses' => Arr::get($analysis, 'weaknesses', []),
+                'missing_keywords' => Arr::get($analysis, 'missing_keywords', []),
+                'suggestions' => Arr::get($analysis, 'suggestions', []),
+                'improved_resume' => $analysisRecord->improved_resume_json,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function saveResume(Request $request): JsonResponse
@@ -322,6 +373,20 @@ class ResumeController extends Controller
             ->values();
 
         $name = $lines->first() ?: '';
+        $email = '';
+        $mobile = '';
+
+        if (preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', $text, $match)) {
+            $email = $match[0];
+        }
+
+        if (preg_match('/(?:\+?\d[\d\s().-]{7,}\d)/', $text, $match)) {
+            $mobile = trim($match[0]);
+        }
+
+        $location = $lines
+            ->first(fn($line) => !str_contains($line, '@') && !preg_match('/\+?\d[\d\s().-]{7,}/', $line) && preg_match('/\b(?:India|USA|UK|Remote|Bengaluru|Bangalore|Mumbai|Delhi|Pune|Hyderabad|Chennai|Kolkata|Noida|Gurgaon)\b/i', $line)) ?: '';
+
         $skills = $this->extractSectionItems($text, ['skills', 'technical skills', 'core skills']);
         $education = $this->extractSectionItems($text, ['education', 'academic']);
         $experienceLines = $this->extractSectionItems($text, ['experience', 'work experience', 'professional experience']);
@@ -335,6 +400,11 @@ class ResumeController extends Controller
 
         return $this->normalizeResume([
             'name' => $name,
+            'email' => $email,
+            'mobile' => $mobile,
+            'location' => $location,
+            'contact' => trim(implode(' | ', array_filter([$email, $mobile]))),
+            'address' => $location,
             'summary' => implode(' ', $summaryLines),
             'skills' => $skills,
             'experience' => [
@@ -371,10 +441,10 @@ class ResumeController extends Controller
     private function askGeminiForAnalysis(array $resume, string $jobRole, ?string $jobDescription, bool $refine = false, ?string $customInstruction = null): array
     {
         $key = config('services.gemini.key');
-        $model = config('services.gemini.model', 'gemini-2.5-flash');
+        $model = config('services.gemini.model', 'gemini-flash-latest');
 
         if (!$key) {
-            abort(500, 'Gemini API key is not configured.');
+            return ['success' => false, 'message' => 'Gemini API key is not configured.'];
         }
 
         $instruction = $customInstruction ?: ($refine
@@ -399,13 +469,21 @@ FORMAT:
   "suggestions": [],
   "improved_resume": {
     "name": "",
+    "email": "",
+    "mobile": "",
+    "location": "",
+    "social_links": [],
     "summary": "",
     "skills": [],
     "experience": [
       { "company": "", "role": "", "points": [] }
     ],
-    "education": [],
-    "projects": []
+    "education": [
+      { "degree": "", "institution": "", "year": "" }
+    ],
+    "projects": [
+      { "name": "", "tech": "", "description": "" }
+    ]
   }
 }
 
@@ -425,7 +503,7 @@ PROMPT;
             $response = Http::timeout(90)
                 ->retry(2, 500)
                 ->post(
-                    "https://generativelanguage.googleapis.com/v1/models/{$model}:generateContent?key=" . urlencode($key),
+                    "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($key),
                     [
                         'contents' => [
                             [
@@ -436,30 +514,53 @@ PROMPT;
                         ],
                         'generationConfig' => [
                             'temperature' => 0.3,
-                            'maxOutputTokens' => 2000,
+                            'maxOutputTokens' => 2500,
                         ],
                     ]
                 );
 
             if (!$response->successful()) {
-                return $this->fallbackResponse();
+                $err = $response->json();
+                $msg = Arr::get($err, 'error.message', 'API Error ' . $response->status());
+                
+                if ($response->status() === 429) {
+                    return ['success' => false, 'message' => 'AI Rate limit exceeded. Please try again in a minute.'];
+                }
+                
+                return ['success' => false, 'message' => $msg];
             }
 
             $text = Arr::get($response->json(), 'candidates.0.content.parts.0.text', '');
+            
+            if (!$text) {
+                return ['success' => false, 'message' => 'Empty response from AI.'];
+            }
 
             $analysis = $this->decodeGeminiJson($text);
+            
+            if (empty($analysis) || !isset($analysis['score'])) {
+                 return ['success' => false, 'message' => 'Could not parse AI response.'];
+            }
+
+            $improvedResume = Arr::get($analysis, 'improved_resume');
+
+            if (!is_array($improvedResume) || !array_filter($improvedResume)) {
+                $improvedResume = $resume;
+            }
 
             return [
-                'score' => max(0, min(100, (int) ($analysis['score'] ?? 0))),
+                'success' => true,
+                'score' => max(0, min(100, (int) ($analysis['score'] ?? 50))),
                 'strengths' => array_values($analysis['strengths'] ?? []),
                 'weaknesses' => array_values($analysis['weaknesses'] ?? []),
                 'missing_keywords' => array_values($analysis['missing_keywords'] ?? []),
                 'suggestions' => array_values($analysis['suggestions'] ?? []),
-                'improved_resume' => $this->normalizeResume($analysis['improved_resume'] ?? $resume),
+                'improved_resume' => $improvedResume,
             ];
 
         } catch (\Exception $e) {
-            return $this->fallbackResponse();
+            \Log::error('Gemini API Exception: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'AI Connection Error: ' . $e->getMessage()];
         }
     }
 
@@ -498,7 +599,7 @@ PROMPT;
 
         return $this->fallbackResponse();
     }
-    private function fallbackResponse(): array
+    private function fallbackResponse(array $resume = []): array
     {
         return [
             'score' => 50,
@@ -506,32 +607,62 @@ PROMPT;
             'weaknesses' => [],
             'missing_keywords' => [],
             'suggestions' => [],
-            'improved_resume' => [
-                'name' => '',
-                'summary' => '',
-                'skills' => [],
-                'experience' => [],
-                'education' => [],
-                'projects' => [],
-            ],
+            'improved_resume' => $this->normalizeResume($resume),
         ];
     }
 
     private function normalizeResume(array $resume): array
     {
+        $safeStr = function($val) {
+            if (is_array($val)) return json_encode($val);
+            return (string) $val;
+        };
+
         return [
             'name' => (string) ($resume['name'] ?? ''),
+            'email' => (string) ($resume['email'] ?? ''),
+            'mobile' => (string) ($resume['mobile'] ?? $resume['contact'] ?? ''),
+            'location' => (string) ($resume['location'] ?? $resume['address'] ?? ''),
+            'contact' => (string) ($resume['contact'] ?? $resume['mobile'] ?? ''),
+            'address' => (string) ($resume['address'] ?? $resume['location'] ?? ''),
+            'social_links' => array_values(array_filter(array_map($safeStr, $resume['social_links'] ?? []))),
             'summary' => (string) ($resume['summary'] ?? ''),
-            'skills' => array_values(array_filter(array_map('strval', $resume['skills'] ?? []))),
-            'experience' => array_values(array_map(function ($item) {
+            'skills' => array_values(array_filter(array_map($safeStr, $resume['skills'] ?? []))),
+            'experience' => array_values(array_map(function ($item) use ($safeStr) {
                 return [
                     'company' => (string) ($item['company'] ?? ''),
                     'role' => (string) ($item['role'] ?? ''),
-                    'points' => array_values(array_filter(array_map('strval', $item['points'] ?? []))),
+                    'points' => array_values(array_filter(array_map($safeStr, $item['points'] ?? []))),
                 ];
             }, $resume['experience'] ?? [])),
-            'education' => array_values(array_filter(array_map('strval', $resume['education'] ?? []))),
-            'projects' => array_values(array_filter(array_map('strval', $resume['projects'] ?? []))),
+            'education' => array_values(array_map(function ($item) {
+                if (!is_array($item)) {
+                    return [
+                        'degree' => (string) $item,
+                        'institution' => '',
+                        'year' => '',
+                    ];
+                }
+                return [
+                    'degree' => (string) ($item['degree'] ?? ''),
+                    'institution' => (string) ($item['institution'] ?? ''),
+                    'year' => (string) ($item['year'] ?? ''),
+                ];
+            }, $resume['education'] ?? [])),
+            'projects' => array_values(array_map(function ($item) {
+                if (!is_array($item)) {
+                    return [
+                        'name' => (string) $item,
+                        'tech' => '',
+                        'description' => '',
+                    ];
+                }
+                return [
+                    'name' => (string) ($item['name'] ?? ''),
+                    'tech' => (string) ($item['tech'] ?? ''),
+                    'description' => (string) ($item['description'] ?? ''),
+                ];
+            }, $resume['projects'] ?? [])),
         ];
     }
 

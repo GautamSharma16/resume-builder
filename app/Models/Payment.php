@@ -20,11 +20,8 @@ class Payment extends Model
         'paid_at',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'payload' => 'array',
-            'paid_at' => 'datetime',
-        ];
-    }
+    protected $casts = [
+        'payload' => 'array',
+        'paid_at' => 'datetime',
+    ];
 }

@@ -16,16 +16,23 @@ class PricingController extends Controller
     public function update(Request $request, Plan $plan)
     {
         $validated = $request->validate([
-            'price_paise' => ['required', 'integer', 'min:0'],
-            'downloads_allowed' => ['nullable', 'integer', 'min:1'],
+            'name' => ['required', 'string', 'max:255'],
+            'price_rupees' => ['required', 'numeric', 'min:0'],
             'duration_days' => ['required', 'integer', 'min:1'],
-            'resume_limit' => ['nullable', 'integer', 'min:1'],
-            'cover_letter_limit' => ['nullable', 'integer', 'min:1'],
-            'ai_enabled' => ['nullable', 'boolean'],
+            'resume_limit' => ['nullable', 'integer', 'min:0'],
+            'downloads_allowed' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $plan->update($validated + ['ai_enabled' => false]);
+        $plan->update([
+            'name' => $validated['name'],
+            'price_paise' => (int)($validated['price_rupees'] * 100),
+            'duration_days' => $validated['duration_days'],
+            'resume_limit' => $validated['resume_limit'],
+            'downloads_allowed' => $request->downloads_allowed ?? $request->resume_limit,
+            'ai_enabled' => true,
+            'cover_letter_limit' => null, // Unlimited
+        ]);
 
-        return back()->with('status', 'Pricing updated.');
+        return back()->with('status', 'Plan "' . $plan->name . '" updated successfully.');
     }
 }

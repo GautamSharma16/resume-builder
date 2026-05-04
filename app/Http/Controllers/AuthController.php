@@ -13,11 +13,14 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AuthController extends Controller
 {
-    public function showLogin()
+    public function showLogin(Request $request)
     {
+        $this->rememberIntendedRedirect($request);
+
         return view('auth.login');
     }
 
@@ -48,6 +51,9 @@ class AuthController extends Controller
 
         if (! $user->email_verified_at) {
             RateLimiter::hit($key, 60);
+            if (! $user->otp || ! $user->otp_expires_at || $user->otp_expires_at->isPast()) {
+                $this->sendOtp($user);
+            }
             session(['otp_user_id' => $user->id]);
 
             return redirect()->route('otp.verify.form')->withErrors([
@@ -55,7 +61,7 @@ class AuthController extends Controller
             ]);
         }
 
-        if (($validated['role_scope'] ?? 'user') === 'staff' && ! $user->hasRole(['admin', 'company', 'seo', 'dev', 'developer', 'article', 'article_writer', 'super_admin'])) {
+        if (($validated['role_scope'] ?? 'user') === 'staff' && ! $user->hasRole(['admin', 'company', 'seo', 'dev', 'developer', 'article', 'article_writer'])) {
             throw ValidationException::withMessages(['email' => 'This login panel is for company and admin accounts.']);
         }
 
@@ -70,8 +76,10 @@ class AuthController extends Controller
         return redirect()->intended($this->redirectPath($user));
     }
 
-    public function showRegister()
+    public function showRegister(Request $request)
     {
+        $this->rememberIntendedRedirect($request);
+
         return view('auth.register');
     }
 
@@ -134,7 +142,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect($this->redirectPath($user));
+        return redirect()->intended($this->redirectPath($user));
     }
 
     public function resendOtp(Request $request)
@@ -160,7 +168,19 @@ class AuthController extends Controller
     {
         $validated = $request->validate(['email' => ['required', 'email']]);
 
-        Password::sendResetLink($validated);
+        try {
+            $status = Password::sendResetLink($validated);
+        } catch (Throwable $e) {
+            report($e);
+
+            throw ValidationException::withMessages([
+                'email' => 'We could not send the reset email right now. Please check the mail settings and try again.',
+            ]);
+        }
+
+        if ($status === Password::RESET_THROTTLED) {
+            throw ValidationException::withMessages(['email' => __($status)]);
+        }
 
         return back()->with('status', 'If an account exists, a reset link has been sent.');
     }
@@ -227,15 +247,34 @@ class AuthController extends Controller
     private function sendOtp(User $user): void
     {
         $otp = $user->generateOtp();
-        Mail::to($user->email)->queue(new OtpMail($otp, $user->name));
+        Mail::to($user->email)->send(new OtpMail($otp, $user->name));
     }
 
     private function redirectPath(User $user): string
     {
         return match ($user->role) {
-            'admin', 'super_admin', 'seo', 'dev', 'developer', 'article', 'article_writer' => route('admin.dashboard'),
+            'admin', 'seo', 'dev', 'developer', 'article', 'article_writer' => route('admin.dashboard'),
             'company' => route('company.dashboard'),
             default => route('dashboard'),
         };
+    }
+
+    private function rememberIntendedRedirect(Request $request): void
+    {
+        $redirect = $request->query('redirect');
+
+        if (! is_string($redirect) || $redirect === '') {
+            return;
+        }
+
+        $appUrl = rtrim(url('/'), '/');
+        $isLocalAbsolute = $redirect === $appUrl || Str::startsWith($redirect, $appUrl.'/');
+        $isLocalRelative = Str::startsWith($redirect, '/') && ! Str::startsWith($redirect, '//');
+
+        if (! $isLocalAbsolute && ! $isLocalRelative) {
+            return;
+        }
+
+        $request->session()->put('url.intended', $isLocalRelative ? url($redirect) : $redirect);
     }
 }

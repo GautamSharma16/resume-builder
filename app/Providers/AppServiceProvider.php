@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Plan;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        View::composer('components.plan-download-modal', function ($view) {
+            $view->with('plans', Plan::where('is_active', true)->orderBy('price_paise')->get());
+        });
     }
 }

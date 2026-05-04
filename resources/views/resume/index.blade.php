@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $requiresPlanForDownload = auth()->check() && ! auth()->user()->activeSubscription?->hasDownloadsRemaining();
+@endphp
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
@@ -30,9 +33,9 @@
                             <div class="flex flex-wrap gap-3 text-sm font-semibold">
                                 <a class="text-teal-700" href="{{ route('resume.edit', $resume) }}">Edit</a>
                                 <a class="text-gray-700" href="{{ route('resume.preview', $resume) }}">Preview</a>
-                                <a class="text-gray-950" href="{{ route('resume.download', [$resume, 'pdf']) }}">PDF</a>
-                                <a class="text-gray-950" href="{{ route('resume.download', [$resume, 'doc']) }}">DOC</a>
-                                <a class="text-gray-950" href="{{ route('resume.download', [$resume, 'ppt']) }}">PPT</a>
+                                <a class="text-gray-950" href="{{ route('resume.download', [$resume, 'pdf']) }}" @if($requiresPlanForDownload && ! $resume->is_paid) data-open-plan-modal @endif>PDF</a>
+                                <a class="text-gray-950" href="{{ route('resume.download', [$resume, 'doc']) }}" @if($requiresPlanForDownload && ! $resume->is_paid) data-open-plan-modal @endif>DOC</a>
+                                <a class="text-gray-950" href="{{ route('resume.download', [$resume, 'ppt']) }}" @if($requiresPlanForDownload && ! $resume->is_paid) data-open-plan-modal @endif>PPT</a>
                             </div>
                         </td>
                     </tr>
