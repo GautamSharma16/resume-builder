@@ -30,7 +30,7 @@
         --pink-light:  #fdf2f8;
 
         --font-display: 'DM Serif Display', serif;
-        --font-body:    'Inter', sans-serif;
+        --font-body:    'Bricolage Grotesque', sans-serif;
 
         --r-sm:  6px;
         --r-md:  12px;
@@ -159,7 +159,7 @@
     /* ─── HERO SECTION ───────────────────────────────────────── */
     .enhance-hero {
         width: 100%;
-        min-height: auto;
+        min-height: 75vh;
         display: grid;
         grid-template-columns: 1fr 1fr;
         align-items: center;
@@ -227,8 +227,11 @@
     }
 
     .enhance-hero h1 {
-        font-family: var(--font-display);
-        font-size: clamp(2.2rem, 4vw, 3.2rem);
+       
+    font-family: var(--font-display);
+    font-size: clamp(2.8rem, 5vw, 3.6rem);
+    line-height: 1.1;
+
         color: var(--navy);
         font-weight: 400;
         line-height: 1.1;
@@ -992,10 +995,7 @@
 
     {{-- Left: Copy --}}
     <div class="enhance-hero-content">
-        <div class="eyebrow">
-            <span class="eyebrow-dot"></span>
-            AI Resume Optimizer
-        </div>
+       
         <h1>Elevate your<br><em>Resume</em> with AI</h1>
         <p class="enhance-hero-sub">
             Upload your resume and let AI restructure every section for maximum ATS compatibility. Get a polished, interview-ready PDF in seconds.
@@ -1063,8 +1063,7 @@
                     </div>
                     <div class="upload-actions">
                         <button type="submit" id="enhanceBtn" class="btn-enhance">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                            Enhance with AI
+                                                        Enhance with AI
                         </button>
                         <button type="button" id="resetBtn" class="btn-reset">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>

@@ -248,7 +248,7 @@
         grid-template-columns: 1fr 0.9fr;
         align-items: center;
         gap: 4rem;
-        padding: 3rem 8% 2rem;
+        padding: 1rem 6% 2rem;
         background: linear-gradient(135deg, #ffffff 0%, #fafcff 100%);
         position: relative;
         overflow: hidden;
@@ -334,7 +334,7 @@
 
     .hero-headline {
         font-family: var(--font-display);
-        font-size: clamp(2.5rem, 5vw, 4rem);
+        font-size: clamp(3.5rem, 3vw, 3rem);
         font-weight: 400;
         color: var(--navy);
         line-height: 1.1;
@@ -1289,17 +1289,9 @@
         @foreach($plans as $index => $plan)
         <div class="plan-card {{ $index === 1 ? 'featured' : '' }}">
             @if($index === 1)
-                <div class="plan-badge">🔥 Most Popular</div>
+                <div class="plan-badge"> Most Popular</div>
             @endif
-            <div class="plan-icon-wrap {{ $index === 1 ? 'light' : 'dark' }}">
-                @if($plan->slug === 'gold' || $plan->price_paise > 100000)
-                    <svg width="22" fill="none" stroke="#f59e0b" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
-                @elseif($index === 1)
-                    <svg width="22" fill="none" stroke="var(--blue)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                @else
-                    <svg width="22" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                @endif
-            </div>
+            
             <div class="plan-name">{{ $plan->name }}</div>
             <div class="plan-price">
                 <span class="currency">₹</span>{{ number_format($plan->price_paise / 100, 0) }}
@@ -1319,7 +1311,7 @@
         @endforeach
     </div>
 
-    <p class="pricing-footnote">✨ All plans include a free preview. No credit card needed to start.</p>
+    <p class="pricing-footnote"> All plans include a free preview. No credit card needed to start.</p>
 </section>
 
 {{-- CTA --}}
@@ -1335,7 +1327,7 @@
             <a href="/ats-checker" class="btn-outline">Check ATS Score</a>
         </div>
         <div style="margin-top: 2rem; font-size: 0.8rem; color: var(--muted);">
-            ⚡ Free forever plan available • No commitment required
+             Free forever plan available • No commitment required
         </div>
     </div>
 </section>

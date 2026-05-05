@@ -77,7 +77,7 @@
         height: 8px;
         background: var(--blue);
         border-radius: 50%;
-        animation: pulse-ring 2s infinite;
+
     }
     .section-heading {
         font-family: var(--font-display);
@@ -144,6 +144,15 @@
     }
     @keyframes spin {
         to { transform: rotate(360deg); }
+    }
+    @keyframes scanMove {
+        0% { top: -5px; opacity: 1; }
+        90% { top: 100%; opacity: 1; }
+        100% { top: 100%; opacity: 0; }
+    }
+    @keyframes scaleIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to   { opacity: 1; transform: scale(1); }
     }
     @keyframes fadeUp {
         from { opacity: 0; transform: translateY(25px); }
@@ -422,35 +431,128 @@
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Loading Overlay (same as homepage style) */
+    /* Loading Overlay (same scan loader as Enhance CV) */
     .loading-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.85);
+        background: rgba(11,18,33,0.72);
         backdrop-filter: blur(8px);
-        z-index: 1000;
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 10000;
         display: none;
         align-items: center;
         justify-content: center;
+        padding: 1rem;
     }
     .loading-overlay.active { display: flex; }
-    .loading-card {
-        background: var(--white);
+
+    .scan-card {
+        background: white;
+        border-radius: var(--r-xl);
         padding: 2rem;
-        border-radius: var(--r-2xl);
-        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        min-width: 300px;
         max-width: 360px;
-        width: 90%;
-        box-shadow: var(--shadow-lg);
+        width: calc(100% - 2rem);
+        box-shadow: 0 28px 72px rgba(0,0,0,0.22);
+        animation: scaleIn 0.22s var(--ease-out) both;
     }
-    .spinner {
-        width: 48px;
-        height: 48px;
-        border: 4px solid var(--surface-2);
-        border-top-color: var(--blue);
+
+    .scan-paper {
+        width: 150px;
+        height: 190px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--r-md);
+        padding: 1rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 12px 32px rgba(15,23,42,0.12);
+    }
+
+    .scan-paper::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: -8px;
+        height: 4px;
+        background: linear-gradient(90deg, transparent, var(--blue), var(--purple), transparent);
+        box-shadow: 0 0 18px rgba(37,99,235,0.45);
+        animation: scanMove 1.6s ease-in-out infinite;
+    }
+
+    .scan-paper-head {
+        height: 18px;
+        width: 58%;
+        border-radius: var(--r-sm);
+        background: linear-gradient(135deg, var(--blue), var(--purple));
+        margin-bottom: 1rem;
+    }
+
+    .scan-paper-line {
+        height: 7px;
+        border-radius: var(--r-full);
+        background: #dbe3ef;
+        margin-bottom: 0.55rem;
+    }
+    .scan-paper-line.wide { width: 100%; }
+    .scan-paper-line.mid { width: 82%; }
+    .scan-paper-line.short { width: 62%; }
+    .scan-paper-line.tiny { width: 46%; }
+
+    .scan-header h2 {
+        font-family: var(--font-body);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--navy);
+        text-align: center;
+    }
+    .scan-header p {
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+        margin-top: 0.25rem;
+    }
+
+    .scan-progress-bar-wrap {
+        width: 100%;
+        background: var(--surface-2);
+        border-radius: var(--r-full);
+        height: 6px;
+        overflow: hidden;
+    }
+    .scan-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--blue), #818cf8);
+        border-radius: var(--r-full);
+        transition: width 0.3s ease;
+    }
+
+    .scan-steps {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .scan-step {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-size: 12px;
+        color: var(--soft);
+    }
+    .scan-step.active { color: var(--blue); }
+    .scan-step.done { color: var(--green); }
+    .scan-dot {
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-        margin: 0 auto 1.2rem;
+        background: currentColor;
     }
 
     /* Modal for template switching */
@@ -651,10 +753,28 @@
 
 {{-- MODALS & LOADING --}}
 <div id="loading-overlay" class="loading-overlay">
-    <div class="loading-card">
-        <div class="spinner"></div>
-        <h3 style="font-weight: 700; font-size: 1.2rem; margin-bottom: 0.4rem;">AI is Writing...</h3>
-        <p style="color: var(--muted); font-size: 0.85rem;">Creating a tailored cover letter for your dream role.</p>
+    <div class="scan-card">
+        <div class="scan-header">
+            <h2>AI is Writing...</h2>
+            <p id="coverScanStageLabel">Creating a tailored cover letter</p>
+        </div>
+        <div class="scan-paper" aria-hidden="true">
+            <div class="scan-paper-head"></div>
+            <div class="scan-paper-line wide"></div>
+            <div class="scan-paper-line mid"></div>
+            <div class="scan-paper-line wide"></div>
+            <div class="scan-paper-line short"></div>
+            <div class="scan-paper-line mid"></div>
+            <div class="scan-paper-line tiny"></div>
+        </div>
+        <div class="scan-progress-bar-wrap">
+            <div class="scan-progress-fill" id="coverScanProgressFill"></div>
+        </div>
+        <div class="scan-steps">
+            <div class="scan-step" id="coverScanStep1"><div class="scan-dot"></div>Reading job details...</div>
+            <div class="scan-step" id="coverScanStep2"><div class="scan-dot"></div>Matching your skills...</div>
+            <div class="scan-step" id="coverScanStep3"><div class="scan-dot"></div>Drafting your letter...</div>
+        </div>
     </div>
 </div>
 
@@ -708,6 +828,61 @@
         const $ = id => document.getElementById(id);
         const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         const nl2br = v => esc(v).replace(/\n/g, '<br>');
+        const coverScanStages = [
+            { label: 'Reading job details...', step: 0, pct: 25 },
+            { label: 'Matching your skills to the role...', step: 1, pct: 62 },
+            { label: 'Drafting your cover letter...', step: 2, pct: 90 },
+            { label: 'Finalising your letter...', step: -1, pct: 100 }
+        ];
+        let coverScanTimer = null;
+
+        function showCoverScanOverlay() {
+            const overlay = $('loading-overlay');
+            if (overlay && overlay.parentElement !== document.body) document.body.appendChild(overlay);
+            overlay?.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            startCoverScanAnimation();
+        }
+
+        function hideCoverScanOverlay() {
+            $('loading-overlay')?.classList.remove('active');
+            document.body.style.overflow = '';
+            if (coverScanTimer) clearTimeout(coverScanTimer);
+            coverScanTimer = null;
+        }
+
+        function startCoverScanAnimation() {
+            const fill = $('coverScanProgressFill');
+            const stageLabel = $('coverScanStageLabel');
+            const items = [$('coverScanStep1'), $('coverScanStep2'), $('coverScanStep3')];
+            let stageIdx = 0;
+            if (fill) fill.style.width = '0%';
+            items.forEach(i => { if (i) i.className = 'scan-step'; });
+
+            function nextStage() {
+                if (stageIdx >= coverScanStages.length) return;
+                const stage = coverScanStages[stageIdx++];
+                if (stageLabel) stageLabel.textContent = stage.label;
+                if (fill) fill.style.width = stage.pct + '%';
+                if (stage.step >= 0) {
+                    const item = items[stage.step];
+                    if (item) item.classList.add('active');
+                    if (stage.step > 0) {
+                        items[stage.step - 1]?.classList.remove('active');
+                        items[stage.step - 1]?.classList.add('done');
+                    }
+                } else {
+                    items.forEach(i => {
+                        if (!i) return;
+                        i.classList.remove('active');
+                        i.classList.add('done');
+                    });
+                }
+                coverScanTimer = setTimeout(nextStage, stageIdx === 1 ? 600 : (stageIdx < coverScanStages.length ? 900 : 400));
+            }
+
+            nextStage();
+        }
 
         function render() {
             if (!state.templateId) return;
@@ -776,8 +951,7 @@
 
         // AI Generation
         $('generate-letter').addEventListener('click', async () => {
-            const overlay = $('loading-overlay');
-            overlay.classList.add('active');
+            showCoverScanOverlay();
             
             try {
                 const response = await fetch('{{ route("cover-letter.generate") }}', {
@@ -812,7 +986,7 @@
                 console.error(err);
                 alert('Connection error.');
             } finally {
-                overlay.classList.remove('active');
+                hideCoverScanOverlay();
             }
         });
 
