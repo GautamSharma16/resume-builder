@@ -3,13 +3,14 @@
 @tailwind utilities;
 
 @layer components {
+
     /* Resume Sheet Preview Styles */
     .resume-sheet-preview {
         width: 794px;
         min-height: 1123px;
         background: #fff;
         transform-origin: top left;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         overflow-wrap: anywhere;
         word-break: break-word;
     }
@@ -21,11 +22,11 @@
         padding: 12px;
     }
 
-    .resume-maker-preview .resume-sheet-preview {
+    /* .resume-maker-preview .resume-sheet-preview {
         transform: scale(0.72);
         transform-origin: top center;
         margin-bottom: -300px;
-    }
+    } */
 
     @media (max-width: 1024px) {
         .resume-maker-preview .resume-sheet-preview {
@@ -228,8 +229,8 @@
     }
 
     .tpl-carded header h2 {
-        border-bottom-color: rgba(255,255,255,0.2);
-        color: rgba(255,255,255,0.8);
+        border-bottom-color: rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.8);
     }
 
     .tpl-carded section {
@@ -458,21 +459,23 @@
     .tpl-list-compact li {
         margin: 2px 0;
     }
-    
+
 
     /* Print Styles */
     @media print {
-        .tpl-resume, .tpl-cover {
+
+        .tpl-resume,
+        .tpl-cover {
             box-shadow: none;
             margin: 0;
             padding: 0.5in;
         }
-        
+
         .tpl-resume {
             page-break-after: avoid;
             page-break-inside: avoid;
         }
-        
+
         .tpl-carded section {
             break-inside: avoid;
         }
@@ -483,20 +486,21 @@
         .tpl-two {
             grid-template-columns: 1fr;
         }
-        
+
         .tpl-cols {
             grid-template-columns: 1fr;
             gap: 16px;
         }
-        
+
         .tpl-grid {
             grid-template-columns: 1fr;
         }
-        
-        .tpl-resume, .tpl-cover {
+
+        .tpl-resume,
+        .tpl-cover {
             padding: 24px;
         }
-        
+
         .tpl-carded section {
             margin: 12px 20px;
         }
@@ -509,6 +513,7 @@
         opacity: 0;
         transform: scale(0.98);
     }
+
     to {
         opacity: 1;
         transform: scale(1);

@@ -343,6 +343,51 @@
         resize: vertical;
     }
 
+    .resume-upload-box {
+        border: 1.5px dashed rgba(37,99,235,0.28);
+        border-radius: var(--r-lg);
+        background: linear-gradient(135deg, var(--blue-light), #ffffff);
+        padding: 1rem;
+        cursor: pointer;
+        transition: all 0.25s var(--ease-spring);
+    }
+    .resume-upload-box:hover {
+        border-color: var(--blue);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(37,99,235,0.08);
+    }
+    .resume-upload-box input {
+        display: none;
+    }
+    .resume-upload-content {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+    }
+    .resume-upload-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: var(--r-md);
+        background: white;
+        color: var(--blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 14px rgba(37,99,235,0.12);
+    }
+    .resume-upload-text strong {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--navy);
+    }
+    .resume-upload-text span {
+        display: block;
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin-top: 0.15rem;
+    }
+
     .btn-generate {
         width: 100%;
         padding: 0.9rem;
@@ -671,6 +716,25 @@
         {{-- Sidebar --}}
         <aside class="builder-sidebar">
             <div class="input-card">
+                <h2>Upload Resume</h2>
+                <div class="field-group">
+                    <label>Resume <span style="font-weight:400;color:var(--muted);">(optional)</span></label>
+                    <label class="resume-upload-box" for="cl-resume-file">
+                        <input type="file" id="cl-resume-file" accept=".pdf,.doc,.docx">
+                        <span class="resume-upload-content">
+                            <span class="resume-upload-icon">
+                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+                            </span>
+                            <span class="resume-upload-text">
+                                <strong id="cl-resume-file-name">Upload resume for smarter AI writing</strong>
+                                <span>PDF, DOC, or DOCX. We will fill contact details when readable.</span>
+                            </span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="input-card">
                 <h2>About You</h2>
                 <div class="field-grid">
                     <div class="field-group">
@@ -708,7 +772,7 @@
                 </div>
                 <div class="field-group">
                     <label>Job Description</label>
-                    <textarea id="cl-description" class="form-input" placeholder="Paste the job requirements here for better AI tailoring..."></textarea>
+                    <textarea id="cl-description" class="form-input" placeholder="Paste the job requirements here for better AI tailoring...">{{ $prefill['job_description'] ?? '' }}</textarea>
                 </div>
                 <button id="generate-letter" class="btn-generate">
                     
@@ -815,14 +879,15 @@
         let state = {
             id: null,
             templateId: null,
-            name: '{{ addslashes($prefill['name']) }}',
-            email: '{{ addslashes($prefill['email']) }}',
-            mobile: '{{ addslashes($prefill['mobile']) }}',
-            location: '{{ addslashes($prefill['location']) }}',
-            company: '{{ addslashes($prefill['company']) }}',
-            job_role: '{{ addslashes($prefill['job_role']) }}',
-            skills: '{{ addslashes($prefill['skills']) }}',
-            body: `{!! addslashes($prefill['body']) !!}`
+            name: @json($prefill['name']),
+            email: @json($prefill['email']),
+            mobile: @json($prefill['mobile']),
+            location: @json($prefill['location']),
+            company: @json($prefill['company']),
+            job_role: @json($prefill['job_role']),
+            skills: @json($prefill['skills']),
+            job_description: @json($prefill['job_description'] ?? ''),
+            body: @json($prefill['body'])
         };
 
         const $ = id => document.getElementById(id);
@@ -908,6 +973,31 @@
             scalePreview();
         }
 
+        function syncLetterFields(letter) {
+            if (!letter) return;
+
+            const map = {
+                name: 'cl-name',
+                email: 'cl-email',
+                mobile: 'cl-mobile',
+                location: 'cl-location',
+                company: 'cl-company',
+                company_name: 'cl-company',
+                job_role: 'cl-role',
+                skills: 'cl-skills',
+                body: 'cl-body'
+            };
+
+            Object.entries(map).forEach(([key, id]) => {
+                if (!(key in letter)) return;
+                const value = letter[key] ?? '';
+                if (key === 'company_name' && (letter.company ?? '') !== '') return;
+                state[key === 'company_name' ? 'company' : key] = value;
+                const field = $(id);
+                if (field) field.value = value;
+            });
+        }
+
         function scalePreview() {
             const canvas = $('preview-canvas');
             const a4 = $('preview-a4');
@@ -940,13 +1030,21 @@
         $('btn-change-tmpl').addEventListener('click', () => $('tmpl-modal').classList.add('open'));
 
         // Input Sync
-        const fields = ['cl-name', 'cl-email', 'cl-mobile', 'cl-location', 'cl-company', 'cl-role', 'cl-skills', 'cl-body'];
+        const fields = ['cl-name', 'cl-email', 'cl-mobile', 'cl-location', 'cl-company', 'cl-role', 'cl-skills', 'cl-description', 'cl-body'];
         fields.forEach(id => {
             $(id).addEventListener('input', e => {
-                const key = id.replace('cl-', '').replace('-', '_');
+                let key = id.replace('cl-', '').replace('-', '_');
+                if (key === 'role') key = 'job_role';
+                if (key === 'description') key = 'job_description';
                 state[key] = e.target.value;
                 render();
             });
+        });
+
+        $('cl-resume-file')?.addEventListener('change', e => {
+            const file = e.target.files?.[0];
+            const label = $('cl-resume-file-name');
+            if (label) label.textContent = file ? file.name : 'Upload resume for smarter AI writing';
         });
 
         // AI Generation
@@ -954,30 +1052,39 @@
             showCoverScanOverlay();
             
             try {
+                const formData = new FormData();
+                formData.append('_token', '{{ csrf_token() }}');
+                const appendFilled = (key, value) => {
+                    value = String(value ?? '').trim();
+                    if (value !== '') formData.append(key, value);
+                };
+
+                appendFilled('name', state.name);
+                appendFilled('email', state.email);
+                appendFilled('mobile', state.mobile);
+                appendFilled('location', state.location);
+                appendFilled('company_name', state.company);
+                appendFilled('job_role', state.job_role);
+                appendFilled('skills', state.skills);
+                appendFilled('job_description', $('cl-description').value);
+                appendFilled('template_id', state.templateId);
+
+                const resumeFile = $('cl-resume-file')?.files?.[0];
+                if (resumeFile) formData.append('resume_file', resumeFile);
+
                 const response = await fetch('{{ route("cover-letter.generate") }}', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'
                     },
-                    body: JSON.stringify({
-                        name: state.name,
-                        email: state.email,
-                        mobile: state.mobile,
-                        location: state.location,
-                        company_name: state.company,
-                        job_role: state.job_role,
-                        skills: state.skills,
-                        job_description: $('cl-description').value,
-                        template_id: state.templateId
-                    })
+                    body: formData
                 });
 
                 const data = await response.json();
                 if (data.success) {
                     state.id = data.cover_letter_id;
-                    state.body = data.letter.body;
-                    $('cl-body').value = state.body;
+                    syncLetterFields(data.letter);
                     render();
                 } else {
                     alert(data.message || 'Generation failed.');

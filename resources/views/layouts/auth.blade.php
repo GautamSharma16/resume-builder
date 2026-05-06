@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'Resume Builder') }}</title>
+    <title>@yield('title') | {{ config('app.name', 'Resume Builder') }}</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,53 +29,19 @@
             
             --font-display: 'DM Serif Display', serif;
             --font-body:    'Bricolage Grotesque', sans-serif;
-
-            --r-md:  12px;
-            --r-lg:  18px;
-            --r-xl:  28px;
-            --r-2xl: 36px;
         }
-
-        body {
-            font-family: var(--font-body);
-            color: var(--ink);
-            background-color: var(--surface);
-            -webkit-font-smoothing: antialiased;
-        }
-
-        h1, h2, h3, h4, h5, h6, .font-display {
-            font-family: var(--font-display);
-        }
+        body { font-family: var(--font-body); }
     </style>
 </head>
-
 <body class="bg-gray-50">
 
-    {{-- Smart Navbar (Changes Based on User Role) --}}
-    @hasSection('navbar')
-        @yield('navbar')
-    @else
-        @include('components.navbar')
-    @endif
-
-    {{-- Page Content --}}
     <div class="min-h-screen">
-        {{ $slot ?? '' }}
         @yield('content')
     </div>
 
-    {{-- Footer --}}
-    @hasSection('footer')
-        @yield('footer')
-    @else
-        @include('components.footer')
-    @endif
-
-    @include('components.plan-download-modal')
-
     @stack('scripts')
     
-    <!--Start of Tawk.to Script-->
+    <!-- Tawk.to Script -->
     <script type="text/javascript">
     var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
     (function(){
@@ -87,7 +53,5 @@
     s0.parentNode.insertBefore(s1,s0);
     })();
     </script>
-    <!--End of Tawk.to Script-->
-
 </body>
 </html>
