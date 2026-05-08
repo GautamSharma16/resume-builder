@@ -65,6 +65,8 @@ Route::get('/interview', [PageController::class, 'interview'])->name('interview'
 Route::get('/interview/{slug}', [PageController::class, 'blogShow'])->name('blog.show');
 Route::get('/contact', fn() => view('pages.contact'))->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+Route::get('/privacy-policy', fn() => view('pages.privacy'))->name('privacy');
+Route::get('/terms-of-use', fn() => view('pages.terms'))->name('terms');
 Route::get('/plans', [SubscriptionController::class, 'plans'])->name('plans');
 Route::get('/plans/payment/callback', [SubscriptionController::class, 'paymentLinkCallback'])->name('plans.callback');
 Route::post('/razorpay/webhook', RazorpayWebhookController::class)->name('razorpay.webhook');
@@ -87,7 +89,7 @@ Route::get('/resume/{resume}/download/{format?}', [ResumeBuilderController::clas
 */
 
 Route::middleware(['auth', 'user'])->group(function () {
-    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/plans/{plan}/checkout', [SubscriptionController::class, 'checkout'])->name('plans.checkout');
     Route::post('/plans/{plan}/order', [SubscriptionController::class, 'order'])->name('plans.order');
     Route::post('/purchases/{purchase}/verify', [SubscriptionController::class, 'verify'])->name('plans.verify');

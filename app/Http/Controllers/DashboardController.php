@@ -11,9 +11,51 @@ use App\Models\VisitorLog;
 
 class DashboardController extends Controller
 {
+    public function index()
+    {
+        $user = auth()->user();
+        
+        // Active Plan
+        $activeSubscription = $user->activeSubscription()->with('plan')->first();
+        
+        // Recent Resumes
+        $recentResumes = \App\Models\Resume::where('user_id', $user->id)
+            ->with('template')
+            ->latest()
+            ->take(6)
+            ->get();
+            
+        // Recent Cover Letters
+        $recentCoverLetters = \App\Models\CoverLetter::where('user_id', $user->id)
+            ->with('template')
+            ->latest()
+            ->take(6)
+            ->get();
+
+        return view('dashboard', [
+            'user' => $user,
+            'activeSubscription' => $activeSubscription,
+            'recentResumes' => $recentResumes,
+            'recentCoverLetters' => $recentCoverLetters,
+            'totalResumes' => \App\Models\Resume::where('user_id', $user->id)->count(),
+            'totalCoverLetters' => \App\Models\CoverLetter::where('user_id', $user->id)->count(),
+        ]);
+    }
+
     public function admin()
     {
-        return view('admin.dashboard', $this->dashboardStats());
+        $user = auth()->user();
+        $stats = $this->dashboardStats();
+
+        if ($user->hasRole(['seo', 'article', 'article_writer'])) {
+            return view('admin.seo-dashboard', $stats);
+        }
+
+        if ($user->hasRole(['developer', 'dev'])) {
+            return view('admin.developer-dashboard', $stats);
+        }
+
+        return view('admin.dashboard', $stats);
     }
 
     public function getData()

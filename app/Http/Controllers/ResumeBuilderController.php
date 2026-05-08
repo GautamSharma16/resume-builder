@@ -160,7 +160,7 @@ class ResumeBuilderController extends Controller
 
     private function normalizeResume(array $resume): array
     {
-        return array_merge($resume, [
+        $normalized = array_merge($resume, [
             'name' => $this->toText($resume['name'] ?? ''),
             'mobile' => $this->toText($resume['mobile'] ?? $resume['contact'] ?? ''),
             'email' => $this->toText($resume['email'] ?? ''),
@@ -178,6 +178,17 @@ class ResumeBuilderController extends Controller
             'social_links' => $this->normalizeArray($resume['social_links'] ?? []),
             'certifications' => $this->normalizeArray($resume['certifications'] ?? []),
         ]);
+
+        $primaryColor = $this->toText($resume['primary_color'] ?? '');
+        if ($primaryColor !== '') {
+            $normalized['primary_color'] = $primaryColor;
+            $normalized['primary_color_customized'] = filter_var($resume['primary_color_customized'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        } else {
+            unset($normalized['primary_color']);
+            unset($normalized['primary_color_customized']);
+        }
+
+        return $normalized;
     }
 
     private function normalizeArray(array|string|null $items): array

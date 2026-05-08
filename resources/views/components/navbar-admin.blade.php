@@ -2,50 +2,66 @@
     $isAdminArea = request()->routeIs('admin.*');
 @endphp
 
-<div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-4">
+<div class="bg-white border-b border-slate-100 h-20 px-8 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-6">
+        <!-- Sidebar Toggle (Mobile Only) -->
+        <button @click="sidebarOpen = true" class="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+        </button>
      
-        
-        @if($isAdminArea)
-            <h2 class="text-xl font-semibold text-gray-900">Admin Panel</h2>
-        @else
-            <a href="{{ route('admin.dashboard') }}" class="text-xl font-semibold text-gray-900 hover:text-blue-600 transition">
-                Admin Dashboard
-            </a>
-        @endif
+        <div class="hidden md:flex items-center gap-2">
+            <div class="w-1 h-6 bg-blue-600 rounded-full opacity-30"></div>
+            @if($isAdminArea)
+                <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest">
+                    {{ request()->routeIs('admin.dashboard') ? 'Control Center' : 'Operations' }}
+                </h2>
+            @else
+                <a href="{{ route('admin.dashboard') }}" class="text-sm font-bold text-slate-500 hover:text-blue-600 transition tracking-widest uppercase">
+                    Back to Control Center
+                </a>
+            @endif
+        </div>
     </div>
 
-    <x-dropdown align="right" width="56" contentClasses="py-2 bg-white">
-        <x-slot name="trigger">
-            <button class="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 transition focus:outline-none">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                </svg>
-                <span class="font-medium">{{ Auth::user()->name }}</span>
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                </svg>
-            </button>
-        </x-slot>
+    <div class="flex items-center gap-4">
+       
 
-        <x-slot name="content">
-            <div class="px-4 py-2 border-b border-gray-100">
-                <p class="text-sm font-medium text-gray-900">{{ Auth::user()->name }}</p>
-                <p class="text-xs text-gray-500">Administrator</p>
-            </div>
+        <x-dropdown align="right" width="56" contentClasses="py-2 bg-white rounded-2xl shadow-2xl ring-1 ring-slate-100 mt-2">
+            <x-slot name="trigger">
+                <button class="flex items-center gap-3 p-1.5 pr-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-all duration-200 focus:outline-none group">
+                    <div class="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-blue-600 font-bold border border-slate-200 group-hover:scale-105 transition-transform">
+                        {{ substr(Auth::user()->name, 0, 1) }}
+                    </div>
+                    <span class="text-sm font-bold text-slate-700">{{ Auth::user()->name }}</span>
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+            </x-slot>
 
-            @unless($isAdminArea)
-                <x-dropdown-link :href="route('admin.dashboard')">
-                    Dashboard
-                </x-dropdown-link>
-            @endunless
+            <x-slot name="content">
+                <div class="px-5 py-3 border-b border-slate-50">
+                    <p class="text-sm font-bold text-slate-900">{{ Auth::user()->name }}</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                        {{ Auth::user()->role === 'admin' ? 'Administrator' : 'Staff Member' }}
+                    </p>
+                </div>
 
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();" class="text-red-600 hover:bg-red-50 focus:bg-red-50">
-                    Logout
-                </x-dropdown-link>
-            </form>
-        </x-slot>
-    </x-dropdown>
+                @unless($isAdminArea)
+                    <x-dropdown-link :href="route('admin.dashboard')" class="text-slate-600 hover:text-blue-600 font-medium">
+                        Admin Dashboard
+                    </x-dropdown-link>
+                @endunless
+
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();" class="text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold">
+                        Logout Session
+                    </x-dropdown-link>
+                </form>
+            </x-slot>
+        </x-dropdown>
+    </div>
 </div>

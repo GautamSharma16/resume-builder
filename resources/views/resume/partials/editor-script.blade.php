@@ -16,8 +16,16 @@
     const ensureArray = (v) => Array.isArray(v) ? v : [];
 
     /* ── State ── */
-    const defaults = { name:'', email:'', mobile:'', location:'', social_links:[], contact:'', address:'', summary:'', skills:[], experience:[], education:[], projects:[] };
+    const defaults = { name:'', email:'', mobile:'', location:'', social_links:[], contact:'', address:'', summary:'', skills:[], experience:[], education:[], projects:[], primary_color: '', primary_color_customized: false };
     const state = Object.assign({}, defaults, readJson('resume-initial-json', {}));
+    
+    // Prioritize color from URL if present (e.g. from template preview page)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('primary_color')) {
+        state.primary_color = urlParams.get('primary_color');
+        state.primary_color_customized = true;
+    }
+
     const templates = readJson('resume-templates-json', {});
     let source = 'manual';
     let selectedTemplateId = app.dataset.selectedTemplate || '';
@@ -40,6 +48,7 @@
     const zoomOutEl       = $('preview-zoom-out');
     const zoomLvlEl       = $('preview-zoom-level');
     let previewZoom = 75;
+    let uploadInProgress = false;
 
     if (!cvPreviewEl || !templateIdEl || !expEditorEl || !eduEditorEl || !saveBtnEl) {
         console.error('Resume maker: missing required DOM elements.'); return;
@@ -68,6 +77,8 @@
                 ? { name: p, description: '' }
                 : { name: String(p?.name ?? ''), description: String(p?.description ?? '') }
         ),
+        primary_color: String(r.primary_color ?? ''),
+        primary_color_customized: Boolean(r.primary_color_customized ?? (r.primary_color && r.primary_color !== '#2563eb')),
     });
 
     Object.assign(state, normalise(state));
@@ -117,6 +128,74 @@
             .replace(new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g'), value)
             .split('[[' + key + ']]').join(value);
     }
+    function resumeAccentStyle(color) {
+        const accent = String(color || '');
+        if (!/^#[0-9a-f]{6}$/i.test(accent)) return '';
+
+        return `<style>
+            .resume-sheet-preview, .rp-tpl-thumb-inner, .resume-maker-preview { --primary: ${accent}; }
+            .resume-sheet-preview .tpl-resume, .rp-tpl-thumb-inner .tpl-resume {
+                border-color: var(--primary) !important;
+                border-top-color: var(--primary) !important;
+                border-right-color: var(--primary) !important;
+                border-bottom-color: var(--primary) !important;
+                border-left-color: var(--primary) !important;
+            }
+            .resume-sheet-preview .tpl-resume h1,
+            .resume-sheet-preview .tpl-resume h2,
+            .resume-sheet-preview .tpl-resume h3,
+            .resume-sheet-preview .tpl-resume a,
+            .resume-sheet-preview .tpl-role-head strong,
+            .rp-tpl-thumb-inner .tpl-resume h1,
+            .rp-tpl-thumb-inner .tpl-resume h2,
+            .rp-tpl-thumb-inner .tpl-resume h3,
+            .rp-tpl-thumb-inner .tpl-resume a,
+            .rp-tpl-thumb-inner .tpl-role-head strong {
+                color: var(--primary) !important;
+                border-color: var(--primary) !important;
+            }
+            .resume-sheet-preview .tpl-badge,
+            .rp-tpl-thumb-inner .tpl-badge {
+                background: var(--primary) !important;
+                border-color: var(--primary) !important;
+                color: #fff !important;
+            }
+            .resume-sheet-preview .tpl-rule,
+            .resume-sheet-preview .tpl-accentbox header > div,
+            .resume-sheet-preview .tpl-two aside,
+            .resume-sheet-preview .tpl-carded header,
+            .resume-sheet-preview .tpl-band header,
+            .resume-sheet-preview .tpl-resume > header[style*="background"],
+            .resume-sheet-preview .tpl-resume h2[style*="background"],
+            .rp-tpl-thumb-inner .tpl-rule,
+            .rp-tpl-thumb-inner .tpl-accentbox header > div,
+            .rp-tpl-thumb-inner .tpl-two aside,
+            .rp-tpl-thumb-inner .tpl-carded header,
+            .rp-tpl-thumb-inner .tpl-band header,
+            .rp-tpl-thumb-inner .tpl-resume > header[style*="background"],
+            .rp-tpl-thumb-inner .tpl-resume h2[style*="background"] {
+                background: var(--primary) !important;
+                color: #fff !important;
+            }
+            .resume-sheet-preview .tpl-rule *,
+            .resume-sheet-preview .tpl-accentbox header > div *,
+            .resume-sheet-preview .tpl-two aside *,
+            .resume-sheet-preview .tpl-carded header *,
+            .resume-sheet-preview .tpl-band header *,
+            .resume-sheet-preview .tpl-resume > header[style*="background"] *,
+            .resume-sheet-preview .tpl-resume h2[style*="background"],
+            .rp-tpl-thumb-inner .tpl-rule *,
+            .rp-tpl-thumb-inner .tpl-accentbox header > div *,
+            .rp-tpl-thumb-inner .tpl-two aside *,
+            .rp-tpl-thumb-inner .tpl-carded header *,
+            .rp-tpl-thumb-inner .tpl-band header *,
+            .rp-tpl-thumb-inner .tpl-resume > header[style*="background"] *,
+            .rp-tpl-thumb-inner .tpl-resume h2[style*="background"] {
+                color: #fff !important;
+                border-color: rgba(255,255,255,0.45) !important;
+            }
+        </style>`;
+    }
     function renderTemplateHtml(template) {
         syncLegacy();
         let output = String(template?.html || '');
@@ -143,11 +222,13 @@
             const lastDiv = output.lastIndexOf('</div>');
             output = lastDiv !== -1 ? output.slice(0, lastDiv) + section + output.slice(lastDiv) : output + section;
         }
+        output = resumeAccentStyle(state.primary_color_customized ? state.primary_color : '') + output;
         return output;
     }
 
     /* ── Preview ── */
     function renderBasicPreview() {
+        const primaryColor = state.primary_color || '#2563eb';
         const header = [state.email, state.mobile, state.location].filter(Boolean).join(' · ');
         const socials = state.social_links.join(' · ');
         const projectsHtml = state.projects.filter(Boolean).map(p => {
@@ -158,17 +239,17 @@
                 : `<li style="font-size:11px;">${esc(name)}</li>`;
         }).join('');
         cvPreviewEl.innerHTML = `
-            <div style="padding:40px 44px;font-family:Georgia,serif;background:#fff;">
-                <div style="border-bottom:2.5px solid #111;padding-bottom:10px;margin-bottom:18px;">
-                    <h1 style="margin:0 0 6px;font-size:26px;letter-spacing:.5px;text-transform:uppercase;">${esc(state.name || 'Your Name')}</h1>
+            <div style="padding:40px 44px;font-family:Georgia,serif;background:#fff;--primary:${primaryColor};">
+                <div style="border-bottom:2.5px solid ${primaryColor};padding-bottom:10px;margin-bottom:18px;">
+                    <h1 style="margin:0 0 6px;font-size:26px;letter-spacing:.5px;text-transform:uppercase;color:${primaryColor};">${esc(state.name || 'Your Name')}</h1>
                     ${header ? `<p style="margin:0;font-size:11px;color:#4b5563;">${esc(header)}</p>` : ''}
                     ${socials ? `<p style="margin:2px 0 0;font-size:11px;color:#4b5563;">${esc(socials)}</p>` : ''}
                 </div>
-                ${state.summary ? `<h2 style="color:#0f766e;font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Summary</h2><p style="font-size:11.5px;margin:0 0 14px;">${esc(state.summary)}</p>` : ''}
-                ${state.skills.length ? `<h2 style="color:#0f766e;font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Skills</h2><p style="font-size:11px;margin:0 0 14px;">${esc(state.skills.join(', '))}</p>` : ''}
-                ${state.experience.some(e=>e.company||e.role) ? `<h2 style="color:#0f766e;font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Experience</h2>${state.experience.map(e => e.company||e.role ? `<div style="margin-bottom:12px;"><strong style="font-size:11.5px;">${esc(e.role)}</strong>${e.period?` <span style="float:right;color:#6b7280;font-size:10px;">${esc(e.period)}</span>`:''}<br><span style="color:#4b5563;font-size:10.5px;">${esc(e.company)}</span><ul style="margin:4px 0 0 14px;padding:0;">${e.points.filter(Boolean).map(p=>`<li style="font-size:11px;margin-bottom:2px;">${esc(p)}</li>`).join('')}</ul></div>` : '').join('')}` : ''}
-                ${state.education.some(Boolean) ? `<h2 style="color:#0f766e;font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Education</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.education.filter(Boolean).map(e=>`<li style="font-size:11px;">${esc(e)}</li>`).join('')}</ul>` : ''}
-                ${projectsHtml ? `<h2 style="color:#0f766e;font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Projects</h2><ul style="margin:0 0 0 14px;padding:0;">${projectsHtml}</ul>` : ''}
+                ${state.summary ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Summary</h2><p style="font-size:11.5px;margin:0 0 14px;">${esc(state.summary)}</p>` : ''}
+                ${state.skills.length ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Skills</h2><p style="font-size:11px;margin:0 0 14px;">${esc(state.skills.join(', '))}</p>` : ''}
+                ${state.experience.some(e=>e.company||e.role) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Experience</h2>${state.experience.map(e => e.company||e.role ? `<div style="margin-bottom:12px;"><strong style="font-size:11.5px;color:${primaryColor};">${esc(e.role)}</strong>${e.period?` <span style="float:right;color:#6b7280;font-size:10px;">${esc(e.period)}</span>`:''}<br><span style="color:#4b5563;font-size:10.5px;">${esc(e.company)}</span><ul style="margin:4px 0 0 14px;padding:0;">${e.points.filter(Boolean).map(p=>`<li style="font-size:11px;margin-bottom:2px;">${esc(p)}</li>`).join('')}</ul></div>` : '').join('')}` : ''}
+                ${state.education.some(Boolean) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Education</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.education.filter(Boolean).map(e=>`<li style="font-size:11px;">${esc(e)}</li>`).join('')}</ul>` : ''}
+                ${projectsHtml ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Projects</h2><ul style="margin:0 0 0 14px;padding:0;">${projectsHtml}</ul>` : ''}
             </div>`;
     }
 
@@ -177,6 +258,18 @@
         if (!selectedTemplateId || !templates[selectedTemplateId]) { renderBasicPreview(); return; }
         const output = renderTemplateHtml(templates[selectedTemplateId]);
         cvPreviewEl.innerHTML = `<div class="resume-preview-stage"><div class="resume-sheet-preview">${output}</div></div>`;
+    }
+
+    function refreshTemplatePopupThumbs() {
+        if (typeof templateGrid === 'undefined' || !templateGrid || !templatePopup?.classList.contains('visible')) return;
+
+        const selectedId = templateIdEl?.value || selectedTemplateId || '';
+        templateGrid.innerHTML = '';
+        Object.entries(templates).forEach(([id, tpl]) => {
+            const card = buildTemplateCard(id, tpl, id === selectedId);
+            bindTemplateCard(card, id);
+            templateGrid.appendChild(card);
+        });
     }
 
     /* ── Editor render — uses design-system classes ── */
@@ -258,12 +351,34 @@
         document.querySelectorAll('.source-btn').forEach(b => b.classList.toggle('active', b.dataset.source === src));
     };
 
+    function applyColorSelection(color) {
+        state.primary_color = color || '';
+        state.primary_color_customized = state.primary_color !== '';
+
+        document.querySelectorAll('.color-option').forEach(b => {
+            const buttonColor = b.dataset.color || '';
+            const active = buttonColor === state.primary_color;
+            b.classList.toggle('active', active);
+            b.style.borderColor = active
+                ? 'var(--navy, var(--slate-900, #0b1221))'
+                : (buttonColor ? 'transparent' : '#e5e7eb');
+        });
+
+        renderTemplatePreview();
+        refreshTemplatePopupThumbs();
+    }
+
     /* ── Apply autofill ── */
     const applyResumeData = (resume) => {
+        const keepColor = {
+            primary_color: state.primary_color,
+            primary_color_customized: state.primary_color_customized,
+        };
         Object.assign(state, defaults, normalise(resume));
+        Object.assign(state, keepColor);
         ensureDefaults();
         renderEditor();
-        renderTemplatePreview();
+        applyColorSelection(state.primary_color_customized ? state.primary_color : '');
     };
 
     /* ═══════════════════════════════════════════
@@ -368,6 +483,14 @@
         renderTemplatePreview();
     });
 
+    document.querySelectorAll('.color-option').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            applyColorSelection(btn.dataset.color || '');
+        });
+    });
+
     /* Delegated button clicks */
     app.addEventListener('click', e => {
         const btn = e.target.closest('button');
@@ -378,6 +501,11 @@
             setSourceState(source);
             const panel = $('existing-resume-panel');
             if (panel) panel.classList.toggle('visible', source === 'upload');
+            return;
+        }
+
+        if (btn.classList.contains('color-option')) {
+            applyColorSelection(btn.dataset.color || '');
             return;
         }
 
@@ -431,35 +559,66 @@
         autofillFileEl.addEventListener('change', () => {
             const f = autofillFileEl.files?.[0];
             if (fileNameEl) fileNameEl.textContent = f ? f.name : 'Click to upload your resume';
+            if (autofillStatusEl) {
+                autofillStatusEl.textContent = f ? 'File selected. Click Autofill to import it.' : '';
+                autofillStatusEl.style.color = '';
+            }
         });
 
         const doAutofill = async () => {
+            if (uploadInProgress) return;
             const file = autofillFileEl.files?.[0];
             if (!file) {
                 if (autofillStatusEl) { autofillStatusEl.textContent = 'Please choose a file first.'; autofillStatusEl.style.color = '#c0392b'; }
                 return;
             }
             try {
+                uploadInProgress = true;
                 autofillBtnEl.disabled = true;
                 autofillBtnEl.style.opacity = '.6';
                 if (autofillStatusEl) { autofillStatusEl.textContent = 'Reading your resume with AI…'; autofillStatusEl.style.color = ''; }
                 const fd = new FormData();
                 fd.append('resume', file);
-                const res = await axios.post(app.dataset.analyzeUrl, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-                applyResumeData(res.data.improved_resume || {});
+                fd.append('mode', 'autofill');
+                let data;
+                if (window.axios) {
+                    const res = await window.axios.post(app.dataset.analyzeUrl, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                    data = res.data;
+                } else {
+                    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                    const res = await fetch(app.dataset.analyzeUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': token,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: fd,
+                    });
+                    data = await res.json().catch(() => ({}));
+                    if (!res.ok) {
+                        const error = new Error(data.message || 'Could not import this resume.');
+                        error.response = { data };
+                        throw error;
+                    }
+                }
+                if (!data.success) {
+                    throw new Error(data.message || 'Could not import this resume.');
+                }
+                applyResumeData(data.improved_resume || {});
                 source = 'upload';
                 setSourceState('upload');
                 if (autofillStatusEl) autofillStatusEl.textContent = '✓ Resume imported — edit freely, preview updates live.';
             } catch (err) {
-                if (autofillStatusEl) { autofillStatusEl.textContent = err.response?.data?.message || 'Could not read this file. Try a text-based PDF or DOCX.'; autofillStatusEl.style.color = '#c0392b'; }
+                if (autofillStatusEl) { autofillStatusEl.textContent = err.response?.data?.message || err.message || 'Could not read this file. Try a text-based PDF or DOCX.'; autofillStatusEl.style.color = '#c0392b'; }
             } finally {
+                uploadInProgress = false;
                 autofillBtnEl.disabled = false;
                 autofillBtnEl.style.opacity = '';
             }
         };
 
         autofillBtnEl.addEventListener('click', doAutofill);
-        autofillFileEl.addEventListener('change', doAutofill);
     }
 
     /* Dropzone click handler */
@@ -515,7 +674,7 @@
             filled = filled.split('[[' + k + ']]').join(v);
         });
 
-        inner.innerHTML = filled;
+        inner.innerHTML = resumeAccentStyle(state.primary_color_customized ? state.primary_color : '') + filled;
         thumb.appendChild(inner);
 
         const name = document.createElement('div');
@@ -532,29 +691,30 @@
 
         const selectedId = templateIdEl?.value || selectedTemplateId || '';
 
-        let popupTemplates = templates;
-        try {
-            popupTemplates = readJson('resume-templates-json', templates);
-        } catch {}
-
         templateGrid.innerHTML = '';
-        Object.entries(popupTemplates).forEach(([id, tpl]) => {
+        Object.entries(templates).forEach(([id, tpl]) => {
             const card = buildTemplateCard(id, tpl, id === selectedId);
-            card.addEventListener('click', () => {
-                templateGrid.querySelectorAll('.rp-tpl-card').forEach(c => c.classList.remove('selected'));
-                card.classList.add('selected');
-
-                if (templateIdEl) {
-                    templateIdEl.value = id;
-                    templateIdEl.dispatchEvent(new Event('change'));
-                }
-
-                setTimeout(() => templatePopup.classList.remove('visible'), 160);
-            });
+            bindTemplateCard(card, id);
             templateGrid.appendChild(card);
         });
 
         templatePopup.classList.add('visible');
+    }
+
+    function bindTemplateCard(card, id) {
+        card.addEventListener('click', () => {
+            templateGrid.querySelectorAll('.rp-tpl-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+
+            if (templateIdEl) {
+                selectedTemplateId = id;
+                templateIdEl.value = id;
+                templateIdEl.dispatchEvent(new Event('change'));
+            }
+
+            applyColorSelection(state.primary_color_customized ? state.primary_color : '');
+            setTimeout(() => templatePopup.classList.remove('visible'), 160);
+        });
     }
 
     changeTemplateBtn?.addEventListener('click', openTemplatePopup);
@@ -574,6 +734,7 @@
     /* ── Bootstrap ── */
     setZoom(previewZoom);
     setSourceState('manual');
+    applyColorSelection(state.primary_color_customized ? state.primary_color : '');
     renderEditor();
     renderTemplatePreview();
     goToStep(1);

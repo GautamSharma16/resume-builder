@@ -39,7 +39,8 @@ class ResumeController extends Controller
     {
         try {
             $validated = $request->validate([
-                'resume' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
+                'resume' => ['required', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:10240'],
+                'mode' => ['nullable', 'in:autofill'],
             ]);
 
             $text = $this->cleanText($this->extractText($request->file('resume')));
@@ -61,6 +62,20 @@ class ResumeController extends Controller
             );
 
             if (!Arr::get($analysis, 'success', true)) {
+                if (($validated['mode'] ?? null) === 'autofill') {
+                    return response()->json([
+                        'success' => true,
+                        'analysis_id' => null,
+                        'is_paid' => false,
+                        'score' => 0,
+                        'strengths' => [],
+                        'weaknesses' => [],
+                        'missing_keywords' => [],
+                        'suggestions' => [Arr::get($analysis, 'message', 'AI analysis was unavailable, so we imported the readable resume text.')],
+                        'improved_resume' => $resumeJson,
+                    ]);
+                }
+
                  return response()->json([
                     'success' => false,
                     'message' => Arr::get($analysis, 'message', 'AI analysis failed.')
@@ -328,8 +343,33 @@ class ResumeController extends Controller
             'pdf' => (new \Smalot\PdfParser\Parser())->parseFile($path)->getText(),
             'docx' => $this->extractTextFromDocx($path),
             'doc' => $this->extractTextFromDoc($path),
+            'pptx' => $this->extractTextFromPptx($path),
+            'ppt' => $this->extractTextFromPptx($path), // Simple fallback for PPT if it contains readable XML parts or text
             default => '',
         };
+    }
+
+    private function extractTextFromPptx(string $path): string
+    {
+        $zip = new \ZipArchive();
+
+        if ($zip->open($path) !== true) {
+            return '';
+        }
+
+        $text = "";
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if (str_contains($name, 'ppt/slides/slide')) {
+                $content = $zip->getFromIndex($i) ?: '';
+                // Add space before text tags to prevent merging words
+                $content = str_replace('<a:t', ' <a:t', $content);
+                $text .= strip_tags($content) . " ";
+            }
+        }
+        $zip->close();
+
+        return html_entity_decode($text, ENT_QUOTES | ENT_XML1, 'UTF-8');
     }
 
     private function extractTextFromDocx(string $path): string
@@ -664,6 +704,14 @@ PROMPT;
                 ];
             }, $resume['projects'] ?? [])),
         ];
+
+        $primaryColor = trim((string) ($resume['primary_color'] ?? ''));
+        if ($primaryColor !== '') {
+            $normalized['primary_color'] = $primaryColor;
+            $normalized['primary_color_customized'] = filter_var($resume['primary_color_customized'] ?? true, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return $normalized;
     }
 
     private function findAuthorizedAnalysis(Request $request, int $id): ResumeAnalysis

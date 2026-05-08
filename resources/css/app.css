@@ -19,7 +19,7 @@
         min-width: 794px;
         display: flex;
         justify-content: center;
-        padding: 12px;
+
     }
 
     /* .resume-maker-preview .resume-sheet-preview {
@@ -38,7 +38,7 @@
     @media (max-width: 640px) {
         .resume-preview-stage {
             justify-content: flex-start;
-            padding: 8px;
+
         }
 
         .resume-maker-preview .resume-sheet-preview {

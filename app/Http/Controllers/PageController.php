@@ -14,7 +14,7 @@ class PageController extends Controller
         $templates = Template::where('is_active', true)
             ->where('type', 'resume')
             ->orderBy('name')
-            ->limit(6)
+            ->limit(12)
             ->get();
 
         $rendered = [];

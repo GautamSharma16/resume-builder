@@ -110,8 +110,9 @@ class TemplateRenderService
         $data = $data ?: $this->resumeSampleData();
         $html = $template->html ?: '';
 
+        $accentColor = $this->resumeAccentColor($data);
         if ($this->shouldRenderWithBlade($html)) {
-            return new HtmlString($this->renderBlade($html, $this->bladeRenderDataForResume($data)));
+            return new HtmlString($this->resumeAccentStyle($accentColor).$this->renderBlade($html, $this->bladeRenderDataForResume($data)));
         }
 
         return new HtmlString($this->render($html, $this->normalizeResume($data)));
@@ -152,7 +153,74 @@ class TemplateRenderService
             }
         }
 
+        $html = $this->resumeAccentStyle($this->resumeAccentColor($data)).$html;
+
         return $html;
+    }
+
+    private function resumeAccentStyle(string $color): string
+    {
+        if (! preg_match('/^#[0-9a-f]{6}$/i', $color)) {
+            return '';
+        }
+
+        $primaryColor = $color;
+
+        return '<style>
+            :root, .tpl-resume { --primary: '.$primaryColor.'; }
+            .tpl-resume {
+                border-color: var(--primary) !important;
+                border-top-color: var(--primary) !important;
+                border-right-color: var(--primary) !important;
+                border-bottom-color: var(--primary) !important;
+                border-left-color: var(--primary) !important;
+            }
+            .tpl-resume h1,
+            .tpl-resume h2,
+            .tpl-resume h3,
+            .tpl-resume a,
+            .tpl-role-head strong {
+                color: var(--primary) !important;
+                border-color: var(--primary) !important;
+            }
+            .tpl-badge {
+                background: var(--primary) !important;
+                border-color: var(--primary) !important;
+                color: #fff !important;
+            }
+            .tpl-rule,
+            .tpl-accentbox header > div,
+            .tpl-two aside,
+            .tpl-carded header,
+            .tpl-band header,
+            .tpl-resume > header[style*="background"],
+            .tpl-resume h2[style*="background"] {
+                background: var(--primary) !important;
+                color: #fff !important;
+            }
+            .tpl-rule *,
+            .tpl-accentbox header > div *,
+            .tpl-two aside *,
+            .tpl-carded header *,
+            .tpl-band header *,
+            .tpl-resume > header[style*="background"] *,
+            .tpl-resume h2[style*="background"] {
+                color: #fff !important;
+                border-color: rgba(255,255,255,0.45) !important;
+            }
+        </style>';
+    }
+
+    private function resumeAccentColor(array $data): string
+    {
+        $color = $this->text(Arr::get($data, 'primary_color', ''));
+        if (! preg_match('/^#[0-9a-f]{6}$/i', $color)) {
+            return '';
+        }
+
+        $customized = filter_var(Arr::get($data, 'primary_color_customized', $color !== '#2563eb'), FILTER_VALIDATE_BOOLEAN);
+
+        return $customized ? $color : '';
     }
 
     private function normalizeResume(array $data): array
@@ -168,6 +236,8 @@ class TemplateRenderService
             'education' => $this->list(Arr::get($data, 'education', [])),
             'projects' => $this->projectList(Arr::get($data, 'projects', [])),
             'social_links' => $this->inline(Arr::get($data, 'social_links', [])),
+            'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
+            'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
         ];
     }
 
@@ -222,6 +292,8 @@ class TemplateRenderService
             'link' => $this->text(Arr::get($data, 'link', '')),
             'contact' => $this->text(Arr::get($data, 'contact', '')),
             'address' => $this->text(Arr::get($data, 'address', '')),
+            'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
+            'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
         ];
 
         return array_merge(['resume' => $resume], $resume);

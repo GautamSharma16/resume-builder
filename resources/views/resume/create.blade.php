@@ -616,11 +616,7 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 0.875rem;
-            background: white;
-            padding: 0.7rem 1.2rem;
-            border-radius: var(--r-lg);
-            border: 1px solid var(--border-md);
-            box-shadow: var(--shadow-xs);
+            padding: 0.5rem 0;
         }
         .rp-preview-label {
             display: flex;
@@ -689,15 +685,12 @@
         }
 
         .rp-viewport {
-            background: #d8dde8;
-            border-radius: var(--r-xl);
-            padding: 2.5rem 1.5rem;
-            height: 82vh;
+            height: 85vh;
             overflow: auto;
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            box-shadow: inset 0 2px 12px rgba(0,0,0,0.08);
+            padding: 0;
         }
         .rp-viewport::-webkit-scrollbar { width: 5px; }
         .rp-viewport::-webkit-scrollbar-track { background: transparent; }
@@ -946,7 +939,7 @@
                                 <button type="button" data-source="manual" class="source-btn active">Start Fresh</button>
                             </div>
                             <div id="existing-resume-panel" class="rp-upload-panel">
-                                <input id="resume-autofill-file" type="file" accept=".pdf,.doc,.docx">
+                                <input id="resume-autofill-file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx">
                                 <div class="rp-dropzone" id="rp-dropzone-trigger">
                                     <div class="rp-dropzone-icon">
                                         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
@@ -955,7 +948,7 @@
                                         <strong id="rp-file-name">Click to upload your resume</strong>
                                         <span>PDF, DOC, or DOCX — AI will autofill your info</span>
                                     </div>
-                                    <button id="resume-autofill-button" class="rp-btn rp-btn-primary rp-btn-sm" style="margin-left:auto;flex-shrink:0;">
+                                    <button type="button" id="resume-autofill-button" class="rp-btn rp-btn-primary rp-btn-sm" style="margin-left:auto;flex-shrink:0;">
                                         Autofill
                                     </button>
                                 </div>
@@ -1130,6 +1123,39 @@
                         Live Preview
                     </div>
                     <div style="display:flex;align-items:center;gap:0.75rem;">
+                        {{-- COLOR PICKER --}}
+                        <div class="flex items-center gap-2 mr-2 bg-gray-50 p-1 rounded-full border border-gray-100">
+                            @php
+                                $colors = [
+                                    '#2563eb' => 'Blue',
+                                    '#10b981' => 'Emerald',
+                                    '#475569' => 'Slate',
+                                    '#e11d48' => 'Rose',
+                                    '#4f46e5' => 'Indigo',
+                                ];
+                                $initialColor = $initialResume['primary_color'] ?? '';
+                                $hasCustomColor = request()->has('primary_color')
+                                    || (($initialResume['primary_color_customized'] ?? false) && $initialColor !== '')
+                                    || ($initialColor !== '' && $initialColor !== '#2563eb');
+                                $currentColor = $hasCustomColor ? request('primary_color', $initialColor) : '';
+                            @endphp
+                            <button type="button"
+                                class="color-option {{ $currentColor === '' ? 'active' : '' }}"
+                                data-color=""
+                                title="Original"
+                                style="height: 24px; border-radius: 999px; background-color: white; border: 2px solid {{ $currentColor === '' ? 'var(--navy, #0b1221)' : '#e5e7eb' }}; color: var(--muted); font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s; padding: 0 8px;">
+                                Original
+                            </button>
+                            @foreach($colors as $hex => $name)
+                                <button type="button" 
+                                    class="color-option {{ $currentColor === $hex ? 'active' : '' }}" 
+                                    data-color="{{ $hex }}"
+                                    title="{{ $name }}"
+                                    style="width: 24px; height: 24px; border-radius: 50%; background-color: {{ $hex }}; border: 2px solid {{ $currentColor === $hex ? 'var(--navy, #0b1221)' : 'transparent' }}; cursor: pointer; transition: all 0.2s; padding: 0;">
+                                </button>
+                            @endforeach
+                        </div>
+
                         <button id="change-template-btn">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>
                             Switch Style
@@ -1168,17 +1194,6 @@
     </div>
 
     <script>
-        // Dropzone click-to-upload
-        document.getElementById('rp-dropzone-trigger')?.addEventListener('click', function(e) {
-            if (!e.target.closest('#resume-autofill-button')) {
-                document.getElementById('resume-autofill-file').click();
-            }
-        });
-        document.getElementById('resume-autofill-file')?.addEventListener('change', function() {
-            const name = this.files[0]?.name;
-            if (name) document.getElementById('rp-file-name').textContent = name;
-        });
-
         // Scale preview
         window.addEventListener('load', () => {
             const viewport = document.getElementById('preview-viewport');

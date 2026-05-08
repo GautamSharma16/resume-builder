@@ -4,6 +4,11 @@
     <meta charset="utf-8">
     <style>
         @page { margin: 34px 42px; }
+        @php
+            $primaryColor = trim((string) ($resume['primary_color'] ?? ''));
+            $hasPrimaryColor = preg_match('/^#[0-9a-f]{6}$/i', $primaryColor)
+                && (filter_var($resume['primary_color_customized'] ?? ($primaryColor !== '#2563eb'), FILTER_VALIDATE_BOOLEAN));
+        @endphp
         body {
             color: #111827;
             font-family: DejaVu Sans, Arial, sans-serif;
@@ -13,7 +18,8 @@
             word-break: break-word;
         }
         h1 {
-            border-bottom: 2px solid #111827;
+            border-bottom: 2px solid {{ $hasPrimaryColor ? $primaryColor : '#111827' }};
+            @if($hasPrimaryColor) color: {{ $primaryColor }}; @endif
             font-size: 26px;
             letter-spacing: 0;
             margin: 0 0 14px;
@@ -21,11 +27,13 @@
             text-transform: uppercase;
         }
         h2 {
-            color: #0f766e;
+            color: {{ $hasPrimaryColor ? $primaryColor : '#0f766e' }};
             font-size: 12px;
             letter-spacing: 0;
             margin: 18px 0 7px;
             text-transform: uppercase;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 2px;
         }
         p { margin: 0 0 8px; overflow-wrap: anywhere; word-break: break-word; }
         ul { margin: 6px 0 0 18px; padding: 0; }
