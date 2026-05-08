@@ -260,23 +260,16 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 1rem;
-            background: white;
-            padding: 0.75rem 1.25rem;
-            border-radius: var(--radius-xl);
-            border: 1px solid var(--slate-200);
-            box-shadow: var(--shadow-sm);
+            padding: 0.5rem 0;
         }
 
         .rp-viewport {
-            background: var(--slate-200);
-            border-radius: var(--radius-2xl);
-            padding: 3rem 2rem;
-            height: 80vh;
+            height: 85vh;
             overflow: auto;
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+            padding: 0;
         }
 
         #cv-preview {
@@ -361,6 +354,40 @@
                                 <option value="{{ $template->id }}" @selected($resume->template_id === $template->id)>{{ $template->name }}</option>
                             @endforeach
                         </select>
+                    </div>
+
+                    <div class="field-group">
+                        <label class="field-label">Resume Color</label>
+                        <div style="display: flex; gap: 0.75rem; align-items: center; margin-top: 0.5rem;">
+                            @php
+                                $colors = [
+                                    '#2563eb' => 'Blue',
+                                    '#10b981' => 'Emerald',
+                                    '#475569' => 'Slate',
+                                    '#e11d48' => 'Rose',
+                                    '#4f46e5' => 'Indigo',
+                                ];
+                                $savedColor = $resume->data['primary_color'] ?? '';
+                                $hasCustomColor = (($resume->data['primary_color_customized'] ?? false) && $savedColor !== '')
+                                    || ($savedColor !== '' && $savedColor !== '#2563eb');
+                                $currentColor = $hasCustomColor ? $savedColor : '';
+                            @endphp
+                            <button type="button"
+                                class="color-option {{ $currentColor === '' ? 'active' : '' }}"
+                                data-color=""
+                                title="Original"
+                                style="height: 32px; border-radius: 999px; background-color: white; border: 3px solid {{ $currentColor === '' ? 'var(--slate-900)' : '#e5e7eb' }}; color: var(--slate-600); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; padding: 0 10px;">
+                                Original
+                            </button>
+                            @foreach($colors as $hex => $name)
+                                <button type="button" 
+                                    class="color-option {{ $currentColor === $hex ? 'active' : '' }}" 
+                                    data-color="{{ $hex }}"
+                                    title="{{ $name }}"
+                                    style="width: 32px; height: 32px; border-radius: 50%; background-color: {{ $hex }}; border: 3px solid {{ $currentColor === $hex ? 'var(--slate-900)' : 'transparent' }}; cursor: pointer; transition: all 0.2s; padding: 0;">
+                                </button>
+                            @endforeach
+                        </div>
                     </div>
 
                     <hr style="border: none; border-top: 1px solid var(--slate-100); margin: 2rem 0;">

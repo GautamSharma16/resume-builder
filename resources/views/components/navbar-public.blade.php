@@ -2,7 +2,7 @@
 <nav x-data="{ open: false, scrolled: false }" 
      x-init="window.addEventListener('scroll', () => { scrolled = window.scrollY > 20 })"
      :class="scrolled ? 'bg-white/95 backdrop-blur-md shadow-lg py-2' : 'bg-white shadow-md py-2'"
-     class=" top-0 z-50 transition-all duration-300">
+     class=" top-0 z-50 transition-all duration-300 w-full">
     <div class="max-w-full mx-auto px-4 sm:px-10 lg:px-16">
         <div class="flex justify-between items-center h-16">
             <!-- Logo with gradient effect -->

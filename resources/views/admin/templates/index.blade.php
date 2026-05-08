@@ -7,7 +7,8 @@
         <a href="{{ route('admin.templates.create') }}" class="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white">New Template</a>
     </div>
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
             <tbody class="divide-y divide-gray-100">
                 @foreach($templates as $template)
                     <tr>

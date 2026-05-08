@@ -1,127 +1,203 @@
 <x-app-layout>
-    <div class="min-h-screen bg-[#f8fafc] py-12 px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen py-10 px-4 sm:px-6 lg:px-8">
         <div class="max-w-7xl mx-auto">
-            <!-- Header with Glassmorphism -->
-            <div class="relative overflow-hidden rounded-3xl bg-white/40 backdrop-blur-xl border border-white/20 p-8 sm:p-12 shadow-2xl mb-12">
-                <div class="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
-                <div class="absolute bottom-0 left-0 -mb-20 -ml-20 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl"></div>
-                
-                <div class="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            
+            <!-- Header Section -->
+            <div class="mb-10 animate-in fade-in slide-in-from-top-4 duration-700">
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <h1 class="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">
-                            Welcome, <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">{{ Auth::user()->name }}</span>! 
+                        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold uppercase tracking-wider mb-3">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                            User Dashboard
+                        </span>
+                        <h1 class="text-4xl md:text-5xl font-display text-navy leading-tight">
+                            Welcome back, <span class="text-blue-600">{{ Auth::user()->name }}</span>
                         </h1>
-                        <p class="mt-4 text-lg text-slate-600 font-medium max-w-xl">
-                            Ready to take the next step in your career? Let's build a resume that gets you hired.
+                        <p class="mt-3 text-muted text-lg max-w-2xl font-medium">
+                            Manage your professional profile, track your applications, and create high-converting career documents.
                         </p>
                     </div>
-                    <div class="flex gap-4">
-                        <a href="{{ route('resume.create') }}" 
-                           class="inline-flex items-center px-6 py-3 rounded-2xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 hover:scale-105 transition-all duration-300">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            Create Resume
+                    <div class="flex flex-wrap gap-3">
+                        <a href="{{ route('resume.create') }}" class="btn-primary shadow-blue-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            New Resume
+                        </a>
+                        <a href="{{ route('cover-letter') }}" class="btn-outline">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Cover Letter
                         </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Quick Stats Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            <!-- Stats & Plan Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <!-- Active Plan Card -->
+                <div class="bg-navy rounded-[var(--r-2xl)] p-8 text-white relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-700"></div>
+                    <div class="relative z-10">
+                        <h3 class="text-blue-400 font-bold uppercase tracking-widest text-xs mb-6">Current Subscription</h3>
+                        @if($activeSubscription)
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="text-3xl font-display">{{ $activeSubscription->plan->name ?? 'Premium Plan' }}</div>
+                                <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-[10px] font-black uppercase border border-green-500/30">Active</span>
+                            </div>
+                            <p class="text-slate-400 text-sm mb-6">Renews on {{ \Carbon\Carbon::parse($activeSubscription->expiry_date)->format('M d, Y') }}</p>
+                            <a href="{{ route('plans') }}" class="text-white text-xs font-bold underline underline-offset-4 hover:text-blue-300 transition-colors">Manage Subscription</a>
+                        @else
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="text-3xl font-display">Free Explorer</div>
+                                <span class="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-[10px] font-black uppercase border border-yellow-500/30">Limited</span>
+                            </div>
+                            <p class="text-slate-400 text-sm mb-6">Upgrade to unlock premium templates and AI features.</p>
+                            <a href="{{ route('plans') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-xl text-white text-xs font-bold hover:bg-blue-700 transition-colors">
+                                Upgrade Now
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
                 <!-- Resumes Count -->
-                <div class="group bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                <div class="bg-white rounded-[var(--r-2xl)] p-8 border border-border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-blue-50 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 text-blue-600">
+                        <div class="p-3 bg-blue-50 text-blue-600 rounded-2xl">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         </div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active</span>
+                        <span class="text-[10px] font-black text-muted uppercase tracking-widest">Total Resumes</span>
                     </div>
-                    <h3 class="text-slate-500 font-bold text-sm">Resumes Created</h3>
-                    <p class="text-4xl font-black text-slate-900 mt-1">0</p>
+                    <div>
+                        <div class="text-5xl font-display text-navy">{{ $totalResumes }}</div>
+                        <p class="text-muted text-sm mt-1 font-medium">Professional resumes created</p>
+                    </div>
                 </div>
 
-                <!-- Downloads -->
-                <div class="group bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                <!-- Cover Letters Count -->
+                <div class="bg-white rounded-[var(--r-2xl)] p-8 border border-border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-green-50 rounded-2xl group-hover:bg-green-600 group-hover:text-white transition-colors duration-300 text-green-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <div class="p-3 bg-purple-50 text-purple-600 rounded-2xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                         </div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">All Time</span>
+                        <span class="text-[10px] font-black text-muted uppercase tracking-widest">Cover Letters</span>
                     </div>
-                    <h3 class="text-slate-500 font-bold text-sm">Downloads</h3>
-                    <p class="text-4xl font-black text-slate-900 mt-1">0</p>
-                </div>
-
-                <!-- Progress -->
-                <div class="group bg-white rounded-3xl p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-purple-50 rounded-2xl group-hover:bg-purple-600 group-hover:text-white transition-colors duration-300 text-purple-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        </div>
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Profile</span>
-                    </div>
-                    <h3 class="text-slate-500 font-bold text-sm mb-3">Completion Status</h3>
-                    <div class="relative pt-1">
-                        <div class="overflow-hidden h-2 mb-4 text-xs flex rounded-full bg-slate-100">
-                            <div style="width:10%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-purple-500 to-purple-600"></div>
-                        </div>
-                        <div class="flex items-center justify-between text-xs font-bold text-slate-400 uppercase">
-                            <span>Getting Started</span>
-                            <span class="text-purple-600">10%</span>
-                        </div>
+                    <div>
+                        <div class="text-5xl font-display text-navy">{{ $totalCoverLetters }}</div>
+                        <p class="text-muted text-sm mt-1 font-medium">Personalized cover letters</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Content Area -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Recent Resumes List -->
-                <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                    <div class="px-8 py-6 border-b border-slate-50 flex items-center justify-between">
-                        <h2 class="text-xl font-black text-slate-900">Your Recent Resumes</h2>
-                        <a href="{{ route('resume.index') }}" class="text-sm font-bold text-blue-600 hover:text-blue-700">View All</a>
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="flex items-center justify-between px-2">
+                        <h2 class="text-2xl font-display text-navy">Recent Resumes</h2>
+                        <a href="{{ route('resume.index') }}" class="text-sm font-bold text-blue-600 hover:underline">View All</a>
                     </div>
-                    <div class="p-8">
-                        <div class="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                            <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
-                                <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                            </div>
-                            <h3 class="text-lg font-bold text-slate-900 mb-2">No resumes yet</h3>
-                            <p class="text-slate-500 mb-6 max-w-xs mx-auto">Create your first professional resume in minutes using our AI-powered builder.</p>
-                            <a href="{{ route('resume.create') }}" class="inline-flex items-center font-bold text-blue-600 hover:text-blue-700">
-                                Start Building Now
-                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                            </a>
+                    
+                    @if($recentResumes->count() > 0)
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @foreach($recentResumes as $resume)
+                                <div class="bg-white rounded-[var(--r-xl)] border border-border p-5 hover:shadow-lg transition-all duration-300 group">
+                                    <div class="flex gap-4">
+                                        <div class="w-20 h-28 bg-slate-50 rounded-lg flex-shrink-0 overflow-hidden border border-slate-100 relative">
+                                            @if($resume->template && $resume->template->thumbnail)
+                                                <img src="{{ asset('storage/' . $resume->template->thumbnail) }}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                                            @else
+                                                <div class="w-full h-full flex items-center justify-center text-slate-300">
+                                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="flex-1 flex flex-col justify-between">
+                                            <div>
+                                                <h4 class="font-bold text-navy line-clamp-1 mb-1">{{ $resume->title ?: 'Untitled Resume' }}</h4>
+                                                <p class="text-[10px] text-muted font-bold uppercase tracking-wider mb-2">
+                                                    {{ $resume->template->name ?? 'Modern Template' }}
+                                                </p>
+                                                <p class="text-[11px] text-slate-400">Modified {{ $resume->updated_at->diffForHumans() }}</p>
+                                            </div>
+                                            <div class="flex gap-2 pt-3">
+                                                <a href="{{ route('resume.edit', $resume) }}" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors" title="Edit">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                                </a>
+                                                <a href="{{ route('resume.download', $resume) }}" class="p-2 bg-slate-50 text-slate-600 rounded-lg hover:bg-navy hover:text-white transition-colors" title="Download">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
-                    </div>
+                    @else
+                        <div class="bg-white rounded-[var(--r-2xl)] border-2 border-dashed border-slate-200 p-12 text-center">
+                            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                            </div>
+                            <h3 class="text-lg font-bold text-navy mb-1">Create your first resume</h3>
+                            <p class="text-muted text-sm mb-6">Choose a template and let our AI help you write the perfect content.</p>
+                            <a href="{{ route('resume.create') }}" class="btn-primary">Start Building</a>
+                        </div>
+                    @endif
                 </div>
 
-                <!-- Side Info / Tips -->
-                <div class="space-y-8">
-                    <!-- Templates Promo -->
-                    <div class="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden group">
-                        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                        <h3 class="text-xl font-bold mb-4 relative">Premium Templates</h3>
-                        <p class="text-slate-400 text-sm mb-6 relative">Choose from over 50+ hand-crafted, ATS-optimized templates designed by recruitment experts.</p>
-                        <a href="{{ route('templates') }}" class="inline-flex items-center text-sm font-bold text-white group-hover:translate-x-1 transition-transform">
-                            Browse Gallery
-                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                        </a>
+                <!-- Recent Cover Letters Sidebar -->
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between px-2">
+                        <h2 class="text-2xl font-display text-navy">Cover Letters</h2>
                     </div>
 
-                    <!-- Career Tips -->
-                    <div class="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm">
-                        <h3 class="text-lg font-bold text-slate-900 mb-4">Quick Tip</h3>
-                        <div class="flex items-start gap-4">
-                            <div class="p-2 bg-yellow-50 text-yellow-600 rounded-lg">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            </div>
-                            <p class="text-sm text-slate-600 leading-relaxed">
-                                Always customize your resume for every job application. Mention key skills listed in the job description to pass ATS filters.
-                            </p>
+                    <div class="bg-white rounded-[var(--r-2xl)] border border-border shadow-sm overflow-hidden">
+                        <div class="p-6">
+                            @forelse($recentCoverLetters as $cl)
+                                <div class="group py-4 @if(!$loop->last) border-b border-slate-50 @endif">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="flex-1 min-w-0">
+                                            <h5 class="font-bold text-navy truncate leading-tight mb-1">{{ $cl->job_role ?: 'General Application' }}</h5>
+                                            <p class="text-xs text-muted truncate">{{ $cl->company ?: 'N/A' }}</p>
+                                            <p class="text-[10px] text-slate-400 mt-2">{{ $cl->updated_at->format('M d, Y') }}</p>
+                                        </div>
+                                        <div class="flex gap-1">
+                                            <a href="{{ route('cover-letter.download', $cl) }}" class="p-1.5 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-md transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="py-10 text-center">
+                                    <p class="text-slate-400 text-sm">No cover letters yet.</p>
+                                    <a href="{{ route('cover-letter') }}" class="text-blue-600 text-xs font-bold mt-2 inline-block hover:underline">Create One Now</a>
+                                </div>
+                            @endforelse
                         </div>
+                        @if($recentCoverLetters->count() > 0)
+                            <div class="bg-slate-50 px-6 py-3 border-t border-slate-100">
+                                <a href="#" class="text-xs font-bold text-muted hover:text-blue-600 flex items-center justify-center gap-1 transition-colors">
+                                    Browse All
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </a>
+                            </div>
+                        @endif
                     </div>
+
+                    <!-- Upgrade Teaser -->
+                    @if(!$activeSubscription)
+                        <div class="bg-gradient-to-br from-purple-600 to-blue-700 rounded-[var(--r-2xl)] p-8 text-white relative overflow-hidden">
+                            <div class="absolute top-0 right-0 opacity-10">
+                                <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                            </div>
+                            <div class="relative z-10">
+                                <h3 class="text-xl font-display mb-3">Professional Edge</h3>
+                                <p class="text-white/70 text-xs leading-relaxed mb-6">Unlock all premium templates and AI-powered grammar enhancement to stand out from the crowd.</p>
+                                <a href="{{ route('plans') }}" class="btn-secondary w-full justify-center">Go Premium</a>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
+
         </div>
     </div>
 </x-app-layout>

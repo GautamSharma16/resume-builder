@@ -146,7 +146,7 @@
         height: 8px;
         background: var(--blue);
         border-radius: 50%;
-        animation: pulse-ring 2s infinite;
+       
     }
     .section-heading {
         font-family: var(--font-display);
@@ -188,10 +188,10 @@
         transition: transform 0.6s;
     }
     .btn-primary:hover::before { transform: translateX(100%); }
-    .btn-primary:hover { 
+    .btn-primary:hover {
         background: linear-gradient(135deg, var(--blue-dark), var(--blue));
-        transform: translateY(-3px); 
-        box-shadow: 0 8px 30px rgba(37,99,235,0.5); 
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(37,99,235,0.5);
     }
     .btn-primary:active { transform: translateY(0); }
 
@@ -208,10 +208,10 @@
         transition: all 0.3s var(--ease-spring);
         cursor: pointer;
     }
-    .btn-outline:hover { 
-        border-color: var(--blue); 
-        background: var(--blue-light); 
-        color: var(--blue); 
+    .btn-outline:hover {
+        border-color: var(--blue);
+        background: var(--blue-light);
+        color: var(--blue);
         transform: translateY(-3px);
         box-shadow: 0 8px 20px rgba(37,99,235,0.1);
     }
@@ -254,7 +254,6 @@
         overflow: hidden;
     }
 
-    /* Animated gradient orbs */
     .hero-orb-1 {
         position: absolute;
         width: 500px; height: 500px;
@@ -283,11 +282,10 @@
         pointer-events: none;
     }
 
-    /* Dot-grid background */
     .hero-grid {
         position: absolute;
         inset: 0;
-        background-image: 
+        background-image:
             linear-gradient(rgba(37,99,235,0.03) 1px, transparent 1px),
             linear-gradient(90deg, rgba(37,99,235,0.03) 1px, transparent 1px);
         background-size: 40px 40px;
@@ -435,7 +433,7 @@
         background: white;
         border-radius: 32px;
         padding: 12px;
-        box-shadow: 
+        box-shadow:
             0 30px 60px rgba(0,0,0,0.15),
             0 0 0 1px rgba(0,0,0,0.05);
         transition: all 0.4s var(--ease-spring);
@@ -455,7 +453,6 @@
         background: #fff;
     }
 
-    /* Decorative ring */
     .preview-ring {
         position: absolute;
         inset: -25px;
@@ -466,7 +463,6 @@
         animation: spin-slow 20s linear infinite;
     }
 
-    /* Floating chips */
     .float-chip {
         position: absolute;
         background: white;
@@ -564,15 +560,15 @@
         line-height: 1;
         margin-bottom: 0.5rem;
     }
-    .stat-number span { 
+    .stat-number span {
         background: linear-gradient(135deg, var(--blue), var(--purple));
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
     }
-    .stat-label { 
-        font-size: 0.8rem; 
-        color: rgba(255,255,255,0.55); 
+    .stat-label {
+        font-size: 0.8rem;
+        color: rgba(255,255,255,0.55);
         font-weight: 500;
         letter-spacing: 0.03em;
     }
@@ -584,15 +580,15 @@
         position: relative;
         overflow: hidden;
     }
-    .features-strip-header { 
-        max-width: 550px; 
-        margin: 0 auto 4rem; 
-        text-align: center; 
+    .features-strip-header {
+        max-width: 550px;
+        margin: 0 auto 4rem;
+        text-align: center;
     }
-    .features-strip-header p { 
-        color: var(--muted); 
-        margin-top: 1rem; 
-        font-size: 1rem; 
+    .features-strip-header p {
+        color: var(--muted);
+        margin-top: 1rem;
+        font-size: 1rem;
     }
 
     .features-grid {
@@ -624,9 +620,9 @@
         transform-origin: left;
         transition: transform 0.4s var(--ease-spring);
     }
-    .feature-item:hover { 
-        transform: translateY(-8px); 
-        box-shadow: 0 20px 40px rgba(0,0,0,0.08); 
+    .feature-item:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
         border-color: rgba(37,99,235,0.2);
     }
     .feature-item:hover::before { transform: scaleX(1); }
@@ -639,27 +635,29 @@
         margin: 0 auto 1rem;
         transition: all 0.3s var(--ease-spring);
     }
-    .feature-item:hover .feature-icon { 
-        transform: scale(1.1) rotate(-5deg); 
+    .feature-item:hover .feature-icon {
+        transform: scale(1.1) rotate(-5deg);
         box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
-    .feature-name { 
-        font-size: 0.9rem; 
-        font-weight: 800; 
-        margin-bottom: 0.5rem; 
-        color: var(--navy); 
+    .feature-name {
+        font-size: 0.9rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        color: var(--navy);
     }
-    .feature-desc { 
-        font-size: 0.7rem; 
-        color: var(--muted); 
-        line-height: 1.5; 
+    .feature-desc {
+        font-size: 0.7rem;
+        color: var(--muted);
+        line-height: 1.5;
     }
 
     /* ─── TEMPLATES ──────────────────────────────────────────── */
     .templates-section {
-        padding: 6rem 8%;
+        padding: 2rem 4%;
         background: var(--white);
         overflow: hidden;
+        position: relative;
+        width: 100%;
     }
     .templates-header {
         display: flex;
@@ -669,11 +667,11 @@
         flex-wrap: wrap;
         gap: 1rem;
     }
-    .templates-header a { 
-        color: var(--blue); 
-        font-size: 0.85rem; 
-        font-weight: 700; 
-        text-decoration: none; 
+    .templates-header a {
+        color: var(--blue);
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-decoration: none;
         display: inline-flex;
         align-items: center;
         gap: 0.3rem;
@@ -681,68 +679,277 @@
     }
     .templates-header a:hover { gap: 0.6rem; text-decoration: none; }
 
-    .templates-scroller {
+    /* ─── TEMPLATE CAROUSEL ──────────────────────────────────── */
+    .ts-stage {
         display: flex;
-        gap: 1.5rem;
-        overflow-x: auto;
-        padding-bottom: 2rem;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-    .templates-scroller::-webkit-scrollbar { display: none; }
-
-    /* ─── LIVE PREVIEW IN SCROLLER ──────────────────────────── */
-    .template-thumb {
-        background: white;
-        height: 240px;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        padding: 40px 0 60px;
         position: relative;
-        overflow: hidden;
-        border-bottom: 1px solid var(--border);
+        min-height: 620px;
+        perspective: 1200px;
     }
-    .template-preview-container {
-        pointer-events: none;
+    .ts-card {
+        border-radius: 18px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: var(--white);
+        cursor: pointer;
+        transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        flex-shrink: 0;
+        position: relative;
+        transform-style: preserve-3d;
+    }
+    
+    /* Center Card - Increased Size */
+    .ts-card.center {
+        width: 360px;
+        height: 500px;
+        opacity: 1;
+        transform: scale(1) translateZ(50px);
+        z-index: 10;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.18);
+    }
+    
+    /* Level 1 Side */
+    .ts-card.side-1 {
+        width: 240px;
+        height: 330px;
+        opacity: 0.85;
+        transform: scale(0.9) translateZ(0);
+        z-index: 5;
+    }
+    
+    /* Level 2 Side */
+    .ts-card.side-2 {
+        width: 190px;
+        height: 260px;
+        opacity: 0.55;
+        transform: scale(0.8) translateZ(-50px);
+        z-index: 3;
+    }
+    
+    /* Level 3 Side */
+    .ts-card.side-3 {
+        width: 150px;
+        height: 210px;
+        opacity: 0.25;
+        transform: scale(0.7) translateZ(-100px);
+        z-index: 1;
+    }
+
+    .ts-card:not(.center) .ts-hover-overlay { display: none !important; }
+
+    .ts-resume-inner {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    .ts-hover-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        border-radius: 17px;
+        z-index: 10;
+    }
+    .ts-card:hover .ts-hover-overlay { opacity: 1; }
+
+    .ts-template-name {
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+    }
+
+    .ts-use-btn {
+        background: #fff;
+        color: #1e293b;
+        border: none;
+        padding: 11px 26px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-top: 4px;
+        text-decoration: none;
+    }
+    .ts-use-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        color: var(--blue);
+    }
+
+    .ts-dots {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 18px;
+    }
+    .ts-dot {
+        width: 7px; height: 7px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.15);
+        cursor: pointer;
+        transition: background 0.2s, transform 0.2s;
+    }
+    .ts-dot.active {
+        background: var(--blue);
+        transform: scale(1.35);
+    }
+
+    .ts-nav {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 22px;
+    }
+    .ts-arrow {
+        width: 44px; height: 44px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: var(--white);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s var(--ease-spring);
+        color: var(--muted);
+        font-size: 1.1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .ts-arrow:hover {
+        background: var(--blue);
+        color: white;
+        border-color: var(--blue);
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(37,99,235,0.25);
+    }
+
+    /* Scaling for Real Templates */
+    .ts-resume-inner.is-real {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: white;
+    }
+    .ts-resume-inner.is-real > * {
         position: absolute;
         top: 0;
         left: 50%;
-        transform: translateX(-50%) scale(0.23);
+        transform: translateX(-50%);
         transform-origin: top center;
-        width: 794px; /* A4 width */
-        background: white;
-        box-shadow: 0 0 40px rgba(0,0,0,0.05);
+        width: 794px; /* A4 Width */
+        pointer-events: none;
     }
-    .template-card:hover .template-preview-container {
-        transform: translateX(-50%) scale(0.24);
+
+    /* Card Specific Scales */
+    .ts-card.center .ts-resume-inner.is-real > * { transform: translateX(-50%) scale(0.45); }
+    .ts-card.side-1 .ts-resume-inner.is-real > * { transform: translateX(-50%) scale(0.30); }
+    .ts-card.side-2 .ts-resume-inner.is-real > * { transform: translateX(-50%) scale(0.24); }
+    .ts-card.side-3 .ts-resume-inner.is-real > * { transform: translateX(-50%) scale(0.19); }
+
+    /* Responsive Scaling */
+    @media (max-width: 1024px) {
+        .ts-stage { min-height: 500px; gap: 10px; }
+        .ts-card.center { width: 280px; height: 390px; }
+        .ts-card.side-1 { width: 180px; height: 250px; }
+        .ts-card.side-2 { width: 140px; height: 195px; }
+        .ts-card.side-3 { display: none; }
+        .ts-card.center .ts-resume-inner.is-real > * { transform: translateX(-50%) scale(0.35); }
     }
-    .template-label {
-        padding: 1rem;
-        background: white;
-        font-weight: 700;
-        font-size: 0.85rem;
-        color: var(--navy);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+    @media (max-width: 768px) {
+        .ts-stage { min-height: 420px; gap: 8px; }
+        .ts-card.center { width: 220px; height: 310px; }
+        .ts-card.side-1 { width: 130px; height: 182px; }
+        .ts-card.side-2 { display: none; }
+        .ts-card.center .ts-resume-inner.is-real > * { transform: translateX(-50%) scale(0.28); }
     }
-    .template-card:hover .template-label {
-        color: var(--blue);
-    }
-    .template-card {
-        display: block; /* Make <a> tag work */
-        text-decoration: none !important;
-        flex-shrink: 0;
-        width: 200px;
-        border-radius: var(--r-lg);
-        overflow: hidden;
-        background: white;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        border: 1px solid var(--border);
-        transition: all 0.4s var(--ease-spring);
-    }
-    .template-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 20px 40px rgba(37,99,235,0.12);
-        border-color: var(--blue);
-    }
+
+    /* Resume mockup shared */
+    .rm { width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+    /* Template A - Modern Blue */
+    .rm-a .rm-header { background: #1e3a5f; padding: 16px 14px 12px; }
+    .rm-a .rm-name { background: rgba(255,255,255,0.9); height: 10px; width: 65%; border-radius: 5px; margin-bottom: 5px; }
+    .rm-a .rm-title { background: rgba(255,255,255,0.4); height: 6px; width: 40%; border-radius: 3px; }
+    .rm-a .rm-body { padding: 12px 14px; flex: 1; background: #fff; }
+    .rm-a .rm-section-title { background: #1e3a5f; height: 5px; width: 40%; border-radius: 2px; margin-bottom: 7px; margin-top: 10px; }
+    .rm-a .rm-line { background: #e2e8f0; height: 4px; border-radius: 2px; margin-bottom: 5px; }
+    .rm-a .rm-line.short { width: 60%; }
+    .rm-a .rm-line.xshort { width: 40%; }
+
+    /* Template B - Executive Dark */
+    .rm-b .rm-header { background: #0f172a; padding: 16px 14px 12px; display: flex; gap: 10px; align-items: center; }
+    .rm-b .rm-avatar { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.15); flex-shrink: 0; }
+    .rm-b .rm-header-text { flex: 1; }
+    .rm-b .rm-name { background: rgba(255,255,255,0.85); height: 9px; width: 70%; border-radius: 4px; margin-bottom: 5px; }
+    .rm-b .rm-title { background: rgba(255,255,255,0.3); height: 5px; width: 45%; border-radius: 3px; }
+    .rm-b .rm-body { display: flex; flex: 1; }
+    .rm-b .rm-sidebar { width: 30%; background: #1e293b; padding: 10px 8px; }
+    .rm-b .rm-main-col { flex: 1; padding: 10px 12px; background: #fff; }
+    .rm-b .rm-sb-line { background: rgba(255,255,255,0.2); height: 4px; border-radius: 2px; margin-bottom: 6px; }
+    .rm-b .rm-sb-line.short { width: 60%; }
+    .rm-b .rm-section-title { background: #0f172a; height: 5px; width: 50%; border-radius: 2px; margin: 8px 0 6px; }
+    .rm-b .rm-line { background: #e2e8f0; height: 4px; border-radius: 2px; margin-bottom: 5px; }
+    .rm-b .rm-line.short { width: 55%; }
+
+    /* Template C - Minimal Clean */
+    .rm-c .rm-header { padding: 16px 14px 10px; border-bottom: 2px solid #e2e8f0; background: #fff; }
+    .rm-c .rm-name { background: #1e293b; height: 10px; width: 55%; border-radius: 4px; margin-bottom: 6px; }
+    .rm-c .rm-title { background: #94a3b8; height: 5px; width: 35%; border-radius: 3px; }
+    .rm-c .rm-contact-row { display: flex; gap: 7px; margin-top: 7px; }
+    .rm-c .rm-contact-pill { background: #f1f5f9; height: 5px; border-radius: 2px; width: 28%; }
+    .rm-c .rm-body { padding: 10px 14px; flex: 1; background: #fff; }
+    .rm-c .rm-section-title { background: #334155; height: 5px; width: 35%; border-radius: 2px; margin-bottom: 7px; margin-top: 10px; }
+    .rm-c .rm-accent { width: 24px; height: 3px; background: #2563eb; border-radius: 2px; margin-bottom: 6px; }
+    .rm-c .rm-line { background: #e2e8f0; height: 4px; border-radius: 2px; margin-bottom: 5px; }
+    .rm-c .rm-line.short { width: 60%; }
+
+    /* Template D - Creative Purple */
+    .rm-d .rm-header { background: linear-gradient(135deg, #7c3aed, #4f46e5); padding: 16px 14px 12px; }
+    .rm-d .rm-name { background: rgba(255,255,255,0.95); height: 10px; width: 62%; border-radius: 5px; margin-bottom: 5px; }
+    .rm-d .rm-title { background: rgba(255,255,255,0.45); height: 5px; width: 42%; border-radius: 3px; }
+    .rm-d .rm-tags { display: flex; gap: 5px; margin-top: 7px; }
+    .rm-d .rm-tag { background: rgba(255,255,255,0.2); height: 6px; width: 22%; border-radius: 3px; }
+    .rm-d .rm-body { padding: 12px 14px; flex: 1; background: #faf5ff; }
+    .rm-d .rm-section-title { background: #7c3aed; height: 5px; width: 40%; border-radius: 2px; margin-bottom: 7px; margin-top: 10px; }
+    .rm-d .rm-line { background: #ddd6fe; height: 4px; border-radius: 2px; margin-bottom: 5px; }
+    .rm-d .rm-line.short { width: 58%; }
+
+    /* Template E - Teal Modern */
+    .rm-e .rm-header { background: #0d9488; padding: 16px 14px 12px; }
+    .rm-e .rm-name { background: rgba(255,255,255,0.9); height: 10px; width: 60%; border-radius: 5px; margin-bottom: 5px; }
+    .rm-e .rm-title { background: rgba(255,255,255,0.4); height: 5px; width: 38%; border-radius: 3px; }
+    .rm-e .rm-body { display: flex; flex: 1; }
+    .rm-e .rm-sidebar { width: 28%; background: #f0fdfa; padding: 10px 8px; }
+    .rm-e .rm-main-col { flex: 1; padding: 10px 12px; background: #fff; }
+    .rm-e .rm-sb-line { background: #99f6e4; height: 4px; border-radius: 2px; margin-bottom: 6px; }
+    .rm-e .rm-section-title { background: #0d9488; height: 5px; width: 45%; border-radius: 2px; margin: 8px 0 6px; }
+    .rm-e .rm-line { background: #e2e8f0; height: 4px; border-radius: 2px; margin-bottom: 5px; }
+    .rm-e .rm-line.short { width: 60%; }
+
+    /* Template F - Rose Pink */
+    .rm-f .rm-header { background: #be185d; padding: 16px 14px 12px; }
+    .rm-f .rm-name { background: rgba(255,255,255,0.9); height: 10px; width: 65%; border-radius: 5px; margin-bottom: 5px; }
+    .rm-f .rm-title { background: rgba(255,255,255,0.4); height: 5px; width: 40%; border-radius: 3px; }
+    .rm-f .rm-body { padding: 12px 14px; flex: 1; background: #fff9fb; }
+    .rm-f .rm-section-title { background: #be185d; height: 5px; width: 38%; border-radius: 2px; margin-bottom: 7px; margin-top: 10px; }
+    .rm-f .rm-line { background: #fce7f3; height: 4px; border-radius: 2px; margin-bottom: 5px; }
+    .rm-f .rm-line.short { width: 55%; }
 
     /* ─── PRICING ─────────────────────────────────────────────── */
     .pricing-section {
@@ -775,9 +982,9 @@
         position: relative;
         z-index: 2;
     }
-    .pricing-header .section-label { 
-        background: rgba(255,255,255,0.1); 
-        color: var(--blue); 
+    .pricing-header .section-label {
+        background: rgba(255,255,255,0.1);
+        color: var(--blue);
     }
     .pricing-header .section-label::before { background: var(--blue); }
     .pricing-header h2 { color: white; }
@@ -805,9 +1012,9 @@
         transform: translateY(30px);
     }
     .plan-card.visible { opacity: 1; transform: translateY(0); }
-    .plan-card:hover { 
-        border-color: rgba(255,255,255,0.2); 
-        transform: translateY(-10px); 
+    .plan-card:hover {
+        border-color: rgba(255,255,255,0.2);
+        transform: translateY(-10px);
         box-shadow: 0 30px 60px rgba(0,0,0,0.4);
     }
 
@@ -923,8 +1130,8 @@
         color: white;
         border: 1px solid rgba(255,255,255,0.1);
     }
-    .btn-plan-dark:hover { 
-        background: rgba(255,255,255,0.15); 
+    .btn-plan-dark:hover {
+        background: rgba(255,255,255,0.15);
         transform: translateY(-3px);
         border-color: var(--blue);
     }
@@ -933,8 +1140,8 @@
         color: white;
         box-shadow: 0 6px 20px rgba(37,99,235,0.4);
     }
-    .btn-plan-primary:hover { 
-        transform: translateY(-3px); 
+    .btn-plan-primary:hover {
+        transform: translateY(-3px);
         box-shadow: 0 12px 30px rgba(37,99,235,0.5);
     }
 
@@ -985,7 +1192,7 @@
         margin-bottom: 1rem;
         font-weight: 400;
     }
-    .cta-section h2 em { 
+    .cta-section h2 em {
         background: linear-gradient(135deg, var(--blue), var(--purple));
         -webkit-background-clip: text;
         background-clip: text;
@@ -999,10 +1206,10 @@
         .features-grid { grid-template-columns: repeat(3, 1fr); }
     }
     @media (max-width: 1024px) {
-        .hero { 
-            grid-template-columns: 1fr; 
-            gap: 3rem; 
-            text-align: center; 
+        .hero {
+            grid-template-columns: 1fr;
+            gap: 3rem;
+            text-align: center;
             padding: 4rem 6% 3rem;
         }
         .hero-content { margin: 0 auto; text-align: center; }
@@ -1014,6 +1221,10 @@
         .plan-card.featured.visible { transform: none; }
         .plan-card.featured:hover { transform: translateY(-8px); }
         .features-grid { grid-template-columns: repeat(2, 1fr); }
+        .ts-stage { gap: 12px; min-height: 460px; }
+        .ts-card.center { width: 250px; height: 350px; }
+        .ts-card.side { width: 150px; height: 210px; }
+        .ts-card.far-side { width: 110px; height: 155px; }
     }
     @media (max-width: 768px) {
         .features-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
@@ -1022,6 +1233,10 @@
         .stats-band { grid-template-columns: repeat(2, 1fr); }
         .templates-header { flex-direction: column; align-items: flex-start; }
         .plan-card { padding: 2rem 1.5rem; }
+        .ts-stage { gap: 8px; min-height: 400px; }
+        .ts-card.center { width: 210px; height: 295px; }
+        .ts-card.side { width: 120px; height: 168px; }
+        .ts-card.far-side { display: none; }
     }
     @media (max-width: 640px) {
         .features-grid { grid-template-columns: 1fr; }
@@ -1046,12 +1261,12 @@
     <div class="hero-content">
 
         <h1 class="hero-headline">
-            Get Hired Faster<br>with 
+            Get Hired Faster<br>with
             <span class="gradient-text">AI-Optimized</span><br>Resumes
         </h1>
 
         <p class="hero-sub">
-            Create professional, ATS-friendly resumes that actually get you noticed. 
+            Create professional, ATS-friendly resumes that actually get you noticed.
             Build in minutes — not hours — and land your dream job faster.
         </p>
 
@@ -1207,70 +1422,13 @@
         </div>
         <a href="/templates">View All Templates →</a>
     </div>
-    <div class="templates-scroller">
-        @forelse($professionalTemplates as $index => $template)
-        <a href="{{ route('resume.create', ['template_id' => $template->id]) }}" class="template-card">
-            <div class="template-thumb">
-                <div class="template-preview-container">
-                    {!! $rendered[$template->id] !!}
-                </div>
-            </div>
-            <div class="template-label">
-                {{ $template->name }}
-                <svg width="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </div>
-        </a>
-        @empty
-        <div class="template-card active">
-            <div class="template-thumb">
-                <div class="template-mini-header" style="background:linear-gradient(90deg, var(--blue), var(--purple));"></div>
-                <div class="template-mini-line"></div><div class="template-mini-line short"></div><div class="template-mini-line"></div><div class="template-mini-line xshort"></div>
-            </div>
-            <div class="template-label">Modern</div>
-        </div>
-        <div class="template-card">
-            <div class="template-thumb">
-                <div class="template-mini-header" style="background:#2c3e50;"></div>
-                <div class="template-mini-line"></div><div class="template-mini-line short"></div><div class="template-mini-line"></div>
-            </div>
-            <div class="template-label">Classic</div>
-        </div>
-        <div class="template-card">
-            <div class="template-thumb">
-                <div class="template-mini-header" style="background:#0f172a;"></div>
-                <div class="template-mini-line"></div><div class="template-mini-line short"></div><div class="template-mini-line xshort"></div>
-            </div>
-            <div class="template-label">Executive</div>
-        </div>
-        <div class="template-card">
-            <div class="template-thumb">
-                <div class="template-mini-header" style="background:#94a3b8;"></div>
-                <div class="template-mini-line"></div><div class="template-mini-line short"></div>
-            </div>
-            <div class="template-label">Minimal</div>
-        </div>
-        <div class="template-card">
-            <div class="template-thumb">
-                <div class="template-mini-header" style="background:linear-gradient(90deg, #8b5cf6, #ec4899);"></div>
-                <div class="template-mini-line"></div><div class="template-mini-line short"></div><div class="template-mini-line"></div>
-            </div>
-            <div class="template-label">Creative</div>
-        </div>
-        <div class="template-card">
-            <div class="template-thumb">
-                <div class="template-mini-header" style="background:#0891b2;"></div>
-                <div class="template-mini-line"></div><div class="template-mini-line short"></div><div class="template-mini-line xshort"></div>
-            </div>
-            <div class="template-label">Technical</div>
-        </div>
-        <div class="template-card">
-            <div class="template-thumb">
-                <div class="template-mini-header" style="background:#059669;"></div>
-                <div class="template-mini-line"></div><div class="template-mini-line short"></div><div class="template-mini-line"></div>
-            </div>
-            <div class="template-label">Startup</div>
-        </div>
-        @endforelse
+
+    {{-- 3D Carousel --}}
+    <div class="ts-stage" id="ts-stage"></div>
+    <div class="ts-dots" id="ts-dots"></div>
+    <div class="ts-nav">
+        <button class="ts-arrow" id="ts-prev" aria-label="Previous template">&#8592;</button>
+        <button class="ts-arrow" id="ts-next" aria-label="Next template">&#8594;</button>
     </div>
 </section>
 
@@ -1278,7 +1436,7 @@
 <section class="pricing-section">
     <div class="pricing-glow"></div>
     <div class="pricing-glow-2"></div>
-    
+
     <div class="pricing-header">
         <div class="section-label">Simple Pricing</div>
         <h2 class="section-heading">Choose the Plan<br>That Works for <em>You</em></h2>
@@ -1291,7 +1449,7 @@
             @if($index === 1)
                 <div class="plan-badge"> Most Popular</div>
             @endif
-            
+
             <div class="plan-name">{{ $plan->name }}</div>
             <div class="plan-price">
                 <span class="currency">₹</span>{{ number_format($plan->price_paise / 100, 0) }}
@@ -1336,14 +1494,142 @@
 
 @push('scripts')
 <script>
-/* Intersection Observer: reveal on scroll */
+
+
+const carouselTemplates = [
+    @forelse($professionalTemplates as $tpl)
+    {
+        name: @json($tpl->name),
+        url:  "{{ route('resume.create', ['template_id' => $tpl->id]) }}",
+        html: @json($rendered[$tpl->id] ?? null),
+        isReal: true
+    },
+    @empty
+    @endforelse
+];
+
+/* Built-in mockup HTML strings */
+const mockupHTML = {
+    'Modern Blue': `<div class="rm rm-a"><div class="rm-header"><div class="rm-name"></div><div class="rm-title"></div></div><div class="rm-body"><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-line"></div><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-line xshort"></div><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div></div></div>`,
+    'Executive':   `<div class="rm rm-b"><div class="rm-header"><div class="rm-avatar"></div><div class="rm-header-text"><div class="rm-name"></div><div class="rm-title"></div></div></div><div class="rm-body"><div class="rm-sidebar"><div class="rm-sb-line"></div><div class="rm-sb-line short"></div><div class="rm-sb-line"></div><div class="rm-sb-line short"></div><div class="rm-sb-line"></div><div class="rm-sb-line short"></div></div><div class="rm-main-col"><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-line"></div></div></div></div>`,
+    'Minimal':     `<div class="rm rm-c"><div class="rm-header"><div class="rm-name"></div><div class="rm-title"></div><div class="rm-contact-row"><div class="rm-contact-pill"></div><div class="rm-contact-pill"></div><div class="rm-contact-pill"></div></div></div><div class="rm-body"><div class="rm-accent"></div><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-line"></div><div class="rm-accent"></div><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div></div></div>`,
+    'Creative':    `<div class="rm rm-d"><div class="rm-header"><div class="rm-name"></div><div class="rm-title"></div><div class="rm-tags"><div class="rm-tag"></div><div class="rm-tag"></div><div class="rm-tag"></div></div></div><div class="rm-body"><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-line"></div><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div></div></div>`,
+    'Teal Pro':    `<div class="rm rm-e"><div class="rm-header"><div class="rm-name"></div><div class="rm-title"></div></div><div class="rm-body"><div class="rm-sidebar"><div class="rm-sb-line"></div><div class="rm-sb-line"></div><div class="rm-sb-line"></div><div class="rm-sb-line"></div></div><div class="rm-main-col"><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-line"></div></div></div></div>`,
+    'Rose':        `<div class="rm rm-f"><div class="rm-header"><div class="rm-name"></div><div class="rm-title"></div></div><div class="rm-body"><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-line"></div><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div></div></div>`
+};
+
+const defaultTemplates = [
+    { name: 'Modern Blue', url: '/templates', html: mockupHTML['Modern Blue'], isReal: false },
+    { name: 'Executive',   url: '/templates', html: mockupHTML['Executive'], isReal: false },
+    { name: 'Minimal',     url: '/templates', html: mockupHTML['Minimal'], isReal: false },
+    { name: 'Creative',    url: '/templates', html: mockupHTML['Creative'], isReal: false },
+    { name: 'Teal Pro',    url: '/templates', html: mockupHTML['Teal Pro'], isReal: false },
+    { name: 'Rose',        url: '/templates', html: mockupHTML['Rose'], isReal: false }
+];
+
+const mockupKeys = Object.keys(mockupHTML);
+const templates = (carouselTemplates.length >= 3)
+    ? carouselTemplates.map((t, i) => ({
+        name: t.name,
+        url:  t.url,
+        html: t.html || mockupHTML[t.name] || mockupHTML[mockupKeys[i % mockupKeys.length]],
+        isReal: !!t.html
+      }))
+    : defaultTemplates;
+
+let current = Math.floor(templates.length / 2);
+const total = templates.length;
+let isPaused = false;
+
+function renderCarousel() {
+    const stage = document.getElementById('ts-stage');
+    const dots  = document.getElementById('ts-dots');
+    if (!stage || !dots) return;
+
+    const visible = [-3, -2, -1, 0, 1, 2, 3];
+    stage.innerHTML = '';
+
+    visible.forEach(offset => {
+        const idx = ((current + offset) % total + total) % total;
+        const t   = templates[idx];
+
+        const div = document.createElement('div');
+        div.className = 'ts-card ' + (offset === 0 ? 'center' : 'side-' + Math.abs(offset));
+
+        div.innerHTML = `
+            <div class="ts-resume-inner ${t.isReal ? 'is-real' : ''}">${t.html}</div>
+            <div class="ts-hover-overlay">
+                <span class="ts-template-name">${t.name}</span>
+                <a href="${t.url}" class="ts-use-btn">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    Use this template
+                </a>
+            </div>`;
+
+        if (offset !== 0) {
+            div.addEventListener('click', () => { 
+                current = idx; 
+                renderCarousel(); 
+            });
+        }
+        stage.appendChild(div);
+    });
+
+    dots.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+        const d = document.createElement('div');
+        d.className = 'ts-dot' + (i === current ? ' active' : '');
+        d.addEventListener('click', () => { current = i; renderCarousel(); });
+        dots.appendChild(d);
+    }
+}
+
+
+
+const tsPrev = document.getElementById('ts-prev');
+const tsNext = document.getElementById('ts-next');
+const tsStage = document.getElementById('ts-stage');
+
+if (tsPrev) tsPrev.addEventListener('click', () => { current = (current - 1 + total) % total; renderCarousel(); });
+if (tsNext) tsNext.addEventListener('click', () => { current = (current + 1) % total; renderCarousel(); });
+
+if (tsStage) {
+    tsStage.addEventListener('mouseenter', () => isPaused = true);
+    tsStage.addEventListener('mouseleave', () => isPaused = false);
+
+    // Touch Swipe Support
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    tsStage.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+        isPaused = true;
+    }, {passive: true});
+
+    tsStage.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        const swipeThreshold = 50;
+        if (touchEndX < touchStartX - swipeThreshold) {
+            current = (current + 1) % total;
+            renderCarousel();
+        } else if (touchEndX > touchStartX + swipeThreshold) {
+            current = (current - 1 + total) % total;
+            renderCarousel();
+        }
+        isPaused = false;
+    }, {passive: true});
+}
+
+// Initial render
+renderCarousel();
+
+
+/* ─── INTERSECTION OBSERVER: reveal on scroll ─────────────────────── */
 const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach((e, i) => {
+    entries.forEach(e => {
         if (e.isIntersecting) {
             const delay = e.target.dataset.delay || 0;
-            setTimeout(() => {
-                e.target.classList.add('visible');
-            }, delay);
+            setTimeout(() => e.target.classList.add('visible'), delay);
             revealObserver.unobserve(e.target);
         }
     });
@@ -1353,33 +1639,24 @@ document.querySelectorAll('.feature-item').forEach((el, i) => {
     el.dataset.delay = i * 50;
     revealObserver.observe(el);
 });
-
 document.querySelectorAll('.plan-card').forEach((el, i) => {
     el.dataset.delay = i * 100;
     revealObserver.observe(el);
 });
 
-/* Template card active toggle */
-document.querySelectorAll('.template-card').forEach(c => {
-    c.addEventListener('click', () => {
-        document.querySelectorAll('.template-card').forEach(t => t.classList.remove('active'));
-        c.classList.add('active');
-    });
-});
-
-/* Stat number counter animation */
+/* ─── STAT COUNTER ANIMATION ──────────────────────────────────────── */
 const counterObserver = new IntersectionObserver((entries) => {
     entries.forEach(e => {
         if (!e.isIntersecting) return;
         counterObserver.unobserve(e.target);
-        const el = e.target;
+        const el     = e.target;
         const target = parseInt(el.dataset.count);
         if (!target) return;
         const duration = 1800;
-        const start = performance.now();
+        const start    = performance.now();
         function update(now) {
-            const t = Math.min((now - start) / duration, 1);
-            const eased = 1 - Math.pow(1 - t, 3);
+            const t      = Math.min((now - start) / duration, 1);
+            const eased  = 1 - Math.pow(1 - t, 3);
             el.textContent = Math.round(eased * target).toLocaleString();
             if (t < 1) requestAnimationFrame(update);
             else el.textContent = target.toLocaleString();
@@ -1390,13 +1667,13 @@ const counterObserver = new IntersectionObserver((entries) => {
 
 document.querySelectorAll('.stat-number[data-count]').forEach(el => counterObserver.observe(el));
 
-/* Smooth hover parallax on resume preview */
+/* ─── RESUME PREVIEW PARALLAX ─────────────────────────────────────── */
 const preview = document.querySelector('.resume-preview');
 if (preview) {
-    preview.addEventListener('mousemove', (e) => {
+    preview.addEventListener('mousemove', e => {
         const rect = preview.getBoundingClientRect();
         const x = (e.clientX - rect.left) / rect.width - 0.5;
-        const y = (e.clientY - rect.top) / rect.height - 0.5;
+        const y = (e.clientY - rect.top)  / rect.height - 0.5;
         preview.style.transform = `perspective(1000px) rotateY(${x * 10}deg) rotateX(${-y * 8}deg) translateY(-8px)`;
     });
     preview.addEventListener('mouseleave', () => {
@@ -1406,24 +1683,12 @@ if (preview) {
     });
 }
 
-/* Smooth scroll for anchor links */
+/* ─── SMOOTH SCROLL ───────────────────────────────────────────────── */
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
+    anchor.addEventListener('click', function(e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    });
-});
-
-/* Add animation to stat items on hover */
-document.querySelectorAll('.stat-item').forEach(item => {
-    item.addEventListener('mouseenter', () => {
-        item.style.transform = 'translateY(-5px)';
-    });
-    item.addEventListener('mouseleave', () => {
-        item.style.transform = '';
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 });
 </script>
