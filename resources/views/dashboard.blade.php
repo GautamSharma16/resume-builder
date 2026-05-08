@@ -39,7 +39,7 @@
                         <h3 class="text-blue-400 font-bold uppercase tracking-widest text-xs mb-6">Current Subscription</h3>
                         @if($activeSubscription)
                             <div class="flex items-center justify-between mb-4">
-                                <div class="text-3xl font-display">{{ $activeSubscription->plan->name ?? 'Premium Plan' }}</div>
+                                <div class="text-3xl text-black font-display">{{ $activeSubscription->plan->name ?? 'Premium Plan' }}</div>
                                 <span class="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-[10px] font-black uppercase border border-green-500/30">Active</span>
                             </div>
                             <p class="text-slate-400 text-sm mb-6">Renews on {{ \Carbon\Carbon::parse($activeSubscription->expiry_date)->format('M d, Y') }}</p>

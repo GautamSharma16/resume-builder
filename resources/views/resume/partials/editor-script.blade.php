@@ -12,7 +12,15 @@
     };
     const $ = (id) => document.getElementById(id);
     const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+    const rich = (v) => esc(v)
+        .replace(/&lt;(\/?)(strong|b|em|i|u)&gt;/gi, '<$1$2>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.*?)__/g, '<u>$1</u>');
     const toList = (v) => String(v).split(',').map(x => x.trim()).filter(Boolean);
+    const validSocials = (items) => ensureArray(items)
+        .map(String)
+        .map(item => item.trim())
+        .filter(item => item && !/(linkedin\.com\/in\/(?:alex|you)|github\.com\/(?:alex|you))/i.test(item));
     const ensureArray = (v) => Array.isArray(v) ? v : [];
 
     /* ── State ── */
@@ -30,15 +38,15 @@
     let source = 'manual';
     let selectedTemplateId = app.dataset.selectedTemplate || '';
     let currentStep = 1;
-    let savedResumeId = null;
+    let savedResumeId = app.dataset.resumeId || null;
 
     /* ── DOM refs ── */
     const cvPreviewEl     = $('cv-preview');
-    const expEditorEl     = $('rp-exp-editor');
-    const eduEditorEl     = $('rp-edu-editor');
+    const expEditorEl     = $('rp-exp-editor') || $('exp-editor');
+    const eduEditorEl     = $('rp-edu-editor') || $('edu-editor');
     const projectEditorEl = $('project-editor');
     const templateIdEl    = $('template-id');
-    const saveBtnEl       = $('save-cv-btn');
+    const saveBtnEl       = $('save-cv-btn') || $('save-cv');
     const statusEl        = $('cv-status') || { textContent: '', style: {} };
     const autofillFileEl  = $('resume-autofill-file');
     const autofillBtnEl   = $('resume-autofill-button');
@@ -55,18 +63,25 @@
     }
 
     /* ── Normalise ── */
-    const educationToText = (item) => {
-        if (typeof item === 'string') return item;
-        if (!item || typeof item !== 'object') return String(item ?? '');
-        return [
-            item.degree,
-            item.institution,
-            item.school,
-            item.university,
-            item.year,
-            item.duration,
-            item.cgpa ? `CGPA: ${item.cgpa}` : '',
-        ].map(v => String(v ?? '').trim()).filter(Boolean).join(', ');
+    const educationToObject = (item) => {
+        if (typeof item === 'string') {
+            const parts = item.split(',').map(part => part.trim()).filter(Boolean);
+            return {
+                degree: parts[0] || '',
+                stream: parts.length > 3 ? parts[1] : '',
+                institution: parts.length > 2 ? parts.slice(1, -1).join(', ') : (parts[1] || ''),
+                year: parts.length > 1 ? parts[parts.length - 1] : '',
+            };
+        }
+        if (!item || typeof item !== 'object') {
+            return { degree: '', stream: '', institution: '', year: '' };
+        }
+        return {
+            degree: String(item.degree ?? item.course ?? ''),
+            stream: String(item.stream ?? item.field ?? item.specialization ?? ''),
+            institution: String(item.institution ?? item.school ?? item.university ?? item.college ?? ''),
+            year: String(item.year ?? item.duration ?? item.period ?? ''),
+        };
     };
 
     const normalise = (r = {}) => ({
@@ -76,7 +91,7 @@
         email:        String(r.email ?? ''),
         mobile:       String(r.mobile ?? r.contact ?? ''),
         location:     String(r.location ?? r.address ?? ''),
-        social_links: ensureArray(r.social_links).map(String),
+        social_links: validSocials(r.social_links),
         contact:      String(r.contact ?? ''),
         address:      String(r.address ?? ''),
         summary:      String(r.summary ?? ''),
@@ -87,7 +102,7 @@
             period:  String(e?.period ?? ''),
             points:  ensureArray(e?.points).map(String),
         })),
-        education: ensureArray(r.education).map(educationToText).filter(Boolean),
+        education: ensureArray(r.education).map(educationToObject).filter(e => e.degree || e.stream || e.institution || e.year),
         projects:  ensureArray(r.projects).map(p =>
             typeof p === 'string'
                 ? { name: p, description: '' }
@@ -102,7 +117,7 @@
 
     const ensureDefaults = () => {
         if (!state.experience.length) state.experience.push({ company:'', role:'', period:'', points:[''] });
-        if (!state.education.length)  state.education.push('');
+        if (!state.education.length)  state.education.push({ degree:'', stream:'', institution:'', year:'' });
         if (!state.projects.length)   state.projects.push({ name:'', description:'' });
     };
     ensureDefaults();
@@ -129,13 +144,18 @@
     function renderExperience() {
         return state.experience.map(e => {
             if (!e.company && !e.role && !e.period && !e.points.some(Boolean)) return '';
-            const pts = e.points.filter(Boolean).map(p => `<li>${esc(p)}</li>`).join('');
+            const pts = e.points.filter(Boolean).map(p => `<li>${rich(p)}</li>`).join('');
             return `<div class="tpl-role"><div class="tpl-role-head"><strong>${esc(e.role)}</strong><span>${esc(e.period)}</span></div><p>${esc(e.company)}</p><ul>${pts}</ul></div>`;
         }).join('');
     }
     function renderList(arr) {
         const items = arr.filter(Boolean).map(i => {
             if (typeof i === 'string') return `<li>${esc(i)}</li>`;
+            if ('degree' in i || 'institution' in i || 'stream' in i || 'year' in i) {
+                const title = [i.degree, i.stream].map(v => String(v || '').trim()).filter(Boolean).join(' - ');
+                const meta = [i.institution, i.year].map(v => String(v || '').trim()).filter(Boolean).join(', ');
+                return `<li>${title ? `<strong>${esc(title)}</strong>` : ''}${meta ? `<span class="tpl-description">${esc(meta)}</span>` : ''}</li>`;
+            }
             const name = esc(i?.name || '');
             const desc = esc(i?.description || '');
             return desc
@@ -245,13 +265,13 @@
             location:     esc(state.location || 'Mumbai, India'),
             contact:      esc(state.contact || [state.email, state.mobile].filter(Boolean).join(' | ') || 'alex@example.com | +91 98765 43210'),
             address:      esc(state.address || state.location || 'Mumbai, India'),
-            summary:      esc(state.summary || 'Experienced professional with a strong background in product development, cross-functional leadership, and building reliable user-focused systems.'),
-            social_links: esc(state.social_links.join(' | ') || 'linkedin.com/in/alex | github.com/alex'),
+            summary:      state.summary ? rich(state.summary) : '',
+            social_links: esc(state.social_links.join(' | ')),
             skills:       state.skills.length ? renderSkills() : '<span class="tpl-badge">Leadership</span><span class="tpl-badge">React</span><span class="tpl-badge">Python</span><span class="tpl-badge">Product Strategy</span>',
             experience:   state.experience.some(e => e.company || e.role || e.period || e.points.some(Boolean))
                 ? renderExperience()
                 : '<div class="tpl-role"><div class="tpl-role-head"><strong>Senior Engineer</strong><span>2021-Present</span></div><p>TechCorp</p><ul><li>Led a team of 6 engineers across product and platform initiatives.</li><li>Reduced API latency by 40% through profiling and service optimization.</li></ul></div>',
-            education:    state.education.some(Boolean) ? renderList(state.education) : '<ul><li>B.Sc. Computer Science, MIT, 2019</li></ul>',
+            education:    state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ? renderList(state.education) : '',
             projects:     state.projects.some(p => p?.name || typeof p === 'string') ? renderList(state.projects) : '<ul><li><strong>Open Resume</strong><span class="tpl-description">Built a resume builder with React and Node.js.</span></li></ul>',
             profile_image: state.profile_image ? `<img src="${state.profile_image}" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">` : '',
             profile_image_url: state.profile_image || '',
@@ -335,19 +355,42 @@
                         ${socials ? `<p style="margin:2px 0 0;font-size:11px;color:#4b5563;">${esc(socials)}</p>` : ''}
                     </div>
                 </div>
-                ${state.summary ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Summary</h2><p style="font-size:11.5px;margin:0 0 14px;">${esc(state.summary)}</p>` : ''}
+                ${state.summary ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Summary</h2><p style="font-size:11.5px;margin:0 0 14px;">${rich(state.summary)}</p>` : ''}
                 ${state.skills.length ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Skills</h2><p style="font-size:11px;margin:0 0 14px;">${esc(state.skills.join(', '))}</p>` : ''}
-                ${state.experience.some(e=>e.company||e.role) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Experience</h2>${state.experience.map(e => e.company||e.role ? `<div style="margin-bottom:12px;"><strong style="font-size:11.5px;color:${primaryColor};">${esc(e.role)}</strong>${e.period?` <span style="float:right;color:#6b7280;font-size:10px;">${esc(e.period)}</span>`:''}<br><span style="color:#4b5563;font-size:10.5px;">${esc(e.company)}</span><ul style="margin:4px 0 0 14px;padding:0;">${e.points.filter(Boolean).map(p=>`<li style="font-size:11px;margin-bottom:2px;">${esc(p)}</li>`).join('')}</ul></div>` : '').join('')}` : ''}
-                ${state.education.some(Boolean) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Education</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.education.filter(Boolean).map(e=>`<li style="font-size:11px;">${esc(e)}</li>`).join('')}</ul>` : ''}
+                ${state.experience.some(e=>e.company||e.role) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Experience</h2>${state.experience.map(e => e.company||e.role ? `<div style="margin-bottom:12px;"><strong style="font-size:11.5px;color:${primaryColor};">${esc(e.role)}</strong>${e.period?` <span style="float:right;color:#6b7280;font-size:10px;">${esc(e.period)}</span>`:''}<br><span style="color:#4b5563;font-size:10.5px;">${esc(e.company)}</span><ul style="margin:4px 0 0 14px;padding:0;">${e.points.filter(Boolean).map(p=>`<li style="font-size:11px;margin-bottom:2px;">${rich(p)}</li>`).join('')}</ul></div>` : '').join('')}` : ''}
+                ${state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Education</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.education.filter(e => e?.degree || e?.stream || e?.institution || e?.year).map(e=>`<li style="font-size:11px;"><strong>${esc([e.degree, e.stream].filter(Boolean).join(' - '))}</strong>${[e.institution, e.year].filter(Boolean).length ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc([e.institution, e.year].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>` : ''}
                 ${projectsHtml ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Projects</h2><ul style="margin:0 0 0 14px;padding:0;">${projectsHtml}</ul>` : ''}
             </div>`;
     }
 
     function renderTemplatePreview() {
         syncLegacy();
+        updateResumeScore();
         if (!selectedTemplateId || !templates[selectedTemplateId]) { renderBasicPreview(); return; }
         const output = renderTemplateHtml(templates[selectedTemplateId]);
         cvPreviewEl.innerHTML = `<div class="resume-preview-stage"><div class="resume-sheet-preview">${output}</div></div>`;
+    }
+
+    function updateResumeScore() {
+        const checks = [
+            Boolean(fullName()),
+            Boolean(state.job_title),
+            Boolean(state.email),
+            Boolean(state.mobile),
+            Boolean(state.location),
+            state.social_links.length > 0,
+            state.skills.length >= 4,
+            String(state.summary || '').trim().split(/\s+/).filter(Boolean).length >= 45,
+            state.experience.some(e => e.company && e.role && e.points.filter(Boolean).length >= 2),
+            state.education.some(e => e?.degree && e?.institution),
+            state.projects.some(p => p?.name || typeof p === 'string'),
+        ];
+        const score = Math.max(8, Math.round((checks.filter(Boolean).length / checks.length) * 100));
+        document.querySelectorAll('[data-resume-score]').forEach(el => {
+            el.textContent = `${score}%`;
+            el.classList.toggle('low', score < 55);
+            el.classList.toggle('mid', score >= 55 && score < 80);
+        });
     }
 
     function refreshTemplatePopupThumbs() {
@@ -411,9 +454,10 @@
                     <label class="rp-entry-label">Key responsibilities <span class="rp-entry-hint">(one bullet per line)</span></label>
                     <div class="rich-text-wrapper" style="margin-top: 0.3rem;">
                         <div class="rich-text-toolbar">
-                            <button type="button" class="rt-btn"><b>B</b></button>
-                            <button type="button" class="rt-btn"><i>I</i></button>
-                            <button type="button" class="rt-btn"><u>U</u></button>
+                            <button type="button" class="rt-btn" data-rich-command="bold" title="Bold"><b>B</b></button>
+                            <button type="button" class="rt-btn" data-rich-command="italic" title="Italic"><i>I</i></button>
+                            <button type="button" class="rt-btn" data-rich-command="underline" title="Underline"><u>U</u></button>
+                            <button type="button" class="rt-btn" data-rich-command="list" title="Bulleted list">•</button>
                             <button type="button" class="ai-gen-btn" onclick="generateAIText('experience', this.closest('.rich-text-wrapper').querySelector('textarea'), this)">
                                 <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM15 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0115 10zM6.5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 016.5 10zM14.61 5.39a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM7.51 12.49a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM14.61 14.61a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06zM7.51 7.51a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06z"/></svg>
                                 Generate with AI
@@ -430,10 +474,30 @@
 
         /* ── Education rows ── */
         eduEditorEl.innerHTML = state.education.map((e, i) => `
-            <div class="rp-edu-row" data-edu="${i}">
-                <input class="rp-input" value="${esc(e)}" placeholder="e.g. B.Sc. Computer Science, MIT, 2021">
-                <button type="button" data-remove-edu class="rp-edu-remove" title="Remove">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            <div class="rp-entry-card" data-edu="${i}">
+                <div class="rp-entry-row">
+                    <div class="rp-entry-field">
+                        <label class="rp-entry-label">Degree / Qualification</label>
+                        <input class="rp-input" data-k="degree" value="${esc(e?.degree || '')}" placeholder="e.g. B.Sc.">
+                    </div>
+                    <div class="rp-entry-field">
+                        <label class="rp-entry-label">Stream / Field</label>
+                        <input class="rp-input" data-k="stream" value="${esc(e?.stream || '')}" placeholder="e.g. Computer Science">
+                    </div>
+                </div>
+                <div class="rp-entry-row">
+                    <div class="rp-entry-field">
+                        <label class="rp-entry-label">University / Institution</label>
+                        <input class="rp-input" data-k="institution" value="${esc(e?.institution || '')}" placeholder="e.g. MIT">
+                    </div>
+                    <div class="rp-entry-field">
+                        <label class="rp-entry-label">Year / Duration</label>
+                        <input class="rp-input" data-k="year" value="${esc(e?.year || '')}" placeholder="e.g. 2019 or 2017 - 2021">
+                    </div>
+                </div>
+                <button type="button" data-remove-edu class="rp-entry-remove">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                    Remove
                 </button>
             </div>`).join('');
 
@@ -459,9 +523,11 @@
 
     /* ── Zoom ── */
     function setZoom(z) {
-        previewZoom = Math.min(130, Math.max(50, z));
+        const minZoom = window.matchMedia('(max-width: 600px)').matches ? 38 : 50;
+        const maxZoom = window.matchMedia('(max-width: 600px)').matches ? 90 : 130;
+        previewZoom = Math.min(maxZoom, Math.max(minZoom, z));
         cvPreviewEl.style.transform = `scale(${previewZoom / 100})`;
-        cvPreviewEl.style.transformOrigin = 'top center';
+        cvPreviewEl.style.transformOrigin = window.matchMedia('(max-width: 600px)').matches ? 'top left' : 'top center';
         if (zoomLvlEl) zoomLvlEl.textContent = `${previewZoom}%`;
     }
 
@@ -607,7 +673,12 @@
     eduEditorEl.addEventListener('input', e => {
         const row = e.target.closest('[data-edu]');
         if (!row) return;
-        state.education[Number(row.dataset.edu)] = e.target.value;
+        const i = Number(row.dataset.edu);
+        const k = e.target.dataset.k;
+        if (!state.education[i] || typeof state.education[i] !== 'object') {
+            state.education[i] = educationToObject(state.education[i]);
+        }
+        state.education[i][k] = e.target.value;
         renderTemplatePreview();
     });
 
@@ -634,6 +705,31 @@
         });
     });
 
+    function applyRichCommand(textarea, command) {
+        if (!textarea) return;
+        const start = textarea.selectionStart ?? textarea.value.length;
+        const end = textarea.selectionEnd ?? start;
+        const selected = textarea.value.slice(start, end);
+        const fallback = selected || 'text';
+        const wrap = (before, after) => {
+            textarea.setRangeText(before + fallback + after, start, end, 'select');
+        };
+
+        if (command === 'bold') wrap('<strong>', '</strong>');
+        if (command === 'italic') wrap('<em>', '</em>');
+        if (command === 'underline') wrap('<u>', '</u>');
+        if (command === 'list') {
+            const replacement = (selected || 'List item')
+                .split('\n')
+                .map(line => line.trim() ? `• ${line.replace(/^[-•]\s*/, '')}` : line)
+                .join('\n');
+            textarea.setRangeText(replacement, start, end, 'select');
+        }
+
+        textarea.focus();
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
     /* Delegated button clicks */
     app.addEventListener('click', e => {
         const btn = e.target.closest('button');
@@ -652,8 +748,13 @@
             return;
         }
 
+        if (btn.dataset.richCommand) {
+            applyRichCommand(btn.closest('.rich-text-wrapper, .summary-editor-shell')?.querySelector('textarea'), btn.dataset.richCommand);
+            return;
+        }
+
         if (btn.id === 'add-exp-btn' || btn.id === 'add-exp') { state.experience.push({ company:'', role:'', period:'', points:[''] }); renderEditor(); renderTemplatePreview(); }
-        if (btn.id === 'add-edu-btn' || btn.id === 'add-edu') { state.education.push(''); renderEditor(); renderTemplatePreview(); }
+        if (btn.id === 'add-edu-btn' || btn.id === 'add-edu') { state.education.push({ degree:'', stream:'', institution:'', year:'' }); renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'add-project-btn' || btn.id === 'add-project') { state.projects.push({ name:'', description:'' }); renderEditor(); renderTemplatePreview(); }
 
         if (btn.dataset.removeExp !== undefined) {
@@ -663,7 +764,7 @@
         }
         if (btn.dataset.removeEdu !== undefined) {
             state.education.splice(Number(btn.closest('[data-edu]').dataset.edu), 1);
-            if (!state.education.length) state.education.push('');
+            if (!state.education.length) state.education.push({ degree:'', stream:'', institution:'', year:'' });
             renderEditor(); renderTemplatePreview();
         }
         if (btn.dataset.removeProject !== undefined) {
@@ -694,7 +795,9 @@
             
             // Redirect to download
             if (app.dataset.authenticated === '1' && app.dataset.downloadRequiresPlan === '1') {
-                window.openPlanDownloadModal?.(); return;
+                if (window.openPlanDownloadModal) window.openPlanDownloadModal();
+                else window.location.href = app.dataset.plansUrl || '/plans';
+                return;
             }
             if (savedResumeId) { window.location.href = `/resume/${savedResumeId}/download/pdf`; return; }
         } catch (err) {
@@ -884,6 +987,7 @@
     });
 
     /* ── Bootstrap ── */
+    if (window.matchMedia('(max-width: 600px)').matches) previewZoom = 42;
     setZoom(previewZoom);
     setSourceState('manual');
     applyColorSelection(state.primary_color_customized ? state.primary_color : '');

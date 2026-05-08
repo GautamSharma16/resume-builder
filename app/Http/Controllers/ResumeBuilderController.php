@@ -71,9 +71,13 @@ class ResumeBuilderController extends Controller
             'data' => $normalizedResume,
         ]);
 
+        if (! $request->user()) {
+            $request->session()->put('pending_resume_id', $resume->id);
+        }
+
         return response()->json([
             'resume' => ['id' => $resume->id],
-            'redirect' => $request->user() ? null : route('login').'?redirect='.urlencode(route('resume.edit', $resume))
+            'redirect' => $request->user() ? null : route('login').'?redirect='.urlencode(route('plans'))
         ]);
     }
 
@@ -95,22 +99,28 @@ class ResumeBuilderController extends Controller
             ->filter()
             ->join('; ');
 
+        $education = collect($resume['education'] ?? [])
+            ->map(fn ($item) => is_array($item)
+                ? trim(collect([$item['degree'] ?? '', $item['stream'] ?? '', $item['institution'] ?? '', $item['year'] ?? ''])->filter()->join(', '))
+                : $this->toText($item))
+            ->filter()
+            ->join('; ');
+
         $prompt = $context === 'summary'
-            ? "Write one polished resume professional summary as 3-4 concise lines, 90-120 words total. Separate each line with a newline. Use first person only if the input does. No bullet points, no heading, no markdown."
-            : "Rewrite this resume experience entry into 3-4 strong key responsibility lines with measurable impact where possible. No heading, no markdown bullets; separate each line with a newline.";
+            ? "Write one polished resume professional summary using the candidate data below. Make it 75-110 words in one strong paragraph, with specific role, skills, work context, and value delivered. Do not invent employers, years, degrees, certifications, links, metrics, or tools that are not present. No heading, no markdown, no placeholders."
+            : "Rewrite this resume experience entry into 3-5 strong responsibility or achievement lines. Use action verbs and measurable impact only when supported by the candidate data. Do not invent employers, dates, tools, or metrics. No heading, no markdown bullets; separate each line with a newline.";
 
         $prompt .= "\n\nCandidate name: ".trim(($resume['name'] ?? '').' '.($resume['last_name'] ?? ''));
         $prompt .= "\nTarget role: ".$jobTitle;
         $prompt .= "\nSkills: ".$skills;
         $prompt .= "\nExperience context: ".$experience;
+        $prompt .= "\nEducation context: ".$education;
         $prompt .= "\nExisting text: ".$existingText;
 
         $generated = $this->callGeminiForText($prompt);
 
-        if ($generated === '') {
-            return response()->json([
-                'message' => 'AI text generation is not available right now.',
-            ], 422);
+        if ($generated === '' || ($context === 'summary' && str_word_count(strip_tags($generated)) < 55)) {
+            $generated = $this->buildLocalAiText($context, $resume, $existingText);
         }
 
         return response()->json(['text' => $generated]);
@@ -120,11 +130,18 @@ class ResumeBuilderController extends Controller
     {
         $this->authorizeResume($resume);
 
+        if (! $resume->user_id && auth()->check()) {
+            $resume->forceFill(['user_id' => auth()->id(), 'session_id' => null])->save();
+        }
+
         $templates = Template::where('type', 'resume')->where('is_active', true)->get();
 
-        return view('resume.edit', [
-            'resume' => $resume,
+        return view('resume.create', [
             'templates' => $templates,
+            'selectedTemplate' => $resume->template,
+            'selectedTemplateId' => $resume->template_id,
+            'initialResume' => $resume->data,
+            'editingResume' => $resume,
         ]);
     }
 
@@ -246,6 +263,39 @@ class ResumeBuilderController extends Controller
         }
     }
 
+    private function buildLocalAiText(string $context, array $resume, string $existingText): string
+    {
+        $role = $this->toText($resume['job_title'] ?? '') ?: 'professional';
+        $skills = array_slice($resume['skills'] ?? [], 0, 6);
+        $skillsText = $skills ? implode(', ', $skills) : 'cross-functional collaboration, problem solving, and delivery-focused execution';
+        $experience = collect($resume['experience'] ?? [])
+            ->filter(fn ($item) => is_array($item))
+            ->first();
+
+        if ($context === 'experience') {
+            $base = collect(preg_split('/\R+/', $existingText))
+                ->map(fn ($line) => trim(preg_replace('/^[\-•»]\s*/', '', $line)))
+                ->filter()
+                ->take(5)
+                ->values();
+
+            if ($base->isNotEmpty()) {
+                return $base->map(fn ($line) => 'Improved and delivered '.$line)->join("\n");
+            }
+
+            return implode("\n", [
+                "Built and maintained {$role} workflows with attention to quality, timelines, and user needs.",
+                "Collaborated with stakeholders to translate requirements into reliable, production-ready outcomes.",
+                "Used {$skillsText} to improve delivery quality and support measurable business goals.",
+            ]);
+        }
+
+        $company = is_array($experience) ? $this->toText($experience['company'] ?? '') : '';
+        $contextLine = $company ? "with experience at {$company}" : 'with practical experience across professional projects';
+
+        return "{$role} {$contextLine}, skilled in {$skillsText}. Brings a disciplined, detail-oriented approach to understanding requirements, building dependable solutions, and improving user-facing outcomes. Experienced in collaborating with teams, organizing work clearly, and turning business needs into polished deliverables. Focused on continuous learning, clean execution, and contributing meaningful value to teams that need reliable ownership, strong communication, and consistent delivery.";
+    }
+
     private function normalizeResume(array $resume): array
     {
         $normalized = array_merge($resume, [
@@ -263,9 +313,12 @@ class ResumeBuilderController extends Controller
             'tech_stack' => $this->toText($resume['tech_stack'] ?? ''),
             'skills' => $this->normalizeArray($resume['skills'] ?? []),
             'experience' => $this->normalizeNestedItems($resume['experience'] ?? []),
-            'education' => $this->normalizeArray($resume['education'] ?? []),
+            'education' => $this->normalizeEducation($resume['education'] ?? []),
             'projects' => $this->normalizeNestedItems($resume['projects'] ?? []),
-            'social_links' => $this->normalizeArray($resume['social_links'] ?? []),
+            'social_links' => array_values(array_filter(
+                $this->normalizeArray($resume['social_links'] ?? []),
+                fn ($link) => ! preg_match('/(linkedin\.com\/in\/(?:alex|you)|github\.com\/(?:alex|you))/i', $link)
+            )),
             'certifications' => $this->normalizeArray($resume['certifications'] ?? []),
             'profile_image' => $this->toText($resume['profile_image'] ?? ''),
         ]);
@@ -324,6 +377,35 @@ class ResumeBuilderController extends Controller
                 return $this->toText($value);
             })->all();
         }, $items), fn ($item) => ! empty($item)));
+    }
+
+    private function normalizeEducation(array|string|null $items): array
+    {
+        if ($items === null) {
+            return [];
+        }
+
+        $items = is_array($items) ? $items : [$items];
+
+        return array_values(array_filter(array_map(function ($item) {
+            if (is_array($item)) {
+                return [
+                    'degree' => $this->toText($item['degree'] ?? $item['course'] ?? ''),
+                    'stream' => $this->toText($item['stream'] ?? $item['field'] ?? $item['specialization'] ?? ''),
+                    'institution' => $this->toText($item['institution'] ?? $item['school'] ?? $item['university'] ?? $item['college'] ?? ''),
+                    'year' => $this->toText($item['year'] ?? $item['duration'] ?? $item['period'] ?? ''),
+                ];
+            }
+
+            $parts = array_values(array_filter(array_map(fn ($part) => trim($part), explode(',', $this->toText($item)))));
+
+            return [
+                'degree' => $parts[0] ?? '',
+                'stream' => count($parts) > 3 ? ($parts[1] ?? '') : '',
+                'institution' => count($parts) > 2 ? implode(', ', array_slice($parts, 1, -1)) : ($parts[1] ?? ''),
+                'year' => count($parts) > 1 ? end($parts) : '',
+            ];
+        }, $items), fn ($item) => collect($item)->filter()->isNotEmpty()));
     }
 
     private function stringList(array|string|null $items): array

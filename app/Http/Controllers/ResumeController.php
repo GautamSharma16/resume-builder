@@ -499,6 +499,7 @@ STRICT RULES:
 - No markdown
 - No explanation text
 - Only JSON response
+- Do not invent LinkedIn, GitHub, portfolio links, employers, dates, schools, or metrics. Leave unknown fields empty.
 
 FORMAT:
 {
@@ -519,7 +520,7 @@ FORMAT:
       { "company": "", "role": "", "points": [] }
     ],
     "education": [
-      { "degree": "", "institution": "", "year": "" }
+      { "degree": "", "stream": "", "institution": "", "year": "" }
     ],
     "projects": [
       { "name": "", "tech": "", "description": "" }
@@ -657,6 +658,9 @@ PROMPT;
             if (is_array($val)) return json_encode($val);
             return (string) $val;
         };
+        $safeSocial = fn ($val) => preg_match('/(linkedin\.com\/in\/(?:alex|you)|github\.com\/(?:alex|you))/i', (string) $val)
+            ? ''
+            : $safeStr($val);
 
         return [
             'name' => (string) ($resume['name'] ?? ''),
@@ -665,7 +669,7 @@ PROMPT;
             'location' => (string) ($resume['location'] ?? $resume['address'] ?? ''),
             'contact' => (string) ($resume['contact'] ?? $resume['mobile'] ?? ''),
             'address' => (string) ($resume['address'] ?? $resume['location'] ?? ''),
-            'social_links' => array_values(array_filter(array_map($safeStr, $resume['social_links'] ?? []))),
+            'social_links' => array_values(array_filter(array_map($safeSocial, $resume['social_links'] ?? []))),
             'summary' => (string) ($resume['summary'] ?? ''),
             'profile_image' => (string) ($resume['profile_image'] ?? ''),
             'skills' => array_values(array_filter(array_map($safeStr, $resume['skills'] ?? []))),
@@ -680,12 +684,14 @@ PROMPT;
                 if (!is_array($item)) {
                     return [
                         'degree' => (string) $item,
+                        'stream' => '',
                         'institution' => '',
                         'year' => '',
                     ];
                 }
                 return [
                     'degree' => (string) ($item['degree'] ?? ''),
+                    'stream' => (string) ($item['stream'] ?? $item['field'] ?? $item['specialization'] ?? ''),
                     'institution' => (string) ($item['institution'] ?? ''),
                     'year' => (string) ($item['year'] ?? ''),
                 ];

@@ -3,15 +3,24 @@
 @section('title', 'Resume Maker | Cvbliss')
 
 @section('content')
+@php
+    $editingResume = $editingResume ?? null;
+    $requiresPlanForDownload = auth()->check()
+        && $editingResume
+        && ! $editingResume->is_paid
+        && ! auth()->user()->activeSubscription?->hasDownloadsRemaining();
+@endphp
 
 <div id="create-cv-app"
     class="rp-root"
     data-store-url="{{ route('resume.store') }}"
+    @if($editingResume) data-update-url="{{ route('resume.update', $editingResume) }}" data-resume-id="{{ $editingResume->id }}" @endif
     data-analyze-url="{{ route('resume.analyze') }}"
     data-login-url="{{ route('login') }}"
+    data-plans-url="{{ route('plans') }}"
     data-ai-text-url="{{ route('resume.ai-text') }}"
     data-authenticated="{{ auth()->check() ? '1' : '0' }}"
-    data-download-requires-plan="{{ auth()->check() && ! auth()->user()->activeSubscription?->hasDownloadsRemaining() ? '1' : '0' }}"
+    data-download-requires-plan="{{ auth()->check() && ((! auth()->user()->activeSubscription?->hasDownloadsRemaining()) && (! $editingResume || ! $editingResume->is_paid)) ? '1' : '0' }}"
     @if($selectedTemplateId) data-selected-template="{{ $selectedTemplateId }}" @endif>
 
     <script type="application/json" id="resume-templates-json">@json($templates->keyBy('id'))</script>
@@ -463,6 +472,7 @@
             border-radius: var(--r-md);
             background: #f8fafc;
             padding: 1rem;
+            display: none;
         }
         .suggested-summary h4 {
             font-size: 0.86rem;
@@ -684,6 +694,8 @@
             border-radius: 6px;
             font-size: 0.75rem;
         }
+        .score-pill.mid { background: #f59e0b; }
+        .score-pill.low { background: #ef4444; }
         .change-tpl-btn {
             background: var(--white);
             border: 1.5px solid var(--border);
@@ -841,14 +853,28 @@
            RESPONSIVE
         ══════════════════════════════════════════ */
         @media (max-width: 900px) {
-            .rp-builder { grid-template-columns: 1fr; overflow-y: auto; height: auto; }
-            html, body { overflow: auto; }
+            .rp-root { height: auto; min-height: 100vh; }
+            .rp-builder { grid-template-columns: 1fr; overflow: visible; height: auto; padding: 1rem; }
+            html, body { overflow: auto; height: auto; }
+            .rp-form-panel { max-height: none; overflow: visible; }
+            .rp-form-body { overflow: visible; }
             .rp-preview-panel { min-height: 60vh; }
+            .rp-viewport { min-height: 520px; }
             .rp-entry-row { grid-template-columns: 1fr; }
         }
         @media (max-width: 600px) {
+            .rp-builder { padding: 0.75rem; }
+            .rp-step-nav { overflow-x: auto; padding-left: 1rem; padding-right: 1rem; }
+            .rp-step-nav::after { left: 1rem; right: 1rem; }
+            .rp-step-tab { min-width: 74px; }
             .rp-row { grid-template-columns: 1fr; }
             .rp-step-name { font-size: 0.62rem; }
+            .preview-topbar { align-items: stretch; flex-direction: column; gap: 0.75rem; }
+            .score-badge, .change-tpl-btn { justify-content: center; width: 100%; }
+            .rp-viewport { padding: 0.75rem; min-height: 420px; justify-content: flex-start; }
+            #cv-preview { width: 794px; transform: scale(0.42); transform-origin: top left; margin: 0; }
+            .rp-form-footer { gap: 0.75rem; padding: 0.75rem 1rem; }
+            .rp-form-footer .btn { flex: 1; min-width: 0; justify-content: center; }
         }
     </style>
 
@@ -977,6 +1003,7 @@
                             <div class="rp-input-wrap">
                                 <input id="cv-social" class="rp-input cv-field" placeholder="linkedin.com/in/you, github.com/you" data-field="social_links">
                             </div>
+                            <p class="rp-hint">Imported links are shown only when found in your resume. Add or remove any link here before continuing.</p>
                         </div>
                     </div>
 
@@ -1057,12 +1084,12 @@
                     </div>
                     <div class="summary-editor-shell">
                         <div class="rich-toolbar">
-                            <button type="button" class="rt-btn"><b>B</b></button>
-                            <button type="button" class="rt-btn"><i>I</i></button>
-                            <button type="button" class="rt-btn"><u>U</u></button>
+                            <button type="button" class="rt-btn" data-rich-command="bold" title="Bold"><b>B</b></button>
+                            <button type="button" class="rt-btn" data-rich-command="italic" title="Italic"><i>I</i></button>
+                            <button type="button" class="rt-btn" data-rich-command="underline" title="Underline"><u>U</u></button>
                             <button type="button" class="rt-btn"><s>S</s></button>
                             <button type="button" class="rt-btn">↗</button>
-                            <button type="button" class="rt-btn">≡</button>
+                            <button type="button" class="rt-btn" data-rich-command="list" title="Bulleted list">•</button>
                             <button type="button" class="rt-btn">↶</button>
                             <button type="button" class="rt-btn">↷</button>
                             <button type="button" class="ai-btn" onclick="generateAISummary()">
@@ -1118,7 +1145,7 @@
         <section class="rp-preview-panel">
             <div class="preview-topbar">
                 <div class="score-badge">
-                    <span class="score-pill">90%</span>
+                    <span class="score-pill" data-resume-score>0%</span>
                     Your resume score 😍
                 </div>
                 <button class="change-tpl-btn" id="change-template-btn">
@@ -1220,6 +1247,18 @@
                 social_links: read('cv-social').split(',').map(v => v.trim()).filter(Boolean),
                 summary: read('cv-summary'),
                 skills: read('cv-skills').split(',').map(v => v.trim()).filter(Boolean),
+                experience: Array.from(document.querySelectorAll('[data-exp]')).map(block => ({
+                    company: block.querySelector('[data-k="company"]')?.value || '',
+                    role: block.querySelector('[data-k="role"]')?.value || '',
+                    period: block.querySelector('[data-k="period"]')?.value || '',
+                    points: (block.querySelector('[data-k="points"]')?.value || '').split('\n').map(v => v.trim()).filter(Boolean),
+                })),
+                education: Array.from(document.querySelectorAll('[data-edu]')).map(block => ({
+                    degree: block.querySelector('[data-k="degree"]')?.value || '',
+                    stream: block.querySelector('[data-k="stream"]')?.value || '',
+                    institution: block.querySelector('[data-k="institution"]')?.value || '',
+                    year: block.querySelector('[data-k="year"]')?.value || '',
+                })),
             };
         }
 

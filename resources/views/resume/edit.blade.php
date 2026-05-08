@@ -10,6 +10,11 @@
 <div id="create-cv-app"
     class="min-h-screen rp-root"
     data-update-url="{{ route('resume.update', $resume) }}"
+    data-resume-id="{{ $resume->id }}"
+    data-authenticated="1"
+    data-plans-url="{{ route('plans') }}"
+    data-download-requires-plan="{{ $requiresPlanForDownload ? '1' : '0' }}"
+    data-ai-text-url="{{ route('resume.ai-text') }}"
     @if($resume->template_id) data-selected-template="{{ $resume->template_id }}" @endif>
 
     <script type="application/json" id="resume-templates-json">@json($templates->keyBy('id'))</script>

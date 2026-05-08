@@ -10,9 +10,10 @@
 
     /* Top bar: Logo left, Socials right */
     .ft-topbar {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
-        padding: 32px 40px 28px;
+        /* padding: 32px 40px 28px; */
+        padding: 0 5px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -48,7 +49,7 @@
 
     /* Main grid */
     .ft-main {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 48px 40px 48px;
     }
