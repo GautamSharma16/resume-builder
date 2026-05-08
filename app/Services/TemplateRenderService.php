@@ -100,6 +100,7 @@ class TemplateRenderService
             'company_name' => 'Acme SaaS',
             'job_role' => 'Senior Laravel Developer',
             'skills' => 'Laravel, PHP, MySQL',
+            'job_description' => "We are looking for a Senior Laravel Developer to join our team. You will be responsible for building scalable APIs, managing databases, and improving our SaaS product's performance.",
             'body' => "Dear Hiring Manager,\n\nI am excited to apply for the Senior Laravel Developer role at Acme SaaS. With 3+ years of experience building Laravel products, payment workflows, and database-driven applications, I can contribute quickly to your engineering team.\n\nMy work includes building production APIs, improving performance, and collaborating with product teams to ship clean user experiences. I would welcome the opportunity to bring the same focus and ownership to Acme SaaS.\n\nSincerely,\nJohn Doe",
         ], $overrides ?? []);
     }

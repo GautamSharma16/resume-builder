@@ -28,6 +28,8 @@ Route::get('/', [PageController::class, 'home'])->name('home');
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.store')->middleware('throttle:5,1');
+    Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
+    Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login.store')->middleware('throttle:5,1');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.store')->middleware('throttle:5,1');
     Route::get('/forgot-password', [AuthController::class, 'showForgot'])->name('password.request');
@@ -132,6 +134,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::get('/payments', [PricingController::class, 'index'])->name('payments')->middleware('permission:pricing');
             Route::patch('/plans/{plan}', [PricingController::class, 'update'])->name('plans.update')->middleware('permission:pricing');
             Route::get('/transactions', [App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('transactions')->middleware('permission:transactions');
+            Route::get('/transactions/export', [App\Http\Controllers\Admin\TransactionController::class, 'exportCsv'])->name('transactions.export')->middleware('permission:transactions');
         });
 
         // User Management (Admin only)

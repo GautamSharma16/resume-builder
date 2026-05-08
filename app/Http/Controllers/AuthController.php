@@ -21,7 +21,14 @@ class AuthController extends Controller
     {
         $this->rememberIntendedRedirect($request);
 
-        return view('auth.login');
+        return view('auth.login', ['activeTab' => 'login']);
+    }
+
+    public function showAdminLogin(Request $request)
+    {
+        $this->rememberIntendedRedirect($request);
+
+        return view('auth.admin-login');
     }
 
     public function login(Request $request)
@@ -80,7 +87,7 @@ class AuthController extends Controller
     {
         $this->rememberIntendedRedirect($request);
 
-        return view('auth.register');
+        return view('auth.login', ['activeTab' => 'register']);
     }
 
     public function register(Request $request)
@@ -161,7 +168,7 @@ class AuthController extends Controller
 
     public function showForgot()
     {
-        return view('auth.forgot-password');
+        return view('auth.login', ['activeTab' => 'forgot']);
     }
 
     public function sendResetLink(Request $request)

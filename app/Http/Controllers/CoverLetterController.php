@@ -10,18 +10,24 @@ use App\Services\TemplateRenderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Arr;
+use ZipArchive;
 
 class CoverLetterController extends Controller
 {
     public function create(TemplateRenderService $renderer)
     {
         $templates = Template::where('type', 'cover_letter')->where('is_active', true)->get();
+        $sample = $renderer->coverLetterSampleData();
+        
         $user = auth()->user();
-        $sample = $renderer->coverLetterSampleData([
-            'name' => $user?->name ?: 'John Doe',
-            'email' => $user?->email ?: 'john.doe@example.com',
-            'mobile' => $user?->mobile ?: '+91 98765 43210',
-        ]);
+        $prefill = $sample;
+
+        if ($user) {
+            $latestResume = \App\Models\Resume::where('user_id', $user->id)->latest()->first();
+            if ($latestResume && !empty($latestResume->data)) {
+                $prefill = $renderer->coverLetterSampleData($latestResume->data);
+            }
+        }
 
         return view('pages.cover-letter', [
             'resumes' => Resume::where('user_id', auth()->id())->latest()->get(),
@@ -29,7 +35,7 @@ class CoverLetterController extends Controller
             'renderedTemplates' => $templates->mapWithKeys(fn (Template $template) => [
                 $template->id => (string) $renderer->renderCoverLetter($template, $sample),
             ]),
-            'prefill' => $sample,
+            'prefill' => $prefill,
         ]);
     }
 
@@ -38,8 +44,9 @@ class CoverLetterController extends Controller
         try {
             $validated = $request->validate([
                 'resume_id' => ['nullable', 'exists:resumes,id'],
+                'resume_file' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
                 'template_id' => ['nullable', 'exists:templates,id'],
-                'name' => ['required_without:resume_id', 'nullable', 'string', 'max:160'],
+                'name' => ['nullable', 'string', 'max:160'],
                 'email' => ['nullable', 'email', 'max:190'],
                 'mobile' => ['nullable', 'string', 'max:30'],
                 'location' => ['nullable', 'string', 'max:160'],
@@ -51,10 +58,39 @@ class CoverLetterController extends Controller
             ]);
 
             $resume = isset($validated['resume_id']) ? Resume::find($validated['resume_id']) : null;
-            $name = $resume ? Arr::get($resume->data, 'name', '') : ($validated['name'] ?? '');
+            if ($resume && $resume->user_id && $resume->user_id !== $request->user()?->id) {
+                abort(403);
+            }
+
+            $uploadedResumeText = '';
+
+            if ($request->hasFile('resume_file')) {
+                $uploadedResumeText = $this->cleanText($this->extractResumeText($request->file('resume_file')));
+
+                if (mb_strlen($uploadedResumeText) < 80) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'We could not read enough text from this resume. Please upload a text-based PDF, DOC, or DOCX.',
+                    ], 422);
+                }
+            }
+
+            $resumeContext = $resume?->data ?? [];
+            $uploadedResumeContact = $uploadedResumeText ? $this->extractResumeContact($uploadedResumeText) : [];
+
+            $name = $this->firstFilled(Arr::get($uploadedResumeContact, 'name'), $validated['name'] ?? null, Arr::get($resumeContext, 'name'));
+            $email = $this->firstFilled(Arr::get($uploadedResumeContact, 'email'), $validated['email'] ?? null, Arr::get($resumeContext, 'email'));
+            $mobile = $this->firstFilled(Arr::get($uploadedResumeContact, 'mobile'), $validated['mobile'] ?? null, Arr::get($resumeContext, 'mobile', Arr::get($resumeContext, 'contact')));
+            $location = $this->firstFilled(Arr::get($uploadedResumeContact, 'location'), $validated['location'] ?? null, Arr::get($resumeContext, 'location', Arr::get($resumeContext, 'address')));
             $company = $validated['company_name'] ?? $validated['company'] ?? '';
+            $jobRole = $validated['job_role'] ?? '';
+
+            if ($uploadedResumeText) {
+                $resumeContext['uploaded_resume_text'] = mb_substr($uploadedResumeText, 0, 12000);
+                $resumeContext['uploaded_resume_contact'] = $uploadedResumeContact;
+            }
             
-            $result = $this->generateWithGemini($name, $validated['job_role'], $company, $validated['job_description'] ?? '', $resume?->data ?? [], $validated['skills'] ?? '');
+            $result = $this->generateWithGemini($name, $jobRole, $company, $validated['job_description'] ?? '', $resumeContext, $validated['skills'] ?? '');
 
             if (!Arr::get($result, 'success', true)) {
                 return response()->json(['success' => false, 'message' => Arr::get($result, 'message', 'AI Generation failed.')], 500);
@@ -67,18 +103,19 @@ class CoverLetterController extends Controller
                 'session_id' => $request->session()->getId(),
                 'template_id' => $validated['template_id'] ?? null,
                 'resume_id' => $resume?->id,
-                'job_role' => $validated['job_role'],
+                'job_role' => $jobRole,
                 'company' => $company ?: null,
                 'data' => [
                     'name' => $name,
-                    'email' => $validated['email'] ?? $request->user()?->email ?? '',
-                    'mobile' => $validated['mobile'] ?? $request->user()?->mobile ?? '',
-                    'location' => $validated['location'] ?? '',
+                    'email' => $email,
+                    'mobile' => $mobile,
+                    'location' => $location,
                     'company' => $company,
                     'company_name' => $company,
-                    'job_role' => $validated['job_role'],
+                    'job_role' => $jobRole,
                     'skills' => $validated['skills'] ?? '',
                     'body' => $body,
+                    'resume_uploaded' => (bool) $uploadedResumeText,
                 ],
             ]);
 
@@ -87,6 +124,123 @@ class CoverLetterController extends Controller
             \Log::error('Cover Letter Generation Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Failed to generate cover letter: ' . $e->getMessage()], 500);
         }
+    }
+
+    private function extractResumeContact(string $text): array
+    {
+        $lines = collect(preg_split('/\R+/', $text))
+            ->map(fn ($line) => trim($line))
+            ->filter()
+            ->values();
+
+        $name = $lines
+            ->first(fn ($line) => ! str_contains($line, '@') && ! preg_match('/\+?\d[\d\s().-]{7,}/', $line) && ! preg_match('/\b(resume|curriculum vitae|cv)\b/i', $line)) ?: '';
+        $email = '';
+        $mobile = '';
+        $location = '';
+
+        if (preg_match('/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i', $text, $match)) {
+            $email = $match[0];
+        }
+
+        if (preg_match('/(?:\+?\d[\d\s().-]{7,}\d)/', $text, $match)) {
+            $mobile = trim($match[0]);
+        }
+
+        $locationKeywords = '\b(?:India|USA|UK|Remote|Bengaluru|Bangalore|Mumbai|Delhi|Pune|Hyderabad|Chennai|Kolkata|Noida|Gurgaon|Ahmedabad|Jaipur|Surat|Lucknow|Kanpur|Nagpur|Indore|Thane|Bhopal|Visakhapatnam|Patna|Vadodara|Ghaziabad|Ludhiana|Agra|Nashik|Faridabad|Meerut|Rajkot|California|Texas|New York|London|Dubai|Singapore|Germany|France|Canada|Australia|Dubai|UAE|Singapore|Sydney|Melbourne|Toronto|Vancouver)\b';
+
+        $locationLine = $lines->first(function ($line) use ($locationKeywords) {
+            if (str_contains($line, '@') || preg_match('/\+?\d[\d\s().-]{7,}/', $line)) {
+                return false;
+            }
+
+            if (preg_match('/^(?:Location|Address|City|Place|Residence):\s*(.+)$/i', $line)) {
+                return true;
+            }
+
+            if (preg_match('/'.$locationKeywords.'/i', $line)) {
+                return true;
+            }
+
+            return str_contains($line, ',') && mb_strlen($line) < 60;
+        }) ?: '';
+
+        $location = $locationLine;
+        if (preg_match('/^(?:Location|Address|City|Place|Residence):\s*(.+)$/i', $locationLine, $m)) {
+            $location = $m[1];
+        }
+
+        return [
+            'name' => $name,
+            'email' => $email,
+            'mobile' => $mobile,
+            'location' => $location,
+        ];
+    }
+
+    private function firstFilled(mixed ...$values): string
+    {
+        foreach ($values as $value) {
+            if (is_array($value)) {
+                $value = collect($value)->flatten()->filter()->join(', ');
+            }
+
+            $value = trim((string) ($value ?? ''));
+
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function extractResumeText($file): string
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        $path = $file->getRealPath();
+
+        return match ($extension) {
+            'pdf' => class_exists(\Smalot\PdfParser\Parser::class)
+                ? (new \Smalot\PdfParser\Parser())->parseFile($path)->getText()
+                : '',
+            'docx' => $this->extractTextFromDocx($path),
+            'doc' => $this->extractTextFromDoc($path),
+            default => '',
+        };
+    }
+
+    private function extractTextFromDocx(string $path): string
+    {
+        $zip = new ZipArchive();
+
+        if ($zip->open($path) !== true) {
+            return '';
+        }
+
+        $content = $zip->getFromName('word/document.xml') ?: '';
+        $zip->close();
+
+        $content = preg_replace('/<\/w:p>/', "\n", $content);
+        $content = strip_tags((string) $content);
+
+        return html_entity_decode($content, ENT_QUOTES | ENT_XML1, 'UTF-8');
+    }
+
+    private function extractTextFromDoc(string $path): string
+    {
+        $content = file_get_contents($path) ?: '';
+        preg_match_all('/[\x20-\x7E]{4,}/', $content, $matches);
+
+        return implode(' ', $matches[0] ?? []);
+    }
+
+    private function cleanText(string $text): string
+    {
+        $text = preg_replace('/[ \t]+/', ' ', $text);
+        $text = preg_replace('/\n{3,}/', "\n\n", (string) $text);
+
+        return trim((string) $text);
     }
 
     public function save(Request $request, CoverLetter $coverLetter)

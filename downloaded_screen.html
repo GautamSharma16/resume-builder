@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;family=Outfit:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface-variant": "#404944",
+                    "surface": "#f8f9ff",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#d9e3f6",
+                    "surface-tint": "#2b6954",
+                    "primary-container": "#064e3b",
+                    "surface-container": "#e6eeff",
+                    "primary-fixed": "#b0f0d6",
+                    "tertiary-container": "#40454a",
+                    "secondary-container": "#dadedb",
+                    "on-tertiary": "#ffffff",
+                    "on-error": "#ffffff",
+                    "on-surface": "#121c2a",
+                    "on-secondary-fixed-variant": "#434846",
+                    "secondary": "#5b5f5d",
+                    "outline-variant": "#bfc9c3",
+                    "surface-container-high": "#dee9fc",
+                    "on-error-container": "#93000a",
+                    "on-background": "#121c2a",
+                    "surface-bright": "#f8f9ff",
+                    "on-secondary-container": "#5d6260",
+                    "inverse-surface": "#27313f",
+                    "tertiary-fixed-dim": "#c3c7cd",
+                    "on-primary-fixed": "#002117",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed": "#dfe3e9",
+                    "on-secondary": "#ffffff",
+                    "on-secondary-fixed": "#181d1b",
+                    "background": "#f8f9ff",
+                    "secondary-fixed": "#dfe3e1",
+                    "surface-container-highest": "#d9e3f6",
+                    "on-tertiary-fixed": "#171c20",
+                    "inverse-primary": "#95d3ba",
+                    "surface-dim": "#d0dbed",
+                    "on-primary-container": "#80bea6",
+                    "on-primary": "#ffffff",
+                    "surface-container-low": "#eff4ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed-variant": "#0b513d",
+                    "primary": "#003527",
+                    "secondary-fixed-dim": "#c3c7c5",
+                    "on-tertiary-container": "#aeb2b8",
+                    "on-tertiary-fixed-variant": "#43474c",
+                    "tertiary": "#2a2f33",
+                    "primary-fixed-dim": "#95d3ba",
+                    "outline": "#707974"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-sm": "8px",
+                    "stack-md": "24px",
+                    "margin-desktop": "64px",
+                    "unit": "4px",
+                    "stack-lg": "48px",
+                    "margin-mobile": "16px",
+                    "gutter": "24px",
+                    "container-max": "1280px"
+            },
+            "fontFamily": {
+                    "h3": ["DM Serif Display"],
+                    "h2": ["DM Serif Display"],
+                    "body-md": ["Outfit"],
+                    "h1": ["DM Serif Display"],
+                    "label-sm": ["Outfit"],
+                    "body-lg": ["Outfit"]
+            },
+            "fontSize": {
+                    "h3": ["2.25rem", {"lineHeight": "1.3", "letterSpacing": "0", "fontWeight": "400"}],
+                    "h2": ["3rem", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "400"}],
+                    "body-md": ["1rem", {"lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400"}],
+                    "h1": ["4.5rem", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "400"}],
+                    "label-sm": ["0.875rem", {"lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-lg": ["1.25rem", {"lineHeight": "1.6", "letterSpacing": "0.01em", "fontWeight": "300"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-background selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopNavBar -->
+<header class="bg-stone-50/80 dark:bg-stone-950/80 backdrop-blur-md font-sans antialiased tracking-tight shadow-sm shadow-emerald-900/5 border-b border-stone-200 dark:border-stone-800 docked full-width top-0 z-50 fixed w-full">
+<div class="flex justify-between items-center h-16 px-16 max-w-[1440px] mx-auto">
+<div class="text-xl font-bold text-emerald-900 dark:text-emerald-50 tracking-tighter">ResuMint AI</div>
+<nav class="hidden md:flex items-center space-x-8">
+<a class="text-emerald-900 dark:text-emerald-400 border-b-2 border-emerald-900 dark:border-emerald-400 pb-1 font-medium" href="#">Optimizer</a>
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 transition-colors" href="#">Templates</a>
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 transition-colors" href="#">History</a>
+<a class="text-stone-500 dark:text-stone-400 hover:text-emerald-800 transition-colors" href="#">Analytics</a>
+</nav>
+<div class="flex items-center space-x-4">
+<button class="text-stone-500 hover:bg-stone-100 p-2 rounded-full transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-stone-500 hover:bg-stone-100 p-2 rounded-full transition-all duration-200">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+<button class="bg-primary text-on-primary px-5 py-2 rounded-lg font-label-sm uppercase tracking-widest text-xs hover:opacity-90 active:scale-[0.98] transition-all">
+                    Upgrade Pro
+                </button>
+</div>
+</div>
+</header>
+<main class="pt-16 min-h-screen">
+<!-- Hero / Upload Section -->
+<section class="py-stack-lg bg-stone-50 relative overflow-hidden">
+<div class="max-w-[1440px] mx-auto px-margin-desktop grid grid-cols-12 items-center gap-gutter">
+<div class="col-span-12 lg:col-span-6 space-y-stack-md z-10">
+<h1 class="font-h1 text-primary leading-tight">Elevate your <br/><span class="italic text-on-primary-fixed-variant">professional</span> story.</h1>
+<p class="font-body-lg text-on-surface-variant max-w-xl">
+                        ResuMint uses organic AI processing to scan, analyze, and optimize your resume for modern ATS systems while maintaining your authentic human voice.
+                    </p>
+<div class="flex items-center space-x-4 pt-4">
+<div class="flex -space-x-2">
+<div class="w-10 h-10 rounded-full border-2 border-white bg-secondary-fixed"></div>
+<div class="w-10 h-10 rounded-full border-2 border-white bg-primary-fixed"></div>
+<div class="w-10 h-10 rounded-full border-2 border-white bg-surface-variant"></div>
+</div>
+<span class="text-label-sm text-secondary font-medium">Joined by 12,000+ professionals this month</span>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-6">
+<div class="bg-white p-stack-md rounded-xl shadow-sm border border-stone-100 relative group">
+<div class="border-2 border-dashed border-stone-200 rounded-lg p-stack-lg flex flex-col items-center justify-center space-y-4 hover:border-primary-fixed transition-colors cursor-pointer bg-stone-50/50">
+<div class="w-16 h-16 bg-primary-fixed/20 rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-4xl" data-icon="upload_file">upload_file</span>
+</div>
+<div class="text-center">
+<p class="font-label-sm text-primary">Drop your resume here</p>
+<p class="text-xs text-stone-400 mt-1">PDF, DOCX up to 10MB</p>
+</div>
+<button class="bg-white border border-stone-200 px-6 py-2 rounded-full text-sm font-medium hover:bg-stone-50 transition-all">Browse Files</button>
+</div>
+<!-- Scanning Overlay (Simulated Logic State) -->
+<div class="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+<div class="w-48 h-1 bg-stone-100 rounded-full overflow-hidden mb-4">
+<div class="w-1/3 h-full bg-primary-container animate-[pulse_2s_infinite]"></div>
+</div>
+<p class="font-label-sm text-primary-container animate-pulse">Scanning for ATS Optimization...</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Background abstraction -->
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-primary-fixed/10 blur-3xl rounded-full"></div>
+<div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent"></div>
+</section>
+<!-- Dashboard / Analytics Section -->
+<section class="py-stack-lg px-margin-desktop max-w-[1440px] mx-auto">
+<div class="mb-stack-md flex justify-between items-end">
+<div>
+<h2 class="font-h3 text-primary mb-2">Analysis Overview</h2>
+<p class="text-secondary font-body-md">Real-time feedback based on industry benchmarks.</p>
+</div>
+<button class="flex items-center space-x-2 text-primary-container font-label-sm border-b border-primary-container/20 pb-1">
+<span>Download Report</span>
+<span class="material-symbols-outlined text-sm" data-icon="download">download</span>
+</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- ATS Score Bento Card -->
+<div class="md:col-span-2 bg-white rounded-xl p-stack-md border border-stone-100 shadow-sm flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<div class="space-y-1">
+<span class="text-[10px] uppercase tracking-[0.2em] text-stone-400 font-bold">Health Score</span>
+<h3 class="font-h3 text-primary">84<span class="text-xl text-stone-300">/100</span></h3>
+</div>
+<div class="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="trending_up">trending_up</span>
+                            +12% Improvement
+                        </div>
+</div>
+<div class="mt-8 space-y-6">
+<div class="space-y-2">
+<div class="flex justify-between text-xs font-medium">
+<span class="text-stone-600">Keyword Density</span>
+<span class="text-primary">92%</span>
+</div>
+<div class="h-1 w-full bg-stone-100 rounded-full">
+<div class="h-full bg-primary-container rounded-full w-[92%]"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-xs font-medium">
+<span class="text-stone-600">Formatting Integrity</span>
+<span class="text-primary">76%</span>
+</div>
+<div class="h-1 w-full bg-stone-100 rounded-full">
+<div class="h-full bg-primary-container rounded-full w-[76%]"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-xs font-medium">
+<span class="text-stone-600">Impact Phrasing</span>
+<span class="text-primary">84%</span>
+</div>
+<div class="h-1 w-full bg-stone-100 rounded-full">
+<div class="h-full bg-primary-container rounded-full w-[84%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Fixes Card -->
+<div class="bg-primary-container text-on-primary-container rounded-xl p-stack-md shadow-lg shadow-emerald-900/20">
+<span class="text-[10px] uppercase tracking-[0.2em] opacity-60 font-bold">Action Items</span>
+<h3 class="font-h3 mt-2 mb-6">Expert Tips</h3>
+<ul class="space-y-stack-md">
+<li class="flex gap-4">
+<div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="bolt">bolt</span>
+</div>
+<p class="text-sm leading-relaxed opacity-90">Replace "Responsible for" with stronger action verbs like "Spearheaded".</p>
+</li>
+<li class="flex gap-4">
+<div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="query_stats">query_stats</span>
+</div>
+<p class="text-sm leading-relaxed opacity-90">Quantify results in your "Senior Developer" role with specific metrics.</p>
+</li>
+<li class="flex gap-4">
+<div class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-sm" data-icon="style">style</span>
+</div>
+<p class="text-sm leading-relaxed opacity-90">Remove profile photo to comply with modern blind hiring standards.</p>
+</li>
+</ul>
+<button class="w-full mt-10 py-3 bg-white text-primary rounded-lg font-label-sm uppercase tracking-wider text-xs hover:bg-stone-50 transition-colors">Apply All Fixes</button>
+</div>
+</div>
+</section>
+<!-- Workspace / Split View -->
+<section class="bg-surface-container-low border-t border-stone-100">
+<div class="max-w-[1440px] mx-auto grid grid-cols-12 min-h-[600px]">
+<!-- Left: Editor/Optimization -->
+<div class="col-span-12 lg:col-span-7 p-stack-lg border-r border-stone-200">
+<div class="flex items-center justify-between mb-8">
+<h2 class="font-h3 text-primary">Content Optimizer</h2>
+<div class="flex bg-white border border-stone-200 rounded-lg p-1">
+<button class="px-4 py-1.5 text-xs font-bold rounded-md bg-primary-fixed text-primary">Resume</button>
+<button class="px-4 py-1.5 text-xs font-medium text-stone-500 hover:text-primary">Cover Letter</button>
+</div>
+</div>
+<div class="space-y-stack-md">
+<div class="bg-white rounded-lg p-6 shadow-sm border border-stone-100">
+<div class="flex justify-between mb-4">
+<h4 class="font-label-sm text-primary uppercase text-xs tracking-widest">Professional Summary</h4>
+<span class="material-symbols-outlined text-stone-400 cursor-pointer hover:text-primary transition-colors" data-icon="auto_fix">auto_fix</span>
+</div>
+<p class="text-stone-600 leading-relaxed italic border-l-2 border-primary-fixed pl-4">
+                                Dedicated software engineer with 5+ years of experience in building scalable web applications. Expert in React and Node.js with a passion for clean code and performance optimization.
+                            </p>
+<div class="mt-4 flex gap-2">
+<span class="px-2 py-1 bg-stone-50 text-[10px] text-stone-500 rounded border border-stone-100">Needs Metrics</span>
+<span class="px-2 py-1 bg-stone-50 text-[10px] text-stone-500 rounded border border-stone-100">Soft Language</span>
+</div>
+</div>
+<div class="bg-white rounded-lg p-6 shadow-sm border border-stone-100">
+<div class="flex justify-between mb-4">
+<h4 class="font-label-sm text-primary uppercase text-xs tracking-widest">Experience: Senior Engineer</h4>
+<span class="material-symbols-outlined text-stone-400" data-icon="edit">edit</span>
+</div>
+<div class="space-y-4">
+<div class="p-3 bg-emerald-50/50 rounded border border-emerald-100">
+<p class="text-xs text-emerald-800 font-medium mb-1">AI Suggestion</p>
+<p class="text-sm text-stone-700">"Orchestrated the migration of legacy architecture to microservices, resulting in a 40% reduction in server latency and $50k annual savings."</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right: Template Previews -->
+<div class="col-span-12 lg:col-span-5 p-stack-lg bg-white/50 backdrop-blur-sm">
+<h4 class="font-label-sm text-primary uppercase text-xs tracking-widest mb-8">Selected Template: "The Artisan"</h4>
+<div class="aspect-[1/1.41] bg-white shadow-2xl rounded-sm border border-stone-200 overflow-hidden relative group">
+<img class="w-full h-full object-cover" data-alt="A highly professional and elegant resume template design displayed in a light-mode interface. The template features a clean two-column layout with a sophisticated serif heading for the candidate name and minimalist sans-serif typography for the body text. Subdued emerald green accents define section headers. The overall aesthetic is one of quiet luxury, using generous white space and thin, architectural lines to create a sense of refined professionalism and modern executive style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAemTHYD0xfxTFZ0CziP5OacQh-BRnL8ZXJ-EP-RP05Dl6gVmNoUs3HqMdBJomkjOPV1P3kqJ1YPhUd9JKNNzy3VCEZUcVuAFKsbgdmLU10mfILBVRBE5ARYFcDk7MuWhqgKqmE8pbx2UN9uJOvucssCZauaod2V5-JNbhkXGII3i8lprJJuy1JNCUed4vwZoxqUpSgA8fAU2AqF6AEgArH0-mAfxoIBswqNo7ibqI1Ftce9yHDcxglQxiKnqsMdvEEh6btcN0CknM"/>
+<div class="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="bg-white text-primary px-6 py-2 rounded-full font-label-sm text-xs shadow-lg">Preview Large</button>
+</div>
+</div>
+<div class="mt-stack-md grid grid-cols-3 gap-4">
+<div class="aspect-[1/1.41] bg-stone-100 rounded border-2 border-primary ring-2 ring-primary/10"></div>
+<div class="aspect-[1/1.41] bg-stone-100 rounded border border-stone-200 opacity-60 hover:opacity-100 transition-opacity cursor-pointer"></div>
+<div class="aspect-[1/1.41] bg-stone-100 rounded border border-stone-200 opacity-60 hover:opacity-100 transition-opacity cursor-pointer"></div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-stone-50 dark:bg-stone-950 w-full py-8 mt-auto border-t border-stone-200 dark:border-stone-800">
+<div class="flex flex-col md:flex-row justify-between items-center px-16 max-w-7xl mx-auto">
+<div class="mb-4 md:mb-0">
+<div class="text-sm font-bold text-emerald-900 mb-1">ResuMint AI</div>
+<p class="text-xs text-stone-400 uppercase tracking-widest">© 2024 ResuMint AI. Organic Professionalism in Career Growth.</p>
+</div>
+<div class="flex space-x-8">
+<a class="text-xs text-stone-400 uppercase tracking-widest text-stone-500 hover:text-emerald-700 underline underline-offset-4" href="#">Privacy Policy</a>
+<a class="text-xs text-stone-400 uppercase tracking-widest text-stone-500 hover:text-emerald-700 underline underline-offset-4" href="#">Terms of Service</a>
+<a class="text-xs text-stone-400 uppercase tracking-widest text-stone-500 hover:text-emerald-700 underline underline-offset-4" href="#">Contact Support</a>
+</div>
+</div>
+</footer>
+</body></html>

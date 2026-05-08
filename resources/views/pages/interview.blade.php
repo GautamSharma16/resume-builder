@@ -2,314 +2,344 @@
 
 @section('content')
 
-
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&display=swap');
+
   :root {
-    --ink:       var(--navy, #0b1221);
-    --paper:     #ffffff;
-    --accent:    var(--blue, #2563eb);
-    --accent2:   var(--blue-dark, #1d4ed8);
-    --muted:     var(--muted, #64748b);
-    --card-bg:   var(--white, #ffffff);
-    --border:    var(--border, rgba(0,0,0,0.07));
-    --radius:    12px;
-    --transition: 0.35s cubic-bezier(.4,0,.2,1);
+    --ink:        #0b1221;
+    --paper:      #ffffff;
+    --accent:     #2563eb;
+    --accent2:    #1d4ed8;
+    --muted:      #64748b;
+    --muted-lt:   #94a3b8;
+    --surface:    #f7f9fc;
+    --border:     rgba(0,0,0,0.07);
+    --border-md:  rgba(0,0,0,0.11);
+    --radius-sm:  8px;
+    --radius:     12px;
+    --radius-lg:  18px;
+    --t:          0.3s cubic-bezier(.4,0,.2,1);
+
+    --font-body: 'DM Sans', sans-serif;
+    --font-disp: 'Playfair Display', serif;
   }
 
-  /* ── Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
   .blog-root {
     font-family: var(--font-body);
     background: var(--paper);
-    min-height: 100vh;
     color: var(--ink);
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* ── Hero masthead ── */
+  /* ════════════════════════════════════════
+     MASTHEAD — compact, no wasted space
+  ════════════════════════════════════════ */
   .blog-masthead {
-    position: relative;
-    background: linear-gradient(150deg, #ffffff 0%, #fafcff 50%, #f5f7ff 100%);
-    overflow: hidden;
-    padding: 80px 0 64px;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
+    padding: 48px 0 0;
+    overflow: hidden;
+    position: relative;
   }
+
+  /* subtle grid texture */
   .blog-masthead::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, rgba(37,99,235,0.05) 0%, transparent 70%);
-  }
-  .blog-masthead::after {
-    content: 'CAREER';
-    position: absolute;
-    right: -20px;
-    bottom: -40px;
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: clamp(120px, 22vw, 260px);
-    line-height: 1;
-    color: rgba(37,99,235,0.03);
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.6;
     pointer-events: none;
-    user-select: none;
-    letter-spacing: -4px;
   }
+
   .masthead-inner {
-    max-width: 1100px;
+    max-width: 1406px;
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 28px;
     position: relative;
     z-index: 1;
   }
+
+  /* top row: eyebrow + search side by side */
+  .masthead-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
   .masthead-eyebrow {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: .18em;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .2em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 20px;
   }
-  .masthead-eyebrow span {
-    width: 28px;
-    height: 1px;
+  .masthead-eyebrow::before {
+    content: '';
+    width: 24px; height: 1.5px;
     background: var(--accent);
     display: inline-block;
   }
-  .masthead-title {
-    font-family: var(--font-display);
-    font-weight: 900;
-    font-size: clamp(40px, 6vw, 76px);
-    line-height: 1.05;
-    color: var(--navy);
-    letter-spacing: -1px;
-    max-width: 640px;
-  }
-  .masthead-title em {
-    font-style: italic;
-    background: linear-gradient(135deg, var(--blue), var(--accent2));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .masthead-sub {
-    margin-top: 20px;
-    font-size: 17px;
-    color: var(--muted);
-    font-weight: 400;
-    max-width: 440px;
-    line-height: 1.7;
-  }
-  .masthead-meta {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    margin-top: 36px;
-  }
-  .masthead-count {
-    font-size: 13px;
-    color: var(--muted);
-    font-weight: 500;
-  }
+
+  /* search inline in masthead */
   .masthead-search {
-    margin-left: auto;
     position: relative;
+    flex-shrink: 0;
   }
   .masthead-search input {
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    padding: 10px 44px 10px 18px;
+    background: white;
+    border: 1px solid var(--border-md);
+    border-radius: 9999px;
+    padding: 9px 40px 9px 16px;
     font-family: var(--font-body);
     font-size: 13px;
     color: var(--ink);
     outline: none;
-    width: 240px;
-    transition: var(--transition);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    width: 220px;
+    transition: var(--t);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
   }
-  .masthead-search input::placeholder { color: var(--muted); }
+  .masthead-search input::placeholder { color: var(--muted-lt); }
   .masthead-search input:focus {
-    background: var(--white);
-    border-color: var(--blue);
+    width: 260px;
+    border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-    width: 280px;
   }
-  .masthead-search svg {
+  .masthead-search-icon {
     position: absolute;
-    right: 14px;
-    top: 50%;
+    right: 13px; top: 50%;
     transform: translateY(-50%);
-    color: var(--muted);
+    color: var(--muted-lt);
+    pointer-events: none;
   }
 
-  /* ── Filter chips ── */
+  /* title block */
+  .masthead-title-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .masthead-title {
+    font-family: var(--font-disp);
+    font-weight: 900;
+    font-size: clamp(36px, 5.5vw, 64px);
+    line-height: 1.0;
+    color: var(--ink);
+    letter-spacing: -1.5px;
+  }
+  .masthead-title em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .masthead-right {
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .masthead-sub {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.65;
+    max-width: 300px;
+    margin-left: auto;
+  }
+  .masthead-count-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    background: white;
+    border: 1px solid var(--border-md);
+    border-radius: 9999px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .masthead-count-pill span {
+    font-weight: 700;
+    color: var(--ink);
+  }
+
+  /* ════════════════════════════════════════
+     FILTER BAR
+  ════════════════════════════════════════ */
   .filter-bar {
-    background: var(--card-bg);
+    background: white;
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
     z-index: 50;
-    backdrop-filter: blur(8px);
   }
   .filter-inner {
-    max-width: 1100px;
+    max-width: 1120px;
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 28px;
     display: flex;
-    gap: 8px;
+    gap: 6px;
     overflow-x: auto;
     scrollbar-width: none;
-    padding-top: 16px;
-    padding-bottom: 16px;
+    padding-top: 12px;
+    padding-bottom: 12px;
     align-items: center;
   }
   .filter-inner::-webkit-scrollbar { display: none; }
+
   .chip {
     flex-shrink: 0;
-    padding: 6px 16px;
-    border-radius: 100px;
+    padding: 5px 15px;
+    border-radius: 9999px;
     font-size: 12px;
     font-weight: 500;
-    letter-spacing: .04em;
     cursor: pointer;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-md);
     background: transparent;
     color: var(--muted);
-    transition: var(--transition);
+    transition: var(--t);
     font-family: var(--font-body);
+    letter-spacing: 0.02em;
   }
-  .chip:hover, .chip.active {
+  .chip:hover { background: var(--surface); color: var(--ink); }
+  .chip.active {
     background: var(--ink);
-    color: #fff;
+    color: white;
     border-color: var(--ink);
+    font-weight: 600;
   }
-  .chip.active { font-weight: 600; }
 
-  /* ── Grid layout ── */
+  /* ════════════════════════════════════════
+     BLOG BODY
+  ════════════════════════════════════════ */
   .blog-body {
-    max-width: 1100px;
+    max-width: 1470px;
     margin: 0 auto;
-    padding: 56px 24px 80px;
+    padding: 36px 28px 72px;
   }
 
-  /* Featured (first card spans 2 cols) */
+  /* ════════════════════════════════════════
+     ARTICLES GRID
+  ════════════════════════════════════════ */
   .articles-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
-    gap: 24px;
+    gap: 18px;
   }
 
   /* ── Card base ── */
   .article-card {
-    background: var(--card-bg);
+    background: white;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: var(--transition);
+    transition: var(--t);
     cursor: pointer;
     position: relative;
-    animation: fadeUp .5s both;
+    animation: fadeUp .45s both;
   }
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
   }
   .article-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 40px rgba(0,0,0,.1);
-    border-color: rgba(0,0,0,.15);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.09);
+    border-color: var(--border-md);
   }
-  .article-card:nth-child(1)  { animation-delay: .05s; }
-  .article-card:nth-child(2)  { animation-delay: .1s;  }
-  .article-card:nth-child(3)  { animation-delay: .15s; }
-  .article-card:nth-child(4)  { animation-delay: .2s;  }
-  .article-card:nth-child(5)  { animation-delay: .25s; }
-  .article-card:nth-child(6)  { animation-delay: .3s;  }
+  .article-card:nth-child(1) { animation-delay: .04s; }
+  .article-card:nth-child(2) { animation-delay: .09s; }
+  .article-card:nth-child(3) { animation-delay: .14s; }
+  .article-card:nth-child(4) { animation-delay: .19s; }
+  .article-card:nth-child(5) { animation-delay: .24s; }
+  .article-card:nth-child(6) { animation-delay: .29s; }
 
-  /* Featured card */
-  .article-card.featured {
-    grid-column: span 7;
-  }
-  .article-card.featured .card-img-wrap {
-    height: 340px;
-  }
-  .article-card.featured .card-title {
-    font-size: 26px;
-  }
+  /* Featured */
+  .article-card.featured { grid-column: span 7; }
+  .article-card.featured .card-img-wrap { height: 300px; }
+  .article-card.featured .card-title { font-size: 24px; }
 
-  /* Regular cards */
-  .article-card.regular {
-    grid-column: span 5;
-  }
+  /* Second (sidebar) */
+  .article-card.regular { grid-column: span 5; }
+  .article-card.regular .card-img-wrap { height: 210px; }
 
-  /* Small cards (3rd row+) */
+  /* Small cards */
   .article-card.small {
     grid-column: span 4;
     flex-direction: row;
-    max-height: 180px;
   }
   .article-card.small .card-img-wrap {
-    width: 140px;
-    min-width: 140px;
+    width: 130px;
+    min-width: 130px;
     height: auto;
-    flex-shrink: 0;
   }
-  .article-card.small .card-body { padding: 18px; }
+  .article-card.small .card-body { padding: 16px; }
   .article-card.small .card-excerpt { display: none; }
-  .article-card.small .card-title { font-size: 15px; }
-  .article-card.small .card-footer { margin-top: auto; }
+  .article-card.small .card-title { font-size: 14.5px; line-height: 1.4; }
 
   /* ── Card image ── */
   .card-img-wrap {
     width: 100%;
-    height: 220px;
     overflow: hidden;
     position: relative;
-    background: #e8e4dd;
+    background: #e9ecf1;
+    flex-shrink: 0;
   }
   .card-img-wrap img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform .6s cubic-bezier(.4,0,.2,1);
+    transition: transform .55s cubic-bezier(.4,0,.2,1);
+    display: block;
   }
-  .article-card:hover .card-img-wrap img {
-    transform: scale(1.05);
-  }
-  /* Placeholder when no image */
+  .article-card:hover .card-img-wrap img { transform: scale(1.04); }
+
   .card-img-placeholder {
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
+    min-height: 160px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #e8e4dd 0%, #d4cfc7 100%);
-    font-family: var(--font-display);
-    font-size: 48px;
-    color: rgba(0,0,0,.12);
-    letter-spacing: -2px;
+    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    font-family: var(--font-disp);
+    font-size: 44px;
+    color: rgba(0,0,0,0.1);
     font-style: italic;
   }
+  .article-card.small .card-img-placeholder { font-size: 28px; min-height: 100%; }
+
   .card-reading-time {
     position: absolute;
-    bottom: 12px;
-    right: 12px;
-    background: rgba(0,0,0,.65);
-    backdrop-filter: blur(4px);
-    color: #fff;
-    font-size: 11px;
-    font-weight: 500;
-    padding: 4px 10px;
-    border-radius: 100px;
+    bottom: 10px; right: 10px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    color: white;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 9999px;
     letter-spacing: .04em;
   }
 
   /* ── Card body ── */
   .card-body {
-    padding: 24px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -321,91 +351,93 @@
     letter-spacing: .14em;
     text-transform: uppercase;
     color: var(--accent);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
-  .card-category.alt { color: var(--accent2); }
   .card-title {
-    font-family: var(--font-display);
+    font-family: var(--font-disp);
     font-weight: 700;
-    font-size: 20px;
+    font-size: 18px;
     line-height: 1.3;
     color: var(--ink);
-    margin: 0 0 10px;
-    transition: color var(--transition);
+    margin-bottom: 8px;
+    transition: color var(--t);
   }
   .article-card:hover .card-title { color: var(--accent); }
+
   .card-excerpt {
-    font-size: 14px;
+    font-size: 13.5px;
     line-height: 1.7;
     color: var(--muted);
-    font-weight: 300;
+    font-weight: 400;
     flex: 1;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
   .card-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 20px;
-    padding-top: 16px;
+    margin-top: 16px;
+    padding-top: 13px;
     border-top: 1px solid var(--border);
   }
   .card-author {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
   .card-avatar {
-    width: 30px;
-    height: 30px;
+    width: 28px; height: 28px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    color: #fff;
+    color: white;
     flex-shrink: 0;
   }
-  .card-author-info { line-height: 1.3; }
-  .card-author-name { font-size: 12px; font-weight: 500; color: var(--ink); }
-  .card-date { font-size: 11px; color: var(--muted); }
+  .card-author-name { font-size: 12px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+  .card-date { font-size: 11px; color: var(--muted-lt); }
+
   .card-read-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 600;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 700;
     color: var(--ink);
     text-decoration: none;
-    letter-spacing: .04em;
-    transition: var(--transition);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    transition: var(--t);
     border: none;
     background: none;
     cursor: pointer;
     font-family: var(--font-body);
   }
-  .card-read-btn svg { transition: transform var(--transition); }
-  .article-card:hover .card-read-btn svg { transform: translateX(4px); }
+  .card-read-btn svg { transition: transform var(--t); }
+  .article-card:hover .card-read-btn { color: var(--accent); }
+  .article-card:hover .card-read-btn svg { transform: translateX(3px); }
 
-  /* ── Divider row ── */
+  /* ── Section divider ── */
   .section-divider {
     grid-column: span 12;
     display: flex;
     align-items: center;
-    gap: 20px;
-    padding: 16px 0 8px;
+    gap: 14px;
+    padding: 4px 0;
   }
   .section-divider span {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: .18em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--muted-lt);
     white-space: nowrap;
   }
   .section-divider::before, .section-divider::after {
@@ -415,142 +447,130 @@
     background: var(--border);
   }
 
-  /* ── Empty state ── */
+  /* ── Empty ── */
   .empty-state {
     grid-column: span 12;
     text-align: center;
-    padding: 80px 24px;
+    padding: 72px 24px;
   }
-  .empty-state-icon {
-    font-size: 56px;
-    margin-bottom: 20px;
-    opacity: .4;
-  }
-  .empty-state h3 {
-    font-family: var(--font-display);
-    font-size: 24px;
-    color: var(--ink);
-    margin-bottom: 8px;
-  }
-  .empty-state p { font-size: 15px; color: var(--muted); }
-
-  /* ── Newsletter banner ── */
-  .newsletter-banner {
-    background: linear-gradient(135deg, var(--surface-2), #e0e7ff);
-    margin: 0 0 64px;
-    padding: 56px 24px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-    border-radius: var(--radius);
-    max-width: 1100px;
-    margin: 0 auto 64px;
-  }
-  .newsletter-banner::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 60% 100% at 50% 120%, rgba(37,99,235,0.1) 0%, transparent 70%);
-  }
-  .newsletter-banner h2 {
-    font-family: var(--font-display);
-    font-size: clamp(28px, 4vw, 44px);
-    color: var(--navy);
-    font-weight: 700;
-    position: relative;
-    z-index: 1;
-  }
-  .newsletter-banner p {
-    font-size: 16px;
-    color: var(--muted);
-    margin: 12px 0 28px;
-    position: relative;
-    z-index: 1;
-  }
-  .newsletter-form {
-    display: flex;
-    gap: 10px;
-    max-width: 440px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-  }
-  .newsletter-form input {
-    flex: 1;
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 100px;
-    padding: 13px 22px;
-    font-family: var(--font-body);
-    font-size: 14px;
-    color: var(--ink);
-    outline: none;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-  }
-  .newsletter-form input::placeholder { color: var(--muted); }
-  .newsletter-form input:focus {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-  }
-  .newsletter-form button {
-    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
-    color: #fff;
-    border: none;
-    padding: 13px 24px;
-    border-radius: 100px;
-    font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: .04em;
-    cursor: pointer;
-    transition: var(--transition);
-    white-space: nowrap;
-  }
-  .newsletter-form button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 14px rgba(37,99,235,0.3);
-  }
+  .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: .3; }
+  .empty-state h3 { font-family: var(--font-disp); font-size: 22px; color: var(--ink); margin-bottom: 6px; }
+  .empty-state p { font-size: 14px; color: var(--muted); }
 
   /* ── Load more ── */
   .load-more-wrap {
     text-align: center;
-    padding: 12px 0 40px;
+    padding: 8px 0 36px;
+    margin-top: 32px;
   }
   .load-more-btn {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: 14px 32px;
-    border: 1.5px solid var(--ink);
-    border-radius: 100px;
+    gap: 8px;
+    padding: 12px 28px;
+    border: 1.5px solid var(--border-md);
+    border-radius: 9999px;
     font-family: var(--font-body);
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: .06em;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: .07em;
     text-transform: uppercase;
     color: var(--ink);
     background: transparent;
     cursor: pointer;
-    transition: var(--transition);
+    transition: var(--t);
+    text-decoration: none;
   }
-  .load-more-btn:hover {
+  .load-more-btn:hover { background: var(--ink); color: white; border-color: var(--ink); }
+
+  /* ════════════════════════════════════════
+     NEWSLETTER — tighter, inline form
+  ════════════════════════════════════════ */
+  .newsletter-section {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 52px 28px;
+  }
+  .newsletter-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .newsletter-text h2 {
+    font-family: var(--font-disp);
+    font-size: clamp(22px, 3vw, 32px);
+    font-weight: 900;
+    color: var(--ink);
+    letter-spacing: -.5px;
+    line-height: 1.1;
+  }
+  .newsletter-text p {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .newsletter-form {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .newsletter-form input {
+    background: white;
+    border: 1px solid var(--border-md);
+    border-radius: 9999px;
+    padding: 11px 20px;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    color: var(--ink);
+    outline: none;
+    width: 260px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: var(--t);
+  }
+  .newsletter-form input::placeholder { color: var(--muted-lt); }
+  .newsletter-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .newsletter-form button {
     background: var(--ink);
-    color: #fff;
+    color: white;
+    border: none;
+    padding: 11px 22px;
+    border-radius: 9999px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    cursor: pointer;
+    transition: var(--t);
+    white-space: nowrap;
+  }
+  .newsletter-form button:hover {
+    background: var(--accent);
+    box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+    transform: translateY(-1px);
   }
 
-  /* ── Responsive ── */
-  @media (max-width: 900px) {
+  /* ════════════════════════════════════════
+     RESPONSIVE
+  ════════════════════════════════════════ */
+  @media (max-width: 1000px) {
     .article-card.featured { grid-column: span 12; }
     .article-card.regular  { grid-column: span 12; }
-    .article-card.small    { grid-column: span 6; flex-direction: column; max-height: none; }
-    .article-card.small .card-img-wrap { width: 100%; height: 180px; }
-    .article-card.small .card-excerpt { display: block; }
-    .masthead-search { display: none; }
+    .article-card.small    { grid-column: span 6; }
+    .article-card.small .card-img-wrap { width: 120px; min-width: 120px; }
   }
-  @media (max-width: 600px) {
+  @media (max-width: 680px) {
     .article-card.small { grid-column: span 12; }
-    .blog-masthead { padding: 56px 0 48px; }
-    .masthead-meta { flex-wrap: wrap; }
+    .masthead-title-row { flex-direction: column; align-items: flex-start; }
+    .masthead-right { text-align: left; }
+    .masthead-sub { margin-left: 0; }
+    .newsletter-inner { flex-direction: column; }
+    .newsletter-form { flex-direction: column; width: 100%; }
+    .newsletter-form input { width: 100%; }
   }
 </style>
 
@@ -559,24 +579,28 @@
   {{-- ── MASTHEAD ── --}}
   <section class="blog-masthead">
     <div class="masthead-inner">
-      <div class="masthead-eyebrow">
-        <span></span> The Journal
-      </div>
-      <h1 class="masthead-title">
-        Ideas worth<br><em>reading.</em>
-      </h1>
-      <p class="masthead-sub">
-        Fresh perspectives, expert insights, and stories that help you grow — curated by our content team.
-      </p>
-      <div class="masthead-meta">
-        <span class="masthead-count">{{ $articles instanceof \Illuminate\Pagination\LengthAwarePaginator ? $articles->total() : $articles->count() }} articles published</span>
+
+      <div class="masthead-top-row">
+        <div class="masthead-eyebrow">The Journal</div>
         <div class="masthead-search">
           <input type="text" placeholder="Search articles…" id="searchInput">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg class="masthead-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
         </div>
       </div>
+
+      <div class="masthead-title-row">
+        <h1 class="masthead-title">Ideas worth<br><em>reading.</em></h1>
+        <div class="masthead-right">
+          <p class="masthead-sub">Fresh perspectives and expert insights to help you grow — curated by our team.</p>
+          <div class="masthead-count-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span>{{ $articles instanceof \Illuminate\Pagination\LengthAwarePaginator ? $articles->total() : $articles->count() }}</span> articles
+          </div>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -584,9 +608,7 @@
   <div class="filter-bar">
     <div class="filter-inner" id="filterBar">
       <button class="chip active" data-cat="all">All</button>
-      @php
-        $cats = $articles->pluck('category')->filter()->unique()->values();
-      @endphp
+      @php $cats = $articles->pluck('category')->filter()->unique()->values(); @endphp
       @foreach($cats as $cat)
         <button class="chip" data-cat="{{ Str::slug($cat) }}">{{ $cat }}</button>
       @endforeach
@@ -600,7 +622,6 @@
       @forelse($articles as $i => $article)
 
         @if($i === 0)
-          {{-- Featured card --}}
           <article class="article-card featured"
                    data-cat="{{ Str::slug($article->category ?? '') }}"
                    onclick="window.location='{{ route('blog.show', $article->slug) }}'">
@@ -608,11 +629,9 @@
               @if($article->thumbnail ?? false)
                 <img src="{{ asset('storage/' . $article->thumbnail) }}" alt="{{ $article->title }}" loading="eager">
               @else
-                <div class="card-img-placeholder">{{ substr($article->title,0,1) }}</div>
+                <div class="card-img-placeholder">{{ substr($article->title, 0, 1) }}</div>
               @endif
-              <span class="card-reading-time">
-                {{ ceil(str_word_count(strip_tags($article->body ?? '')) / 200) }} min read
-              </span>
+              <span class="card-reading-time">{{ ceil(str_word_count(strip_tags($article->body ?? '')) / 200) }} min read</span>
             </div>
             <div class="card-body">
               <span class="card-category">{{ $article->category ?? 'Featured' }}</span>
@@ -621,21 +640,19 @@
               <div class="card-footer">
                 <div class="card-author">
                   <div class="card-avatar">{{ strtoupper(substr($article->author ?? 'A', 0, 1)) }}</div>
-                  <div class="card-author-info">
+                  <div>
                     <div class="card-author-name">{{ $article->author ?? 'Editorial Team' }}</div>
                     <div class="card-date">{{ optional($article->published_at ?? $article->created_at)->format('M d, Y') }}</div>
                   </div>
                 </div>
                 <a href="{{ route('blog.show', $article->slug) }}" class="card-read-btn">
-                  Read article
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  Read <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </a>
               </div>
             </div>
           </article>
 
         @elseif($i === 1)
-          {{-- Second card (regular) --}}
           <article class="article-card regular"
                    data-cat="{{ Str::slug($article->category ?? '') }}"
                    onclick="window.location='{{ route('blog.show', $article->slug) }}'">
@@ -643,40 +660,34 @@
               @if($article->thumbnail ?? false)
                 <img src="{{ asset('storage/' . $article->thumbnail) }}" alt="{{ $article->title }}" loading="lazy">
               @else
-                <div class="card-img-placeholder">{{ substr($article->title,0,1) }}</div>
+                <div class="card-img-placeholder">{{ substr($article->title, 0, 1) }}</div>
               @endif
-              <span class="card-reading-time">
-                {{ ceil(str_word_count(strip_tags($article->body ?? '')) / 200) }} min read
-              </span>
+              <span class="card-reading-time">{{ ceil(str_word_count(strip_tags($article->body ?? '')) / 200) }} min read</span>
             </div>
             <div class="card-body">
-              <span class="card-category alt">{{ $article->category ?? 'Guide' }}</span>
+              <span class="card-category">{{ $article->category ?? 'Guide' }}</span>
               <h2 class="card-title">{{ $article->title }}</h2>
               <p class="card-excerpt">{{ $article->excerpt }}</p>
               <div class="card-footer">
                 <div class="card-author">
-                  <div class="card-avatar" style="background: linear-gradient(135deg,#2a6cc8,#5b8fd4)">
+                  <div class="card-avatar" style="background: linear-gradient(135deg,#3b82f6,#1d4ed8)">
                     {{ strtoupper(substr($article->author ?? 'A', 0, 1)) }}
                   </div>
-                  <div class="card-author-info">
+                  <div>
                     <div class="card-author-name">{{ $article->author ?? 'Editorial Team' }}</div>
                     <div class="card-date">{{ optional($article->published_at ?? $article->created_at)->format('M d, Y') }}</div>
                   </div>
                 </div>
                 <a href="{{ route('blog.show', $article->slug) }}" class="card-read-btn">
-                  Read
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  Read <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </a>
               </div>
             </div>
           </article>
 
         @else
-          {{-- Small cards from index 2 onward --}}
           @if($i === 2)
-            <div class="section-divider">
-              <span>More articles</span>
-            </div>
+            <div class="section-divider"><span>More articles</span></div>
           @endif
 
           <article class="article-card small"
@@ -686,7 +697,7 @@
               @if($article->thumbnail ?? false)
                 <img src="{{ asset('storage/' . $article->thumbnail) }}" alt="{{ $article->title }}" loading="lazy">
               @else
-                <div class="card-img-placeholder" style="font-size:28px">{{ substr($article->title,0,1) }}</div>
+                <div class="card-img-placeholder">{{ substr($article->title, 0, 1) }}</div>
               @endif
             </div>
             <div class="card-body">
@@ -695,9 +706,7 @@
               <p class="card-excerpt">{{ $article->excerpt }}</p>
               <div class="card-footer">
                 <div class="card-date">{{ optional($article->published_at ?? $article->created_at)->format('M d, Y') }}</div>
-                <span style="font-size:11px;color:var(--muted)">
-                  {{ ceil(str_word_count(strip_tags($article->body ?? '')) / 200) }} min
-                </span>
+                <span style="font-size:11px;color:var(--muted-lt);">{{ ceil(str_word_count(strip_tags($article->body ?? '')) / 200) }} min</span>
               </div>
             </div>
           </article>
@@ -711,55 +720,52 @@
         </div>
       @endforelse
 
-    </div>{{-- /articles-grid --}}
+    </div>
 
-    {{-- Load more (show only if paginated) --}}
     @if($articles instanceof \Illuminate\Pagination\LengthAwarePaginator && $articles->hasMorePages())
-      <div class="load-more-wrap" style="margin-top:48px">
+      <div class="load-more-wrap">
         <a href="{{ $articles->nextPageUrl() }}" class="load-more-btn">
-          Load more articles
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          Load more
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
         </a>
       </div>
     @endif
-
-  </div>{{-- /blog-body --}}
-
-  {{-- ── NEWSLETTER ── --}}
-  <div class="newsletter-banner">
-    <h2>Get articles in your inbox.</h2>
-    <p>No noise. Just the best stories, once a week.</p>
-    <form class="newsletter-form" onsubmit="return false;">
-      <input type="email" placeholder="your@email.com">
-      <button type="submit">Subscribe</button>
-    </form>
   </div>
 
-</div>{{-- /blog-root --}}
+  {{-- ── NEWSLETTER ── --}}
+  <section class="newsletter-section">
+    <div class="newsletter-inner">
+      <div class="newsletter-text">
+        <h2>Get articles in your inbox.</h2>
+        <p>No noise. Just the best stories, once a week.</p>
+      </div>
+      <form class="newsletter-form" onsubmit="return false;">
+        <input type="email" placeholder="your@email.com">
+        <button type="submit">Subscribe →</button>
+      </form>
+    </div>
+  </section>
+
+</div>
 
 <script>
-  // ── Category filter ──
   document.querySelectorAll('.chip').forEach(chip => {
     chip.addEventListener('click', () => {
       document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
-
       const cat = chip.dataset.cat;
       document.querySelectorAll('.article-card').forEach(card => {
-        const match = cat === 'all' || card.dataset.cat === cat || card.dataset.cat === '';
-        card.style.display = match ? '' : 'none';
+        card.style.display = (cat === 'all' || !card.dataset.cat || card.dataset.cat === cat) ? '' : 'none';
       });
     });
   });
 
-  // ── Search filter ──
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     searchInput.addEventListener('input', () => {
       const q = searchInput.value.toLowerCase();
       document.querySelectorAll('.article-card').forEach(card => {
-        const text = card.textContent.toLowerCase();
-        card.style.display = text.includes(q) ? '' : 'none';
+        card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
       });
     });
   }

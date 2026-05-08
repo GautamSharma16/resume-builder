@@ -452,23 +452,71 @@
 </div>
 
 <script>
-    window.addEventListener('load', () => {
-        const viewport = document.getElementById('preview-viewport');
-        const preview = document.getElementById('cv-preview');
-        function updateScale() {
-            if(!viewport || !preview) return;
-            const padding = 64;
-            const availW = viewport.clientWidth - padding;
-            const scale = Math.min(availW / 794, 0.85);
-            preview.style.transform = `scale(${scale})`;
-            preview.style.marginBottom = `-${1123 * (1 - scale)}px`;
-            document.getElementById('preview-zoom-level').textContent = Math.round(scale * 100) + '%';
-        }
-        window.addEventListener('resize', updateScale);
-        updateScale();
-        const observer = new MutationObserver(updateScale);
-        observer.observe(preview, { childList: true, subtree: true, characterData: true });
+(function () {
+    /* ── helpers ── */
+    function setActiveStep(step) {
+        const n = parseInt(step);
+ 
+        /* update tab indicators */
+        document.querySelectorAll('.rp-step-tab').forEach(tab => {
+            const t = parseInt(tab.dataset.step);
+            tab.classList.remove('active', 'completed');
+            if (t === n)      tab.classList.add('active');
+            else if (t < n)   tab.classList.add('completed');
+ 
+            /* swap icon to check-mark when completed */
+            const icon = tab.querySelector('.rp-step-icon');
+            if (icon) {
+                if (t < n) {
+                    icon.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
+                } else {
+                    icon.textContent = t; /* reset to number */
+                }
+            }
+        });
+ 
+        /* show / hide step content panels */
+        document.querySelectorAll('.rp-step-content').forEach(panel => {
+            panel.classList.toggle('active', parseInt(panel.dataset.step) === n);
+        });
+    }
+ 
+    /* ── wire step tabs (clicking a completed tab goes back) ── */
+    document.querySelectorAll('.rp-step-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = parseInt(tab.dataset.step);
+            /* only allow jumping to already-visited steps or current */
+            const current = parseInt(document.querySelector('.rp-step-tab.active')?.dataset.step || 1);
+            if (target <= current) setActiveStep(target);
+        });
     });
+ 
+    /* ── wire next / prev buttons ── */
+    function wireNav(btnId, direction) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            const current = parseInt(document.querySelector('.rp-step-tab.active')?.dataset.step || 1);
+            setActiveStep(current + direction);
+        });
+    }
+ 
+    wireNav('next-step-1',  +1);
+    wireNav('next-step-2',  +1);
+    wireNav('next-step-3',  +1);
+    wireNav('prev-step-2',  -1);
+    wireNav('prev-step-3',  -1);
+    wireNav('prev-step-4',  -1);
+ 
+    /* ── "Back to Edit" from completion panel ── */
+    document.getElementById('edit-resume')?.addEventListener('click', () => {
+        document.getElementById('completion-panel').style.display = 'none';
+        setActiveStep(4);
+    });
+ 
+    /* ── initialise on load ── */
+    setActiveStep(1);
+})();
 </script>
 
 @include('resume.partials.editor-script')
