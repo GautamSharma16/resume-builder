@@ -143,12 +143,12 @@
                   placeholder="Upload a PDF above — HTML will appear here automatically — or paste/write HTML directly."
                   class="w-full rounded-md border-gray-300 font-mono text-xs leading-relaxed shadow-sm focus:border-teal-500 focus:ring-teal-500">{{ old('html', $template->html) }}</textarea>
         @error('html')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-    </div>
+
+       
 
 
-
-    {{-- ── Active Toggle ───────────────────────────────────────────────────── --}}
-    <div>
+    {{-- ── Active Toggle & Features ───────────────────────────────────────── --}}
+    <div class="flex flex-col gap-3">
         <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
             <input type="checkbox"
                    name="is_active"
@@ -156,6 +156,15 @@
                    @checked(old('is_active', $template->is_active ?? true))
                    class="rounded border-gray-300 text-teal-700 shadow-sm focus:ring-teal-500">
             Active (visible to users)
+        </label>
+
+        <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+            <input type="checkbox"
+                   name="has_image"
+                   value="1"
+                   @checked(old('has_image', $template->has_image ?? false))
+                   class="rounded border-gray-300 text-teal-700 shadow-sm focus:ring-teal-500">
+            Supports Profile Image (Adds upload field in editor)
         </label>
     </div>
 

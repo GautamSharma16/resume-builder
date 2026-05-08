@@ -94,12 +94,11 @@ VISUAL STYLE (MATCH THIS EXACTLY):
 
 STRICT TECHNICAL RULES:
 1. Use ONLY Vanilla CSS inside a <style> tag.
-2. The HTML MUST use these Blade-like placeholders for data mapping:
-   - {{ \$resume['name'] }}, {{ \$resume['email'] }}, {{ \$resume['mobile'] }}, {{ \$resume['location'] }}, {{ \$resume['summary'] }}, {{ \$resume['linkedin'] }}, {{ \$resume['github'] }}.
-   - For Experience/Education: @foreach(\$resume['experience'] as \$item) ... @endforeach.
-   - For Skills: @foreach(\$resume['skills'] as \$skill) ... @endforeach.
+2. Use these EXACT placeholders for user data (don't use PHP/Blade syntax):
+   - {{name}}, {{email}}, {{mobile}}, {{location}}, {{summary}}, {{skills}}, {{experience}}, {{education}}, {{projects}}, {{profile_image}}.
 3. Ensure all links are clickable.
-4. Return ONLY the complete HTML/CSS code. No markdown fences. No explanation.
+4. The design should be modern, clean, and use the accent color for highlights.
+5. Return ONLY the complete HTML/CSS code. No markdown fences. No explanation.
 
 Text to convert:
 {$textContent}

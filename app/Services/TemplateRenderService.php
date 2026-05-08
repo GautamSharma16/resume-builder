@@ -115,7 +115,39 @@ class TemplateRenderService
             return new HtmlString($this->resumeAccentStyle($accentColor).$this->renderBlade($html, $this->bladeRenderDataForResume($data)));
         }
 
+        if (! $this->containsResumePlaceholders($html)) {
+            $html = $this->editableResumeTemplateHtml();
+        }
+
         return new HtmlString($this->render($html, $this->normalizeResume($data)));
+    }
+
+    public function containsResumePlaceholders(string $html): bool
+    {
+        return preg_match('/\{\{\s*(?:name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image)\s*\}\}|\[\[\s*(?:name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image)\s*\]\]/i', $html) === 1
+            || $this->shouldRenderWithBlade($html);
+    }
+
+    public function editableResumeTemplateHtml(): string
+    {
+        return <<<'HTML'
+<div class="tpl-resume tpl-uploaded-editable" style="font-family: Inter, Arial, sans-serif; color:#172033; padding:42px; line-height:1.45;">
+    <header style="border-bottom:3px solid var(--primary, #2563eb); padding-bottom:16px; margin-bottom:22px; display:flex; gap:18px; align-items:flex-start;">
+        <div>{{profile_image}}</div>
+        <div style="flex:1;">
+            <h1 style="margin:0 0 6px; font-size:30px; letter-spacing:.04em; text-transform:uppercase; color:var(--primary, #2563eb);">{{name}}</h1>
+            <p style="margin:0 0 4px; font-size:14px; color:#334155;">{{job_title}}</p>
+            <p style="margin:0; font-size:12px; color:#475569;">{{email}} | {{mobile}} | {{location}}</p>
+            <p style="margin:4px 0 0; font-size:12px; color:#475569;">{{social_links}}</p>
+        </div>
+    </header>
+    <section><h2>Professional Summary</h2><p>{{summary}}</p></section>
+    <section><h2>Skills</h2><div class="tpl-badges">{{skills}}</div></section>
+    <section><h2>Experience</h2>{{experience}}</section>
+    <section><h2>Projects</h2>{{projects}}</section>
+    <section><h2>Education</h2>{{education}}</section>
+</div>
+HTML;
     }
 
     public function renderCoverLetter(Template $template, ?array $data = null): HtmlString
@@ -135,8 +167,20 @@ class TemplateRenderService
         $originalHtml = $html;
         foreach ($data as $key => $value) {
             if (is_string($value)) {
-                $html = str_replace('{{'.$key.'}}', $value, $html);
-                $html = str_replace('[['.$key.']]', $value, $html);
+                $quotedKey = preg_quote($key, '/');
+                $html = preg_replace_callback('/\{\{\s*'.$quotedKey.'\s*\}\}/', fn () => $value, $html);
+                $html = preg_replace_callback('/\[\[\s*'.$quotedKey.'\s*\]\]/', fn () => $value, $html);
+            }
+        }
+        
+        // Auto-fix: If user has an image, replace common placeholders in the HTML
+        $profileImage = Arr::get($data, 'profile_image_url');
+        if ($profileImage) {
+            $html = preg_replace('/src=["\']https?:\/\/(?:i\.pravatar\.cc|via\.placeholder\.com|placehold\.co|placehold\.it|avatar\.iran\.liara\.run|ui-avatars\.com)\/[^"\']*["\']/i', 'src="'.$profileImage.'"', $html);
+            
+            // Also try to update any img tag with id profile-pic or profile-img
+            if (!str_contains($html, $profileImage)) {
+                $html = preg_replace('/(id=["\'](?:profile-pic|profile-img|cv-img|cv-profile-img|user-photo)["\'][^>]*src=["\'])([^"\']*)(["\'])/i', '$1'.$profileImage.'$3', $html);
             }
         }
 
@@ -225,8 +269,14 @@ class TemplateRenderService
 
     private function normalizeResume(array $data): array
     {
+        $firstName = $this->text(Arr::get($data, 'name', ''));
+        $lastName = $this->text(Arr::get($data, 'last_name', ''));
+        $fullName = trim($firstName.' '.$lastName) ?: $firstName;
+
         return [
-            'name' => e($this->text(Arr::get($data, 'name', ''))),
+            'name' => e($fullName),
+            'last_name' => e($lastName),
+            'job_title' => e($this->text(Arr::get($data, 'job_title', ''))),
             'email' => e($this->text(Arr::get($data, 'email', ''))),
             'mobile' => e($this->text(Arr::get($data, 'mobile', Arr::get($data, 'contact', '')))),
             'location' => e($this->text(Arr::get($data, 'location', Arr::get($data, 'address', '')))),
@@ -238,6 +288,8 @@ class TemplateRenderService
             'social_links' => $this->inline(Arr::get($data, 'social_links', [])),
             'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
+            'profile_image' => Arr::get($data, 'profile_image') ? '<img src="'.Arr::get($data, 'profile_image').'" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">' : '',
+            'profile_image_url' => Arr::get($data, 'profile_image', ''),
         ];
     }
 
@@ -275,7 +327,9 @@ class TemplateRenderService
     {
         $resume = [
             'type' => 'resume',
-            'name' => $this->text(Arr::get($data, 'name', '')),
+            'name' => trim($this->text(Arr::get($data, 'name', '')).' '.$this->text(Arr::get($data, 'last_name', ''))) ?: $this->text(Arr::get($data, 'name', '')),
+            'last_name' => $this->text(Arr::get($data, 'last_name', '')),
+            'job_title' => $this->text(Arr::get($data, 'job_title', '')),
             'email' => $this->text(Arr::get($data, 'email', '')),
             'mobile' => $this->text(Arr::get($data, 'mobile', Arr::get($data, 'contact', ''))),
             'location' => $this->text(Arr::get($data, 'location', Arr::get($data, 'address', ''))),
@@ -294,6 +348,8 @@ class TemplateRenderService
             'address' => $this->text(Arr::get($data, 'address', '')),
             'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
+            'profile_image' => $this->text(Arr::get($data, 'profile_image', '')),
+            'profile_image_url' => $this->text(Arr::get($data, 'profile_image', '')),
         ];
 
         return array_merge(['resume' => $resume], $resume);

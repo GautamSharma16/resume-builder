@@ -14,8 +14,13 @@ class Template extends Model
         'category',
         'html',
         'preview_image',
+        'pdf_path',
         'is_active',
+        'has_image',
     ];
 
-    protected $casts = ['is_active' => 'boolean'];
+    protected $casts = [
+        'is_active' => 'boolean',
+        'has_image' => 'boolean',
+    ];
 }
