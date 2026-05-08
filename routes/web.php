@@ -75,6 +75,7 @@ Route::get('/test/activate-plan/{userId}/{plan}', ManualTestActivationController
 Route::get('/resume', [ResumeBuilderController::class, 'index'])->name('resume.index');
 Route::get('/resume/create', [ResumeBuilderController::class, 'create'])->name('resume.create');
 Route::get('/resume-maker/{category?}', [ResumeBuilderController::class, 'create'])->name('resume-maker');
+Route::post('/resume/ai-text', [ResumeBuilderController::class, 'generateAiText'])->name('resume.ai-text');
 Route::post('/resume', [ResumeBuilderController::class, 'store'])->name('resume.store');
 Route::get('/resume/edit/{resume}', [ResumeBuilderController::class, 'edit'])->name('resume.edit');
 Route::patch('/resume/{resume}', [ResumeBuilderController::class, 'update'])->name('resume.update');

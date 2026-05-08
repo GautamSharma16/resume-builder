@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Template;
 use App\Services\PdfConversionService;
+use App\Services\TemplateRenderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -46,8 +47,11 @@ class TemplateController extends Controller
 
             $pdfStorePath  = $request->file('pdf_file')->store('template-pdfs', 'public');
             $data['pdf_path'] = $pdfStorePath;
-            $data['html']     = $this->pdf->pdfToHtml(
-                Storage::disk('public')->path($pdfStorePath)
+            $data['html']     = $this->editableHtmlForUpload(
+                $data,
+                $this->pdf->pdfToHtml(
+                    Storage::disk('public')->path($pdfStorePath)
+                )
             );
         }
 
@@ -91,8 +95,11 @@ class TemplateController extends Controller
 
             $pdfStorePath     = $request->file('pdf_file')->store('template-pdfs', 'public');
             $data['pdf_path'] = $pdfStorePath;
-            $data['html']     = $this->pdf->pdfToHtml(
-                Storage::disk('public')->path($pdfStorePath)
+            $data['html']     = $this->editableHtmlForUpload(
+                $data,
+                $this->pdf->pdfToHtml(
+                    Storage::disk('public')->path($pdfStorePath)
+                )
             );
         }
 
@@ -158,6 +165,22 @@ class TemplateController extends Controller
             'category'      => ['required', 'string', 'max:80'],
             'html'          => ['nullable', 'string'],
             'is_active'     => ['nullable', 'boolean'],
-        ]) + ['is_active' => false];
+            'has_image'     => ['nullable', 'boolean'],
+        ]) + ['is_active' => false, 'has_image' => false];
+    }
+
+    private function editableHtmlForUpload(array $data, string $html): string
+    {
+        if (($data['type'] ?? null) !== 'resume') {
+            return $html;
+        }
+
+        $renderer = app(TemplateRenderService::class);
+
+        if ($renderer->containsResumePlaceholders($html)) {
+            return $html;
+        }
+
+        return $renderer->editableResumeTemplateHtml();
     }
 }

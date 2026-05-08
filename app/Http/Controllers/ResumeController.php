@@ -667,6 +667,7 @@ PROMPT;
             'address' => (string) ($resume['address'] ?? $resume['location'] ?? ''),
             'social_links' => array_values(array_filter(array_map($safeStr, $resume['social_links'] ?? []))),
             'summary' => (string) ($resume['summary'] ?? ''),
+            'profile_image' => (string) ($resume['profile_image'] ?? ''),
             'skills' => array_values(array_filter(array_map($safeStr, $resume['skills'] ?? []))),
             'experience' => array_values(array_map(function ($item) use ($safeStr) {
                 return [

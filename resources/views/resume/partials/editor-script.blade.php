@@ -16,7 +16,7 @@
     const ensureArray = (v) => Array.isArray(v) ? v : [];
 
     /* ── State ── */
-    const defaults = { name:'', email:'', mobile:'', location:'', social_links:[], contact:'', address:'', summary:'', skills:[], experience:[], education:[], projects:[], primary_color: '', primary_color_customized: false };
+    const defaults = { name:'', last_name:'', job_title:'', email:'', mobile:'', location:'', social_links:[], contact:'', address:'', summary:'', skills:[], experience:[], education:[], projects:[], primary_color: '', primary_color_customized: false, profile_image: '' };
     const state = Object.assign({}, defaults, readJson('resume-initial-json', {}));
     
     // Prioritize color from URL if present (e.g. from template preview page)
@@ -34,12 +34,12 @@
 
     /* ── DOM refs ── */
     const cvPreviewEl     = $('cv-preview');
-    const expEditorEl     = $('exp-editor');
-    const eduEditorEl     = $('edu-editor');
+    const expEditorEl     = $('rp-exp-editor');
+    const eduEditorEl     = $('rp-edu-editor');
     const projectEditorEl = $('project-editor');
     const templateIdEl    = $('template-id');
-    const saveBtnEl       = $('save-cv');
-    const statusEl        = $('cv-status');
+    const saveBtnEl       = $('save-cv-btn');
+    const statusEl        = $('cv-status') || { textContent: '', style: {} };
     const autofillFileEl  = $('resume-autofill-file');
     const autofillBtnEl   = $('resume-autofill-button');
     const autofillStatusEl= $('resume-autofill-status');
@@ -47,7 +47,7 @@
     const zoomInEl        = $('preview-zoom-in');
     const zoomOutEl       = $('preview-zoom-out');
     const zoomLvlEl       = $('preview-zoom-level');
-    let previewZoom = 75;
+    let previewZoom = 100;
     let uploadInProgress = false;
 
     if (!cvPreviewEl || !templateIdEl || !expEditorEl || !eduEditorEl || !saveBtnEl) {
@@ -55,8 +55,24 @@
     }
 
     /* ── Normalise ── */
+    const educationToText = (item) => {
+        if (typeof item === 'string') return item;
+        if (!item || typeof item !== 'object') return String(item ?? '');
+        return [
+            item.degree,
+            item.institution,
+            item.school,
+            item.university,
+            item.year,
+            item.duration,
+            item.cgpa ? `CGPA: ${item.cgpa}` : '',
+        ].map(v => String(v ?? '').trim()).filter(Boolean).join(', ');
+    };
+
     const normalise = (r = {}) => ({
         name:         String(r.name ?? ''),
+        last_name:    String(r.last_name ?? ''),
+        job_title:    String(r.job_title ?? ''),
         email:        String(r.email ?? ''),
         mobile:       String(r.mobile ?? r.contact ?? ''),
         location:     String(r.location ?? r.address ?? ''),
@@ -71,7 +87,7 @@
             period:  String(e?.period ?? ''),
             points:  ensureArray(e?.points).map(String),
         })),
-        education: ensureArray(r.education).map(String),
+        education: ensureArray(r.education).map(educationToText).filter(Boolean),
         projects:  ensureArray(r.projects).map(p =>
             typeof p === 'string'
                 ? { name: p, description: '' }
@@ -79,6 +95,7 @@
         ),
         primary_color: String(r.primary_color ?? ''),
         primary_color_customized: Boolean(r.primary_color_customized ?? (r.primary_color && r.primary_color !== '#2563eb')),
+        profile_image: String(r.profile_image ?? ''),
     });
 
     Object.assign(state, normalise(state));
@@ -99,6 +116,10 @@
     function syncLegacy() {
         state.contact = [state.email, state.mobile, ...state.social_links].filter(Boolean).join(' | ');
         state.address = state.location || '';
+    }
+
+    function fullName() {
+        return [state.name, state.last_name].map(part => String(part || '').trim()).filter(Boolean).join(' ');
     }
 
     /* ── Render helpers ── */
@@ -128,13 +149,37 @@
             .replace(new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g'), value)
             .split('[[' + key + ']]').join(value);
     }
+    function hasResumePlaceholders(html) {
+        return /\{\{\s*(name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image)\s*\}\}/i.test(html)
+            || /\[\[\s*(name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image)\s*\]\]/i.test(html)
+            || /\{\{\s*\$resume|\{\{\s*\$(name|last_name|job_title|email|mobile|location|summary|skills|experience|education|projects|social_links|profile_image)|@@foreach\s*\(\s*\$resume/i.test(html);
+    }
+    function editableTemplateShell() {
+        return `
+            <div class="tpl-resume tpl-uploaded-editable" style="font-family:Inter,Arial,sans-serif;color:#172033;padding:42px;line-height:1.45;">
+                <header style="border-bottom:3px solid var(--primary, #2563eb);padding-bottom:16px;margin-bottom:22px;display:flex;gap:18px;align-items:flex-start;">
+                    <div>@{{profile_image}}</div>
+                    <div style="flex:1;">
+                        <h1 style="margin:0 0 6px;font-size:30px;letter-spacing:.04em;text-transform:uppercase;color:var(--primary, #2563eb);">@{{name}}</h1>
+                        <p style="margin:0 0 4px;font-size:14px;color:#334155;">@{{job_title}}</p>
+                        <p style="margin:0;font-size:12px;color:#475569;">@{{email}} | @{{mobile}} | @{{location}}</p>
+                        <p style="margin:4px 0 0;font-size:12px;color:#475569;">@{{social_links}}</p>
+                    </div>
+                </header>
+                <section><h2>Professional Summary</h2><p>@{{summary}}</p></section>
+                <section><h2>Skills</h2><div class="tpl-badges">@{{skills}}</div></section>
+                <section><h2>Experience</h2>@{{experience}}</section>
+                <section><h2>Projects</h2>@{{projects}}</section>
+                <section><h2>Education</h2>@{{education}}</section>
+            </div>`;
+    }
     function resumeAccentStyle(color) {
         const accent = String(color || '');
         if (!/^#[0-9a-f]{6}$/i.test(accent)) return '';
 
         return `<style>
-            .resume-sheet-preview, .rp-tpl-thumb-inner, .resume-maker-preview { --primary: ${accent}; }
-            .resume-sheet-preview .tpl-resume, .rp-tpl-thumb-inner .tpl-resume {
+            .resume-sheet-preview, .resume-maker-preview { --primary: ${accent}; }
+            .resume-sheet-preview .tpl-resume {
                 border-color: var(--primary) !important;
                 border-top-color: var(--primary) !important;
                 border-right-color: var(--primary) !important;
@@ -145,17 +190,11 @@
             .resume-sheet-preview .tpl-resume h2,
             .resume-sheet-preview .tpl-resume h3,
             .resume-sheet-preview .tpl-resume a,
-            .resume-sheet-preview .tpl-role-head strong,
-            .rp-tpl-thumb-inner .tpl-resume h1,
-            .rp-tpl-thumb-inner .tpl-resume h2,
-            .rp-tpl-thumb-inner .tpl-resume h3,
-            .rp-tpl-thumb-inner .tpl-resume a,
-            .rp-tpl-thumb-inner .tpl-role-head strong {
+            .resume-sheet-preview .tpl-role-head strong {
                 color: var(--primary) !important;
                 border-color: var(--primary) !important;
             }
-            .resume-sheet-preview .tpl-badge,
-            .rp-tpl-thumb-inner .tpl-badge {
+            .resume-sheet-preview .tpl-badge {
                 background: var(--primary) !important;
                 border-color: var(--primary) !important;
                 color: #fff !important;
@@ -166,14 +205,7 @@
             .resume-sheet-preview .tpl-carded header,
             .resume-sheet-preview .tpl-band header,
             .resume-sheet-preview .tpl-resume > header[style*="background"],
-            .resume-sheet-preview .tpl-resume h2[style*="background"],
-            .rp-tpl-thumb-inner .tpl-rule,
-            .rp-tpl-thumb-inner .tpl-accentbox header > div,
-            .rp-tpl-thumb-inner .tpl-two aside,
-            .rp-tpl-thumb-inner .tpl-carded header,
-            .rp-tpl-thumb-inner .tpl-band header,
-            .rp-tpl-thumb-inner .tpl-resume > header[style*="background"],
-            .rp-tpl-thumb-inner .tpl-resume h2[style*="background"] {
+            .resume-sheet-preview .tpl-resume h2[style*="background"] {
                 background: var(--primary) !important;
                 color: #fff !important;
             }
@@ -183,25 +215,31 @@
             .resume-sheet-preview .tpl-carded header *,
             .resume-sheet-preview .tpl-band header *,
             .resume-sheet-preview .tpl-resume > header[style*="background"] *,
-            .resume-sheet-preview .tpl-resume h2[style*="background"],
-            .rp-tpl-thumb-inner .tpl-rule *,
-            .rp-tpl-thumb-inner .tpl-accentbox header > div *,
-            .rp-tpl-thumb-inner .tpl-two aside *,
-            .rp-tpl-thumb-inner .tpl-carded header *,
-            .rp-tpl-thumb-inner .tpl-band header *,
-            .rp-tpl-thumb-inner .tpl-resume > header[style*="background"] *,
-            .rp-tpl-thumb-inner .tpl-resume h2[style*="background"] {
+            .resume-sheet-preview .tpl-resume h2[style*="background"] {
                 color: #fff !important;
                 border-color: rgba(255,255,255,0.45) !important;
+            }
+            .resume-sheet-preview .tpl-profile-img {
+                display: block;
+                max-width: 150px;
+                max-height: 150px;
+                margin-bottom: 15px;
+                border: 2px solid var(--primary);
+                border-radius: 8px;
             }
         </style>`;
     }
     function renderTemplateHtml(template) {
         syncLegacy();
         let output = String(template?.html || '');
+        if (!hasResumePlaceholders(output)) {
+            output = editableTemplateShell();
+        }
         const hasProjectsToken = /\{\{\s*projects\s*\}\}/.test(output) || output.includes('[[projects]]');
         const values = {
-            name:         esc(state.name || 'Alex Johnson'),
+            name:         esc(fullName() || state.name || 'Alex Johnson'),
+            last_name:    esc(state.last_name || ''),
+            job_title:    esc(state.job_title || 'Senior Product Designer'),
             email:        esc(state.email || 'alex@example.com'),
             mobile:       esc(state.mobile || '+91 98765 43210'),
             location:     esc(state.location || 'Mumbai, India'),
@@ -215,13 +253,61 @@
                 : '<div class="tpl-role"><div class="tpl-role-head"><strong>Senior Engineer</strong><span>2021-Present</span></div><p>TechCorp</p><ul><li>Led a team of 6 engineers across product and platform initiatives.</li><li>Reduced API latency by 40% through profiling and service optimization.</li></ul></div>',
             education:    state.education.some(Boolean) ? renderList(state.education) : '<ul><li>B.Sc. Computer Science, MIT, 2019</li></ul>',
             projects:     state.projects.some(p => p?.name || typeof p === 'string') ? renderList(state.projects) : '<ul><li><strong>Open Resume</strong><span class="tpl-description">Built a resume builder with React and Node.js.</span></li></ul>',
+            profile_image: state.profile_image ? `<img src="${state.profile_image}" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">` : '',
+            profile_image_url: state.profile_image || '',
         };
         Object.entries(values).forEach(([k, v]) => { output = replaceToken(output, k, v); });
+
+        /* ── Blade Compatibility Layer (for AI-generated templates) ── */
+        if (output.includes('$resume')) {
+            // Replace simple tokens
+            const bladeMap = {
+                'name': values.name, 'last_name': values.last_name, 'job_title': values.job_title, 'email': values.email, 'mobile': values.mobile, 
+                'location': values.location, 'summary': values.summary,
+                'linkedin': state.social_links[0] || '', 'github': state.social_links[1] || ''
+            };
+            Object.entries(bladeMap).forEach(([k, v]) => {
+                const re = new RegExp('\\{\\{\\s*\\$resume\\[[\'"]' + k + '[\'"]\\]\\s*\\}\\}', 'g');
+                output = output.replace(re, v);
+            });
+            // Replace loops with pre-rendered blocks
+            output = output.replace(/@@foreach\s*\(\s*\$resume\[['"]experience['"]\][^)]*\)([\s\S]*?)@@endforeach/g, values.experience);
+            output = output.replace(/@@foreach\s*\(\s*\$resume\[['"]skills['"]\][^)]*\)([\s\S]*?)@@endforeach/g, values.skills);
+            output = output.replace(/@@foreach\s*\(\s*\$resume\[['"]education['"]\][^)]*\)([\s\S]*?)@@endforeach/g, values.education);
+            output = output.replace(/@@foreach\s*\(\s*\$resume\[['"]projects['"]\][^)]*\)([\s\S]*?)@@endforeach/g, values.projects);
+            // Cleanup remaining Blade tags
+            output = output.replace(/@@if\s*\([^)]*\)|@@endif|@@else/g, '');
+        }
+
+        // Auto-fix: If user has uploaded an image, replace common placeholder URLs in the template
+        if (state.profile_image) {
+            output = output.replace(/src=["']https?:\/\/(?:i\.pravatar\.cc|via\.placeholder\.com|placehold\.co|placehold\.it|avatar\.iran\.liara\.run|ui-avatars\.com)\/[^"']*["']/gi, `src="${state.profile_image}"`);
+            
+            // Also try to update any img tag with id profile-pic or profile-img if it hasn't been updated yet
+            if (!output.includes(state.profile_image)) {
+                output = output.replace(/(id=["'](?:profile-pic|profile-img|cv-img|cv-profile-img|user-photo)["'][^>]*src=["'])([^"']*)(["'])/gi, `$1${state.profile_image}$3`);
+            }
+            
+            // Auto-replace base64 images or blob urls (often generated by PDF to HTML conversions)
+            if (!output.includes(state.profile_image)) {
+                output = output.replace(/src=["'](data:image\/[^;]+;base64,[^"']+|blob:[^"']+)["']/gi, `src="${state.profile_image}"`);
+            }
+        }
+
         if (!hasProjectsToken) {
             const section = `<h2>Projects</h2>${values.projects}`;
             const lastDiv = output.lastIndexOf('</div>');
             output = lastDiv !== -1 ? output.slice(0, lastDiv) + section + output.slice(lastDiv) : output + section;
         }
+
+        /* Prevent template <style> tags from breaking the app body layout */
+        output = output.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function(match, css) {
+            let scoped = css.replace(/(^|\}|\s)body\s*\{/gi, '$1.resume-sheet-preview {');
+            // Also scope html selectors just in case
+            scoped = scoped.replace(/(^|\}|\s)html\s*\{/gi, '$1.resume-sheet-preview {');
+            return `<style>${scoped}</style>`;
+        });
+
         output = resumeAccentStyle(state.primary_color_customized ? state.primary_color : '') + output;
         return output;
     }
@@ -240,10 +326,14 @@
         }).join('');
         cvPreviewEl.innerHTML = `
             <div style="padding:40px 44px;font-family:Georgia,serif;background:#fff;--primary:${primaryColor};">
-                <div style="border-bottom:2.5px solid ${primaryColor};padding-bottom:10px;margin-bottom:18px;">
-                    <h1 style="margin:0 0 6px;font-size:26px;letter-spacing:.5px;text-transform:uppercase;color:${primaryColor};">${esc(state.name || 'Your Name')}</h1>
-                    ${header ? `<p style="margin:0;font-size:11px;color:#4b5563;">${esc(header)}</p>` : ''}
-                    ${socials ? `<p style="margin:2px 0 0;font-size:11px;color:#4b5563;">${esc(socials)}</p>` : ''}
+                <div style="display: flex; gap: 25px; align-items: flex-start; border-bottom:2.5px solid ${primaryColor}; padding-bottom:15px; margin-bottom:20px;">
+                    ${state.profile_image ? `<div style="width:85px; height:85px; border-radius:12px; overflow:hidden; flex-shrink:0; background:#f8fafc; border:1px solid #e2e8f0;"><img src="${state.profile_image}" style="width:100%; height:100%; object-fit:cover;"></div>` : ''}
+                    <div style="flex:1;">
+                        <h1 style="margin:0 0 6px;font-size:26px;letter-spacing:.5px;text-transform:uppercase;color:${primaryColor};">${esc(fullName() || 'Your Name')}</h1>
+                        ${state.job_title ? `<p style="margin:0 0 4px;font-size:12px;color:#334155;">${esc(state.job_title)}</p>` : ''}
+                        ${header ? `<p style="margin:0;font-size:11px;color:#4b5563;">${esc(header)}</p>` : ''}
+                        ${socials ? `<p style="margin:2px 0 0;font-size:11px;color:#4b5563;">${esc(socials)}</p>` : ''}
+                    </div>
                 </div>
                 ${state.summary ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Summary</h2><p style="font-size:11.5px;margin:0 0 14px;">${esc(state.summary)}</p>` : ''}
                 ${state.skills.length ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Skills</h2><p style="font-size:11px;margin:0 0 14px;">${esc(state.skills.join(', '))}</p>` : ''}
@@ -261,7 +351,7 @@
     }
 
     function refreshTemplatePopupThumbs() {
-        if (typeof templateGrid === 'undefined' || !templateGrid || !templatePopup?.classList.contains('visible')) return;
+        if (typeof templateGrid === 'undefined' || !templateGrid || !(templatePopup?.classList.contains('open') || templatePopup?.classList.contains('visible'))) return;
 
         const selectedId = templateIdEl?.value || selectedTemplateId || '';
         templateGrid.innerHTML = '';
@@ -275,12 +365,30 @@
     /* ── Editor render — uses design-system classes ── */
     function renderEditor() {
         $('cv-name').value     = state.name;
+        if ($('cv-last-name')) $('cv-last-name').value = state.last_name;
+        if ($('cv-job-title')) $('cv-job-title').value = state.job_title;
         $('cv-email').value    = state.email;
         $('cv-mobile').value   = state.mobile;
         $('cv-location').value = state.location;
         $('cv-social').value   = state.social_links.join(', ');
         $('cv-summary').value  = state.summary;
         $('cv-skills').value   = state.skills.join(', ');
+
+        /* ── Profile Image ── */
+        const template = templates[selectedTemplateId];
+        const imgSection = $('image-upload-section');
+        if (imgSection) {
+            imgSection.style.display = template?.has_image ? 'block' : 'none';
+            const imgPreview = $('cv-image-preview');
+            const placeholder = $('cv-image-placeholder');
+            if (state.profile_image) {
+                if (imgPreview) { imgPreview.src = state.profile_image; imgPreview.classList.remove('hidden'); }
+                if (placeholder) placeholder.classList.add('hidden');
+            } else {
+                if (imgPreview) imgPreview.classList.add('hidden');
+                if (placeholder) placeholder.classList.remove('hidden');
+            }
+        }
 
         /* ── Experience cards ── */
         expEditorEl.innerHTML = state.experience.map((e, i) => `
@@ -301,7 +409,18 @@
                 </div>
                 <div class="rp-entry-field">
                     <label class="rp-entry-label">Key responsibilities <span class="rp-entry-hint">(one bullet per line)</span></label>
-                    <textarea class="rp-input rp-input-ta" data-k="points" rows="4" placeholder="• Led a team of 5 engineers&#10;• Reduced load time by 40%">${esc(e.points.join('\n'))}</textarea>
+                    <div class="rich-text-wrapper" style="margin-top: 0.3rem;">
+                        <div class="rich-text-toolbar">
+                            <button type="button" class="rt-btn"><b>B</b></button>
+                            <button type="button" class="rt-btn"><i>I</i></button>
+                            <button type="button" class="rt-btn"><u>U</u></button>
+                            <button type="button" class="ai-gen-btn" onclick="generateAIText('experience', this.closest('.rich-text-wrapper').querySelector('textarea'), this)">
+                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM15 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0115 10zM6.5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 016.5 10zM14.61 5.39a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM7.51 12.49a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM14.61 14.61a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06zM7.51 7.51a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06z"/></svg>
+                                Generate with AI
+                            </button>
+                        </div>
+                        <textarea class="rp-input rp-input-ta" data-k="points" rows="4" placeholder="• Led a team of 5 engineers&#10;• Reduced load time by 40%">${esc(e.points.join('\n'))}</textarea>
+                    </div>
                 </div>
                 <button type="button" data-remove-exp class="rp-entry-remove">
                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
@@ -380,45 +499,47 @@
         renderEditor();
         applyColorSelection(state.primary_color_customized ? state.primary_color : '');
     };
+    window.applyResumeData = applyResumeData;
 
     /* ═══════════════════════════════════════════
        STEP NAVIGATION — uses .rp-step-tab
     ═══════════════════════════════════════════ */
+    const stepNames = ["", "Contacts", "Experience", "Education", "Skills", "Summary", "Finalize"];
     function goToStep(step) {
-        currentStep = Math.max(1, Math.min(step, 4));
+        currentStep = Math.max(1, Math.min(step, 6));
 
         /* Update tab indicators */
         document.querySelectorAll('.rp-step-tab').forEach(tab => {
             const t = parseInt(tab.dataset.step);
-            tab.classList.remove('active', 'completed');
+            tab.classList.remove('active', 'completed', 'done');
             if (t === currentStep) tab.classList.add('active');
-            else if (t < currentStep) tab.classList.add('completed');
-
-            /* Swap icon: checkmark if completed, number otherwise */
-            const icon = tab.querySelector('.rp-step-icon');
-            if (icon) {
-                if (t < currentStep) {
-                    icon.innerHTML = `<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
-                } else {
-                    icon.textContent = t;
-                }
-            }
+            else if (t < currentStep) tab.classList.add('done');
         });
 
         /* Show/hide step panels */
-        document.querySelectorAll('.rp-step-content').forEach(panel => {
+        document.querySelectorAll('.rp-step-pane, .rp-step-content').forEach(panel => {
             panel.classList.toggle('active', parseInt(panel.dataset.step) === currentStep);
         });
 
-        /* Handle completion panel */
-        const completionPanel = $('completion-panel');
-        if (completionPanel) {
-            if (step > 4) {
-                /* Show completion, hide all step content */
-                document.querySelectorAll('.rp-step-content').forEach(p => p.classList.remove('active'));
-                completionPanel.style.display = 'block';
+        /* Handle step-6 layout shift */
+        const builderView = $('rp-builder-view');
+        if (builderView) {
+            if (currentStep === 6) builderView.classList.add('step-6-active');
+            else builderView.classList.remove('step-6-active');
+        }
+
+        /* Update footer buttons */
+        const btnNext = $('btn-next');
+        const btnBack = $('btn-back');
+        if (btnBack) {
+            btnBack.style.visibility = currentStep > 1 ? 'visible' : 'hidden';
+        }
+        if (btnNext) {
+            if (currentStep < 6) {
+                btnNext.textContent = `Next: ${stepNames[currentStep + 1]}`;
+                btnNext.style.display = 'block';
             } else {
-                completionPanel.style.display = 'none';
+                btnNext.style.display = 'none'; // hide on finalize
             }
         }
     }
@@ -427,17 +548,15 @@
     document.querySelectorAll('.rp-step-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const target = parseInt(tab.dataset.step);
-            if (target <= currentStep) goToStep(target);
+            if (target <= currentStep || (target > currentStep && document.querySelector(`.rp-step-tab[data-step="${target-1}"]`).classList.contains('completed'))) {
+                goToStep(target);
+            }
         });
     });
 
     /* Wire next / prev buttons */
-    $('next-step-1')?.addEventListener('click', () => goToStep(currentStep + 1));
-    $('next-step-2')?.addEventListener('click', () => goToStep(currentStep + 1));
-    $('next-step-3')?.addEventListener('click', () => goToStep(currentStep + 1));
-    $('prev-step-2')?.addEventListener('click', () => goToStep(currentStep - 1));
-    $('prev-step-3')?.addEventListener('click', () => goToStep(currentStep - 1));
-    $('prev-step-4')?.addEventListener('click', () => goToStep(currentStep - 1));
+    $('btn-next')?.addEventListener('click', () => goToStep(currentStep + 1));
+    $('btn-back')?.addEventListener('click', () => goToStep(currentStep - 1));
 
     $('edit-resume')?.addEventListener('click', () => goToStep(1));
 
@@ -448,6 +567,30 @@
             state[f] = ['skills','social_links'].includes(f) ? toList(e.target.value) : e.target.value;
             renderTemplatePreview();
         });
+    });
+
+    /* Image upload listener */
+    $('cv-image-input')?.addEventListener('change', e => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) { alert('Image too large. Max 2MB.'); return; }
+        const reader = new FileReader();
+        reader.onload = (rev) => {
+            state.profile_image = rev.target.result;
+            renderEditor();
+            renderTemplatePreview();
+        };
+        reader.readAsDataURL(file);
+    });
+
+    $('remove-image-btn')?.addEventListener('click', () => {
+        state.profile_image = '';
+        renderEditor();
+        renderTemplatePreview();
+    });
+
+    $('cv-image-overlay')?.addEventListener('click', () => {
+        $('cv-image-input')?.click();
     });
 
     expEditorEl.addEventListener('input', e => {
@@ -509,9 +652,9 @@
             return;
         }
 
-        if (btn.id === 'add-exp')     { state.experience.push({ company:'', role:'', period:'', points:[''] }); renderEditor(); renderTemplatePreview(); }
-        if (btn.id === 'add-edu')     { state.education.push(''); renderEditor(); renderTemplatePreview(); }
-        if (btn.id === 'add-project') { state.projects.push({ name:'', description:'' }); renderEditor(); renderTemplatePreview(); }
+        if (btn.id === 'add-exp-btn' || btn.id === 'add-exp') { state.experience.push({ company:'', role:'', period:'', points:[''] }); renderEditor(); renderTemplatePreview(); }
+        if (btn.id === 'add-edu-btn' || btn.id === 'add-edu') { state.education.push(''); renderEditor(); renderTemplatePreview(); }
+        if (btn.id === 'add-project-btn' || btn.id === 'add-project') { state.projects.push({ name:'', description:'' }); renderEditor(); renderTemplatePreview(); }
 
         if (btn.dataset.removeExp !== undefined) {
             state.experience.splice(Number(btn.closest('[data-exp]').dataset.exp), 1);
@@ -531,11 +674,12 @@
     });
 
     /* Save */
-    saveBtnEl.addEventListener('click', async () => {
+    saveBtnEl?.addEventListener('click', async () => {
         try {
             syncLegacy();
-            statusEl.textContent = 'Saving…';
-            statusEl.style.color = '';
+            const btnOrigText = saveBtnEl.textContent;
+            saveBtnEl.textContent = 'Saving…';
+            saveBtnEl.style.opacity = '0.7';
             const url      = app.dataset.updateUrl || app.dataset.storeUrl;
             const method   = app.dataset.updateUrl ? 'patch' : 'post';
             const templateId = templateIdEl?.value || null;
@@ -545,12 +689,18 @@
             const res = await axios[method](url, payload);
             if (res.data.redirect) { window.location.href = res.data.redirect; return; }
             if (res.data.resume?.id) savedResumeId = res.data.resume.id;
-            statusEl.textContent = '✓ Saved';
-            goToStep(5); /* show completion */
-            setTimeout(() => { statusEl.textContent = ''; }, 3000);
+            saveBtnEl.textContent = '✓ Saved';
+            setTimeout(() => { saveBtnEl.textContent = btnOrigText; saveBtnEl.style.opacity = '1'; }, 2000);
+            
+            // Redirect to download
+            if (app.dataset.authenticated === '1' && app.dataset.downloadRequiresPlan === '1') {
+                window.openPlanDownloadModal?.(); return;
+            }
+            if (savedResumeId) { window.location.href = `/resume/${savedResumeId}/download/pdf`; return; }
         } catch (err) {
-            statusEl.textContent = err.response?.data?.message || 'Save failed.';
-            statusEl.style.color = '#c0392b';
+            alert(err.response?.data?.message || 'Save failed.');
+            saveBtnEl.textContent = 'Save & Download PDF';
+            saveBtnEl.style.opacity = '1';
         }
     });
 
@@ -666,15 +816,16 @@
             experience: `<div class="tpl-role"><div class="tpl-role-head"><strong>Senior Engineer</strong><span>2021-Present</span></div><p>TechCorp</p><ul><li>Led a team of 6 engineers</li><li>Reduced API latency by 40%</li></ul></div>`,
             education: '<ul><li>B.Sc. Computer Science, MIT, 2019</li></ul>',
             projects: '<ul><li><strong>Open Resume</strong><span class="tpl-description">Built with React &amp; Node.js</span></li></ul>',
+            profile_image: '<div style="width:80px; height:80px; background:#e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#94a3b8;"><svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></div>',
         };
 
-        let filled = html;
+        let filled = hasResumePlaceholders(html) ? html : editableTemplateShell();
         Object.entries(sampleData).forEach(([k, v]) => {
             filled = filled.replace(new RegExp('\\{\\{\\s*' + k + '\\s*\\}\\}', 'g'), v);
             filled = filled.split('[[' + k + ']]').join(v);
         });
 
-        inner.innerHTML = resumeAccentStyle(state.primary_color_customized ? state.primary_color : '') + filled;
+        inner.innerHTML = filled;
         thumb.appendChild(inner);
 
         const name = document.createElement('div');
@@ -698,7 +849,7 @@
             templateGrid.appendChild(card);
         });
 
-        templatePopup.classList.add('visible');
+        templatePopup.classList.add('open', 'visible');
     }
 
     function bindTemplateCard(card, id) {
@@ -712,14 +863,15 @@
                 templateIdEl.dispatchEvent(new Event('change'));
             }
 
-            applyColorSelection(state.primary_color_customized ? state.primary_color : '');
-            setTimeout(() => templatePopup.classList.remove('visible'), 160);
+            applyColorSelection('');
+            setTimeout(() => templatePopup.classList.remove('open', 'visible'), 160);
         });
     }
 
     changeTemplateBtn?.addEventListener('click', openTemplatePopup);
-    closePopupBtn?.addEventListener('click', () => templatePopup?.classList.remove('visible'));
-    templatePopup?.addEventListener('click', e => { if (e.target === templatePopup) templatePopup.classList.remove('visible'); });
+    closePopupBtn?.addEventListener('click', () => templatePopup?.classList.remove('open', 'visible'));
+    $('close-template-btn')?.addEventListener('click', () => templatePopup?.classList.remove('open', 'visible'));
+    templatePopup?.addEventListener('click', e => { if (e.target === templatePopup) templatePopup.classList.remove('open', 'visible'); });
 
     /* Download */
     $('download-pdf')?.addEventListener('click', () => {
