@@ -52,11 +52,14 @@
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        .tpl-resume ul { list-style-type: disc; margin-left: 1.5em; }
+        .tpl-resume ol { list-style-type: decimal; margin-left: 1.5em; }
 
-        html, body {
-            height: 100%;
-            overflow: hidden; /* no page scroll — panels scroll internally */
-        }
+        html, body { margin: 0; padding: 0; min-height: 100%; overflow-y: auto; }
+        body.is-builder { height: 100vh; overflow: hidden; }
+        body.is-builder .rp-topbar, 
+        body.is-builder .main-footer { display: none !important; }
 
         body {
             font-family: var(--font-body);
@@ -124,9 +127,10 @@
         }
         .rp-onboarding h1 {
             font-family: var(--font-display);
-            font-size: clamp(1.75rem, 4vw, 2.75rem);
+            font-size: clamp(1.5rem, 6vw, 2.75rem);
             color: var(--navy);
             margin-bottom: 0.75rem;
+            margin-top: 40px;
             font-weight: 400;
             text-align: center;
         }
@@ -716,14 +720,15 @@
 
         .rp-viewport {
             flex: 1;
-            background: #e5e9f0;
-            border-radius: var(--r-xl);
+            background: #f8fafc; /* Clean, minimal gray background */
+            border-radius: 0;
             overflow: auto;
             padding: 1.5rem;
             min-height: 0;
             display: flex;
             justify-content: center;
             align-items: flex-start;
+            position: relative;
         }
         .rp-viewport::-webkit-scrollbar { width: 6px; }
         .rp-viewport::-webkit-scrollbar-track { background: transparent; }
@@ -838,11 +843,12 @@
             border-radius: 50%;
             object-fit: cover;
             border: 2px solid var(--border);
-            display: none;
         }
+        .hidden { display: none !important; }
 
         /* Animations */
         @keyframes rpFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
         /* Scrollbar for popup body */
         .rp-popup-body::-webkit-scrollbar { width: 6px; }
@@ -852,36 +858,123 @@
         /* ══════════════════════════════════════════
            RESPONSIVE
         ══════════════════════════════════════════ */
-        @media (max-width: 900px) {
-            .rp-root { height: auto; min-height: 100vh; }
-            .rp-builder { grid-template-columns: 1fr; overflow: visible; height: auto; padding: 1rem; }
-            html, body { overflow: auto; height: auto; }
-            .rp-form-panel { max-height: none; overflow: visible; }
-            .rp-form-body { overflow: visible; }
-            .rp-preview-panel { min-height: 60vh; }
-            .rp-viewport { min-height: 520px; }
-            .rp-entry-row { grid-template-columns: 1fr; }
+        .rp-mobile-nav { display: none; }
+
+        @media (max-width: 1024px) {
+            .rp-builder { grid-template-columns: 1fr; }
+            .rp-builder.view-preview .rp-form-panel { display: none; }
+            .rp-builder.view-form .rp-preview-panel { display: none; }
+            
+            .rp-mobile-nav {
+                display: flex;
+                position: fixed;
+                bottom: 2rem;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #0f172a;
+                padding: 0.5rem;
+                border-radius: 100px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+                z-index: 2000;
+                gap: 0.5rem;
+                border: 1px solid rgba(255,255,255,0.1);
+            }
+            .rp-mobile-nav button {
+                background: transparent;
+                border: none;
+                color: rgba(255,255,255,0.7);
+                padding: 0.6rem 1.4rem;
+                border-radius: 100px;
+                font-size: 0.8rem;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.25s var(--ease-out);
+                white-space: nowrap;
+            }
+            .rp-mobile-nav button.active {
+                background: var(--blue);
+                color: #fff;
+                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+            }
+
+            .rp-preview-panel { min-height: 100vh; }
+            .rp-form-body { padding-bottom: 140px !important; }
+            .rp-viewport { 
+                padding: 0 !important;
+                background: #fff !important; 
+                overflow-x: hidden;
+            }
+            #cv-preview { 
+                box-shadow: none !important; 
+                margin: 0 auto !important; 
+            }
+            
+            .preview-topbar { 
+                padding: 0.75rem; 
+                gap: 0.5rem; 
+                flex-direction: column;
+                align-items: center;
+                background: #fff;
+            }
+            .color-selector-wrap { 
+                padding: 4px 10px;
+                gap: 8px;
+                margin: 0 !important;
+                width: 100%;
+                justify-content: center;
+            }
+            .color-circle-btn { width: 20px !important; height: 20px !important; }
+            .color-circle-btn.original { padding: 2px 10px !important; font-size: 10px !important; }
+            .score-badge { display: none; }
+            .change-tpl-btn { width: 100%; justify-content: center; }
+            
+            #cv-preview { transform-origin: top center; margin: 0 auto; flex-shrink: 0; }
         }
+
         @media (max-width: 600px) {
-            .rp-builder { padding: 0.75rem; }
-            .rp-step-nav { overflow-x: auto; padding-left: 1rem; padding-right: 1rem; }
-            .rp-step-nav::after { left: 1rem; right: 1rem; }
-            .rp-step-tab { min-width: 74px; }
-            .rp-row { grid-template-columns: 1fr; }
-            .rp-step-name { font-size: 0.62rem; }
-            .preview-topbar { align-items: stretch; flex-direction: column; gap: 0.75rem; }
-            .score-badge, .change-tpl-btn { justify-content: center; width: 100%; }
-            .rp-viewport { padding: 0.75rem; min-height: 420px; justify-content: flex-start; }
-            #cv-preview { width: 794px; transform: scale(0.42); transform-origin: top left; margin: 0; }
-            .rp-form-footer { gap: 0.75rem; padding: 0.75rem 1rem; }
-            .rp-form-footer .btn { flex: 1; min-width: 0; justify-content: center; }
+            .rp-root { padding: 0; }
+            .rp-onboarding { padding: 2rem 1.25rem 4rem !important; justify-content: flex-start !important; }
+            .ob-card { padding: 1.25rem; width: 100%; }
+            .rp-step-nav { padding: 1.25rem 1rem 0; gap: 8px; }
+            .rp-step-tab { min-width: 44px; }
+            .rp-step-name { display: none; } 
+            .rp-step-tab.active .rp-step-name { display: block; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 9px; background: var(--navy); color: #fff; padding: 1px 6px; border-radius: 4px; z-index: 10; }
+            
+            .rp-form-body { padding: 1rem !important; }
+            .rp-form-footer { flex-direction: column; padding: 1rem !important; }
+            .rp-form-footer .btn { width: 100%; }
+            
+            .preview-topbar { padding: 0.5rem; gap: 0.25rem; }
+            .color-selector-wrap { 
+                padding: 4px 8px;
+                gap: 6px;
+                background: #f1f5f9 !important;
+            }
+            .color-circle-btn { width: 18px !important; height: 18px !important; }
+            .color-circle-btn.original { padding: 2px 8px !important; font-size: 9px !important; }
+            
+            #cv-preview { transform-origin: top center; margin: 0 auto; flex-shrink: 0; }
         }
     </style>
 
     
 
+    {{-- ══ TOPBAR ══ --}}
+    <header class="rp-topbar" style="position: relative; z-index: 100;">
+        <a href="{{ route('home') }}" class="rp-topbar-logo">
+            <img src="{{ asset('Logo.png') }}" alt="Cvbliss" style="height: 110px; width: auto;">
+        </a>
+        <div style="flex: 1;"></div>
+        <div class="rp-topbar-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+            <a href="{{ route('home') }}" style="text-decoration: none; font-size: 0.75rem; color: var(--ink); font-weight: 600;">Home</a>
+            @guest
+                <a href="{{ route('login') }}" class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; background: var(--navy); color: #fff; border-radius: 8px;">Login</a>
+            @endguest
+        </div>
+    </header>
+
     {{-- ══ ONBOARDING ══ --}}
-    <div id="rp-onboarding-view" class="rp-onboarding">
+    <div id="rp-onboarding-view" class="rp-onboarding" style=" padding: 6rem 1.5rem 4rem;">
         <h1>How will you make your resume?</h1>
         <p class="ob-sub">Choose how you'd like to get started</p>
         <div class="ob-cards">
@@ -911,8 +1004,19 @@
         <p id="resume-autofill-status" style="margin-top:2rem;color:var(--muted);font-size:0.875rem;"></p>
     </div>
 
+    {{-- ══ FOOTER ══ --}}
+    <div class="main-footer">
+        @include('components.footer')
+    </div>
+
     {{-- ══ BUILDER ══ --}}
-    <div id="rp-builder-view" class="rp-builder">
+    <div id="rp-builder-view" class="rp-builder view-form">
+
+        {{-- Mobile Navigation Toggle --}}
+        <div class="rp-mobile-nav">
+            <button type="button" id="mob-btn-form" class="active" onclick="setMobileView('form')">Edit Details</button>
+            <button type="button" id="mob-btn-preview" onclick="setMobileView('preview')">View Resume</button>
+        </div>
 
         {{-- Hidden template selector --}}
         <select id="template-id" style="display:none">
@@ -925,7 +1029,7 @@
         <section class="rp-form-panel">
 
             <nav class="rp-step-nav">
-                @foreach(['Contacts','Experience','Education','Skills','Summary','Finalize'] as $i => $label)
+                @foreach(['Contacts','Summary','Experience','Education','Skills','Finalize'] as $i => $label)
                     <button class="rp-step-tab {{ $i === 0 ? 'active' : '' }}" data-step="{{ $i + 1 }}">
                         <span class="rp-step-name">{{ $label }}</span>
                         <div class="rp-step-dot"></div>
@@ -933,7 +1037,7 @@
                 @endforeach
             </nav>
 
-            <div class="rp-form-body">
+            <div class="rp-form-body" style="padding-bottom: 160px;">
 
                 {{-- ── STEP 1: Contacts ── --}}
                 <div class="rp-step-pane active" data-step="1">
@@ -1007,22 +1111,52 @@
                         </div>
                     </div>
 
-                    <div id="image-upload-section" style="display:none; margin-top:0.5rem;">
+                    <div id="image-upload-section" class="hidden" style="margin-top:0.5rem;">
                         <label class="rp-label" style="margin-bottom:0.5rem;display:block;">Profile Photo</label>
                         <div class="img-upload-wrap">
-                            <img id="cv-image-preview" class="img-preview-circle" src="" alt="Profile">
+                            <div id="cv-image-placeholder" class="img-preview-circle" style="display: flex; align-items: center; justify-content: center; background: #f1f5f9; color: #94a3b8;">
+                                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                            <img id="cv-image-preview" class="img-preview-circle hidden" src="" alt="Profile">
                             <input type="file" id="cv-image-input" accept="image/*" style="display:none">
                             <button type="button" class="btn" onclick="document.getElementById('cv-image-input').click()">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                                 Upload Photo
                             </button>
-                            <button type="button" class="btn" id="remove-image-btn">Remove</button>
+                            <button type="button" class="btn hidden" id="remove-image-btn">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                
+                {{-- ── STEP 2: Summary ── --}}
+                <div class="rp-step-pane" data-step="2">
+                    <div class="step-head">
+                        <div>
+                            <h2>Summary <span style="color:#cbd5e1;font-size:0.95rem;">✎</span></h2>
+                            <p>Write a short introduction that highlights your experience, key skills, and career goals.</p>
+                        </div>
+                        <button class="ai-btn" type="button" onclick="generateAISummary()" style="align-self: flex-start;">
+                            <svg width="13" height="13" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM15 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0115 10zM6.5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 016.5 10z"/></svg>
+                            Generate with AI
+                        </button>
+                    </div>
+                    <div class="summary-editor-shell">
+                        <textarea id="cv-summary" class="rp-input rich-ta summary-ta cv-field" placeholder="Experienced professional with a strong background in…" data-field="summary"></textarea>
+                    </div>
+                    <div class="suggested-summary">
+                        <h4>Suggested summary structure for <span id="summary-role-label">your role</span></h4>
+                        <p>Click an example to insert and customize.</p>
+                        <div class="summary-suggestions-grid">
+                            <button type="button" class="summary-suggestion" data-summary-template="Detail-oriented professional with hands-on experience in [field]. Skilled in [key skills]. Seeking to contribute to [type of team, company or goal]."><span class="plus">+</span><span>Detail-oriented professional with 3+ years of experience in <b>[field]</b>. Skilled in <b>[key skills]</b>. Seeking to contribute to <b>[type of team, company or goal]</b>.</span></button>
+                            <button type="button" class="summary-suggestion" data-summary-template="Motivated recent graduate with a background in [field]. Eager to apply skills in [skill area] and grow within a dynamic organization."><span class="plus">+</span><span>Motivated recent graduate with a background in <b>[field]</b>. Eager to apply skills in <b>[skill area]</b> and grow within a dynamic organization.</span></button>
+                            <button type="button" class="summary-suggestion" data-summary-template="Creative thinker with a passion for [field]. Experienced in [tools or platforms]. Looking to bring fresh ideas to a forward-thinking team."><span class="plus">+</span><span>Creative thinker with a passion for <b>[field]</b>. Experienced in <b>[tools or platforms]</b>. Looking to bring fresh ideas to a forward-thinking team.</span></button>
+                            <button type="button" class="summary-suggestion" data-summary-template="A(n) [role] experienced in [field/industry], skilled in [top 2-3 skills], and looking to make a meaningful impact."><span class="plus">+</span><span>A(n) <b>[role]</b> experienced in <b>[field/industry]</b>, skilled in <b>[top 2-3 skills]</b>, and looking to make a meaningful impact.</span></button>
                         </div>
                     </div>
                 </div>
 
-                {{-- ── STEP 2: Experience ── --}}
-                <div class="rp-step-pane" data-step="2">
+                {{-- ── STEP 3: Experience ── --}}
+                <div class="rp-step-pane" data-step="3">
                     <div class="step-head">
                         <div>
                             <h2>Experience</h2>
@@ -1040,8 +1174,8 @@
                     </button>
                 </div>
 
-                {{-- ── STEP 3: Education ── --}}
-                <div class="rp-step-pane" data-step="3">
+                {{-- ── STEP 4: Education ── --}}
+                <div class="rp-step-pane" data-step="4">
                     <div class="step-head">
                         <div>
                             <h2>Education</h2>
@@ -1055,8 +1189,8 @@
                     </button>
                 </div>
 
-                {{-- ── STEP 4: Skills ── --}}
-                <div class="rp-step-pane" data-step="4">
+                {{-- ── STEP 5: Skills ── --}}
+                <div class="rp-step-pane" data-step="5">
                     <div class="step-head">
                         <div>
                             <h2>Skills</h2>
@@ -1069,47 +1203,7 @@
                     </div>
                 </div>
 
-                {{-- ── STEP 5: Summary ── --}}
-                <div class="rp-step-pane" data-step="5">
-                    <div class="step-head">
-                        <div>
-                            <h2>Summary <span style="color:#cbd5e1;font-size:0.95rem;">✎</span></h2>
-                            <p>Write a short introduction that highlights your experience, key skills, and career goals.</p>
-                        </div>
-                        <button class="tips-btn" type="button">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM15 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0115 10zM6.5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 016.5 10z"/></svg>
-                            Summary tips
-                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-                        </button>
-                    </div>
-                    <div class="summary-editor-shell">
-                        <div class="rich-toolbar">
-                            <button type="button" class="rt-btn" data-rich-command="bold" title="Bold"><b>B</b></button>
-                            <button type="button" class="rt-btn" data-rich-command="italic" title="Italic"><i>I</i></button>
-                            <button type="button" class="rt-btn" data-rich-command="underline" title="Underline"><u>U</u></button>
-                            <button type="button" class="rt-btn"><s>S</s></button>
-                            <button type="button" class="rt-btn">↗</button>
-                            <button type="button" class="rt-btn" data-rich-command="list" title="Bulleted list">•</button>
-                            <button type="button" class="rt-btn">↶</button>
-                            <button type="button" class="rt-btn">↷</button>
-                            <button type="button" class="ai-btn" onclick="generateAISummary()">
-                                <svg width="13" height="13" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM15 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0115 10zM6.5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 016.5 10z"/></svg>
-                                Generate with AI
-                            </button>
-                        </div>
-                        <textarea id="cv-summary" class="rp-input rich-ta summary-ta cv-field" placeholder="Experienced professional with a strong background in…" data-field="summary"></textarea>
-                    </div>
-                    <div class="suggested-summary">
-                        <h4>Suggested summary structure for <span id="summary-role-label">your role</span></h4>
-                        <p>Click an example to insert and customize.</p>
-                        <div class="summary-suggestions-grid">
-                            <button type="button" class="summary-suggestion" data-summary-template="Detail-oriented professional with hands-on experience in [field]. Skilled in [key skills]. Seeking to contribute to [type of team, company or goal]."><span class="plus">+</span><span>Detail-oriented professional with 3+ years of experience in <b>[field]</b>. Skilled in <b>[key skills]</b>. Seeking to contribute to <b>[type of team, company or goal]</b>.</span></button>
-                            <button type="button" class="summary-suggestion" data-summary-template="Motivated recent graduate with a background in [field]. Eager to apply skills in [skill area] and grow within a dynamic organization."><span class="plus">+</span><span>Motivated recent graduate with a background in <b>[field]</b>. Eager to apply skills in <b>[skill area]</b> and grow within a dynamic organization.</span></button>
-                            <button type="button" class="summary-suggestion" data-summary-template="Creative thinker with a passion for [field]. Experienced in [tools or platforms]. Looking to bring fresh ideas to a forward-thinking team."><span class="plus">+</span><span>Creative thinker with a passion for <b>[field]</b>. Experienced in <b>[tools or platforms]</b>. Looking to bring fresh ideas to a forward-thinking team.</span></button>
-                            <button type="button" class="summary-suggestion" data-summary-template="A(n) [role] experienced in [field/industry], skilled in [top 2-3 skills], and looking to make a meaningful impact."><span class="plus">+</span><span>A(n) <b>[role]</b> experienced in <b>[field/industry]</b>, skilled in <b>[top 2-3 skills]</b>, and looking to make a meaningful impact.</span></button>
-                        </div>
-                    </div>
-                </div>
+
 
                 {{-- ── STEP 6: Finalize ── --}}
                 <div class="rp-step-pane" data-step="6">
@@ -1148,12 +1242,20 @@
                     <span class="score-pill" data-resume-score>0%</span>
                     Your resume score 😍
                 </div>
+                <div class="color-selector-wrap" style="display: flex; align-items: center; gap: 12px; margin-left: auto; margin-right: 20px; background: #fff; padding: 6px 16px; border-radius: 100px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #eef2f6;">
+                    <button type="button" class="color-circle-btn original active" onclick="applyColorSelection('')" title="Original Color" style="background: #fff; border: 1.5px solid #0b1221; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 700; color: #0b1221; cursor: pointer; transition: all 0.2s;">Original</button>
+                    <button type="button" class="color-circle-btn" onclick="applyColorSelection('#3b82f6')" title="Blue" style="width: 24px; height: 24px; border-radius: 50%; background: #3b82f6; border: none; cursor: pointer; transition: transform 0.2s;"></button>
+                    <button type="button" class="color-circle-btn" onclick="applyColorSelection('#10b981')" title="Green" style="width: 24px; height: 24px; border-radius: 50%; background: #10b981; border: none; cursor: pointer; transition: transform 0.2s;"></button>
+                    <button type="button" class="color-circle-btn" onclick="applyColorSelection('#475569')" title="Slate" style="width: 24px; height: 24px; border-radius: 50%; background: #475569; border: none; cursor: pointer; transition: transform 0.2s;"></button>
+                    <button type="button" class="color-circle-btn" onclick="applyColorSelection('#e11d48')" title="Rose" style="width: 24px; height: 24px; border-radius: 50%; background: #e11d48; border: none; cursor: pointer; transition: transform 0.2s;"></button>
+                    <button type="button" class="color-circle-btn" onclick="applyColorSelection('#6366f1')" title="Indigo" style="width: 24px; height: 24px; border-radius: 50%; background: #6366f1; border: none; cursor: pointer; transition: transform 0.2s;"></button>
+                </div>
                 <button class="change-tpl-btn" id="change-template-btn">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                     Change Template
                 </button>
             </div>
-            <div class="rp-viewport" id="preview-viewport">
+            <div class="rp-viewport" id="preview-viewport" style="padding-bottom: 160px; overflow-x: auto;">
                 <div id="cv-preview"></div>
             </div>
         </section>
@@ -1178,8 +1280,16 @@
     <script>
         /* ── Onboarding: start from scratch ── */
         function startFromScratch() {
+            document.body.classList.add('is-builder');
             document.getElementById('rp-onboarding-view').style.display = 'none';
             document.getElementById('rp-builder-view').classList.add('visible');
+            if (typeof goToStep === 'function') goToStep(1);
+        }
+
+        function backToOnboarding() {
+            document.body.classList.remove('is-builder');
+            document.getElementById('rp-builder-view').classList.remove('visible');
+            document.getElementById('rp-onboarding-view').style.display = 'flex';
         }
 
         /* ── Show builder if initial data exists ── */
@@ -1208,7 +1318,10 @@
             const file = this.files?.[0];
             if (!file) return;
             const statusEl = document.getElementById('resume-autofill-status');
-            if (statusEl) statusEl.textContent = 'Reading your resume with AI…';
+            if (statusEl) {
+                statusEl.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; vertical-align: middle; margin-right: 6px; margin-top: -2px;"><circle cx="12" cy="12" r="10" stroke-dasharray="30 10"></circle></svg> Reading your resume with AI…';
+                statusEl.style.color = 'var(--blue)';
+            }
 
             try {
                 const fd = new FormData();
@@ -1236,7 +1349,12 @@
 
         /* ── AI text generation helpers ── */
         function currentResumePayload() {
-            const read = id => document.getElementById(id)?.value || '';
+            const read = id => {
+                if (id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get(id)) {
+                    return tinymce.get(id).getContent();
+                }
+                return document.getElementById(id)?.value || '';
+            };
             return {
                 name: read('cv-name'),
                 last_name: read('cv-last-name'),
@@ -1247,12 +1365,22 @@
                 social_links: read('cv-social').split(',').map(v => v.trim()).filter(Boolean),
                 summary: read('cv-summary'),
                 skills: read('cv-skills').split(',').map(v => v.trim()).filter(Boolean),
-                experience: Array.from(document.querySelectorAll('[data-exp]')).map(block => ({
-                    company: block.querySelector('[data-k="company"]')?.value || '',
-                    role: block.querySelector('[data-k="role"]')?.value || '',
-                    period: block.querySelector('[data-k="period"]')?.value || '',
-                    points: (block.querySelector('[data-k="points"]')?.value || '').split('\n').map(v => v.trim()).filter(Boolean),
-                })),
+                experience: Array.from(document.querySelectorAll('[data-exp]')).map(block => {
+                    const r = k => {
+                        const input = block.querySelector(`[data-k="${k}"]`);
+                        if (input && input.classList.contains('rp-input-ta') && typeof tinymce !== 'undefined' && input.id && tinymce.get(input.id)) {
+                            return tinymce.get(input.id).getContent();
+                        }
+                        return input ? input.value : '';
+                    };
+                    const pointsVal = r('points');
+                    return {
+                        company: r('company'),
+                        role: r('role'),
+                        period: r('period'),
+                        points: (/<[a-z][\s\S]*>/i.test(pointsVal)) ? [pointsVal] : pointsVal.split('\n').map(v => v.trim()).filter(Boolean),
+                    };
+                }),
                 education: Array.from(document.querySelectorAll('[data-edu]')).map(block => ({
                     degree: block.querySelector('[data-k="degree"]')?.value || '',
                     stream: block.querySelector('[data-k="stream"]')?.value || '',
@@ -1264,7 +1392,10 @@
 
         async function generateAIText(context, targetEl, triggerButton = null) {
             if (!targetEl) return;
-            const orig = targetEl.value;
+            let orig = targetEl.value;
+            if (targetEl.id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
+                orig = tinymce.get('cv-summary').getContent();
+            }
             const button = triggerButton || (context === 'summary'
                 ? document.querySelector('.rp-step-pane[data-step="5"] .ai-btn')
                 : null);
@@ -1283,9 +1414,18 @@
                 });
                 const data = await res.json();
                 if (!res.ok || !data.text) throw new Error(data.message || 'AI generation failed.');
-                targetEl.value = data.text;
+                
+                if (targetEl.id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
+                    tinymce.get('cv-summary').setContent(data.text);
+                } else {
+                    targetEl.value = data.text;
+                }
             } catch(e) {
-                targetEl.value = orig;
+                if (targetEl.id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
+                    tinymce.get('cv-summary').setContent(orig);
+                } else {
+                    targetEl.value = orig;
+                }
                 alert(e.message || 'AI generation failed.');
             } finally {
                 if (button) {
@@ -1300,7 +1440,12 @@
         document.querySelectorAll('.summary-suggestion').forEach(button => {
             button.addEventListener('click', () => {
                 const target = document.getElementById('cv-summary');
-                target.value = button.dataset.summaryTemplate || button.textContent.trim();
+                const newText = button.dataset.summaryTemplate || button.textContent.trim();
+                if (typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
+                    tinymce.get('cv-summary').setContent(newText);
+                } else {
+                    target.value = newText;
+                }
                 target.dispatchEvent(new Event('input', { bubbles: true }));
             });
         });
@@ -1315,7 +1460,26 @@
     </script>
 
     @include('resume.partials.editor-script')
-
+    
+    <script src="https://cdn.tiny.cloud/1/{{ config('services.tinymce.key', 'no-api-key') }}/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script>
+        function initTinyMCE() {
+            tinymce.init({
+                selector: '.rich-ta, .rp-input-ta',
+                menubar: false,
+                statusbar: false,
+                plugins: 'lists',
+                toolbar: 'bold italic underline | bullist numlist | undo redo',
+                setup: function (editor) {
+                    editor.on('change keyup', function () {
+                        editor.save();
+                        editor.getElement().dispatchEvent(new Event('input', { bubbles: true }));
+                    });
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', initTinyMCE);
+    </script>
 </div>{{-- /create-cv-app --}}
 
 @endsection

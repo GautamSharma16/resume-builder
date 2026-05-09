@@ -57,6 +57,7 @@ Route::post('/resume-payment/verify', [ResumeController::class, 'verifyPayment']
 Route::get('/download-resume', [ResumeController::class, 'download'])->name('resume.download-improved');
 Route::get('/enhance-cv', [ResumeController::class, 'index'])->name('enhance-cv');
 Route::get('/cover-letter', [CoverLetterController::class, 'create'])->name('cover-letter');
+Route::post('/cover-letter', [CoverLetterController::class, 'store'])->name('cover-letter.store');
 Route::post('/cover-letter/generate', [CoverLetterController::class, 'generate'])->name('cover-letter.generate');
 Route::patch('/cover-letter/{coverLetter}', [CoverLetterController::class, 'save'])->name('cover-letter.save');
 Route::get('/cover-letter/{coverLetter}/download/{format?}', [CoverLetterController::class, 'download'])->name('cover-letter.download');

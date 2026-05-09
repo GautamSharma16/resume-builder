@@ -54,4 +54,8 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI', env('APP_URL').'/auth/google/callback'),
     ],
 
+    'tinymce' => [
+        'key' => env('TINYMCE_API_KEY'),
+    ],
+
 ];

@@ -109,8 +109,8 @@ class TemplateRenderService
     {
         $data = $data ?: $this->resumeSampleData();
         $html = $template->html ?: '';
-
         $accentColor = $this->resumeAccentColor($data);
+
         if ($this->shouldRenderWithBlade($html)) {
             return new HtmlString($this->resumeAccentStyle($accentColor).$this->renderBlade($html, $this->bladeRenderDataForResume($data)));
         }
@@ -119,12 +119,28 @@ class TemplateRenderService
             $html = $this->editableResumeTemplateHtml();
         }
 
+        // Resolve CSS variables for DOMPDF
+        if ($accentColor) {
+            // Use custom accent color
+            $html = str_replace('var(--primary, #2563eb)', $accentColor, $html);
+            $html = str_replace('var(--primary)', $accentColor, $html);
+            $html = preg_replace('/var\(--primary[^)]*\)/', $accentColor, $html);
+        } else {
+            // Resolve to the default values specified in the var() calls
+            // e.g. var(--primary, #hex) -> #hex
+            $html = preg_replace_callback('/var\(--primary,\s*([^)]+)\)/', function ($matches) {
+                return trim($matches[1]);
+            }, $html);
+            // If no default is provided, fallback to the standard blue
+            $html = str_replace('var(--primary)', '#2563eb', $html);
+        }
+
         return new HtmlString($this->render($html, $this->normalizeResume($data)));
     }
 
     public function containsResumePlaceholders(string $html): bool
     {
-        return preg_match('/\{\{\s*(?:name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image)\s*\}\}|\[\[\s*(?:name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image)\s*\]\]/i', $html) === 1
+        return preg_match('/\{\{\s*(?:name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image|profile_image_tag)\s*\}\}|\[\[\s*(?:name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image|profile_image_tag)\s*\]\]/i', $html) === 1
             || $this->shouldRenderWithBlade($html);
     }
 
@@ -132,16 +148,18 @@ class TemplateRenderService
     {
         return <<<'HTML'
 <div class="tpl-resume tpl-uploaded-editable" style="font-family: Inter, Arial, sans-serif; color:#172033; padding:42px; line-height:1.45;">
-    <header style="border-bottom:3px solid var(--primary, #2563eb); padding-bottom:16px; margin-bottom:22px; display:flex; gap:18px; align-items:flex-start;">
-        <div>{{profile_image}}</div>
-        <div style="flex:1;">
-            <h1 style="margin:0 0 6px; font-size:30px; letter-spacing:.04em; text-transform:uppercase; color:var(--primary, #2563eb);">{{name}}</h1>
-            <p style="margin:0 0 4px; font-size:14px; color:#334155;">{{job_title}}</p>
-            <p style="margin:0; font-size:12px; color:#475569;">{{email}} | {{mobile}} | {{location}}</p>
-            <p style="margin:4px 0 0; font-size:12px; color:#475569;">{{social_links}}</p>
-        </div>
-    </header>
-    <section><h2>Professional Summary</h2><p>{{summary}}</p></section>
+    <table style="width:100%; border-bottom:3px solid var(--primary, #2563eb); padding-bottom:16px; margin-bottom:22px; border-collapse: collapse;">
+        <tr>
+            <td style="vertical-align: top; text-align: left;">
+                <h1 style="margin:0 0 6px; font-size:30px; letter-spacing:.04em; text-transform:uppercase; color:var(--primary, #2563eb); text-align: left;">{{name}}</h1>
+                <p style="margin:0 0 4px; font-size:14px; color:#334155; text-align: left;">{{job_title}}</p>
+                <p style="margin:0; font-size:12px; color:#475569; text-align: left;">{{email}} | {{mobile}} | {{location}}</p>
+                <p style="margin:4px 0 0; font-size:12px; color:#475569; text-align: left;">{{social_links}}</p>
+            </td>
+            <td style="width: 100px; vertical-align: top; text-align: right;">{{profile_image_tag}}</td>
+        </tr>
+    </table>
+    <section><h2>Professional Summary</h2><div style="margin-bottom:7px">{{summary}}</div></section>
     <section><h2>Skills</h2><div class="tpl-badges">{{skills}}</div></section>
     <section><h2>Experience</h2>{{experience}}</section>
     <section><h2>Projects</h2>{{projects}}</section>
@@ -280,7 +298,7 @@ HTML;
             'email' => e($this->text(Arr::get($data, 'email', ''))),
             'mobile' => e($this->text(Arr::get($data, 'mobile', Arr::get($data, 'contact', '')))),
             'location' => e($this->text(Arr::get($data, 'location', Arr::get($data, 'address', '')))),
-            'summary' => e($this->text(Arr::get($data, 'summary', ''))),
+            'summary' => preg_match('/<[a-z][\s\S]*>/i', Arr::get($data, 'summary', '')) ? $this->text(Arr::get($data, 'summary', '')) : e($this->text(Arr::get($data, 'summary', ''))),
             'skills' => $this->badges(Arr::get($data, 'skills', [])),
             'experience' => $this->experience(Arr::get($data, 'experience', [])),
             'education' => $this->list(Arr::get($data, 'education', [])),
@@ -288,8 +306,9 @@ HTML;
             'social_links' => $this->inline(Arr::get($data, 'social_links', [])),
             'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
-            'profile_image' => Arr::get($data, 'profile_image') ? '<img src="'.Arr::get($data, 'profile_image').'" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">' : '',
+            'profile_image' => Arr::get($data, 'profile_image', ''),
             'profile_image_url' => Arr::get($data, 'profile_image', ''),
+            'profile_image_tag' => Arr::get($data, 'profile_image') ? '<img src="'.Arr::get($data, 'profile_image').'" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">' : '',
         ];
     }
 
@@ -304,7 +323,7 @@ HTML;
             'company_name' => e($this->text(Arr::get($data, 'company_name', Arr::get($data, 'company', '')))),
             'job_role' => e($this->text(Arr::get($data, 'job_role', ''))),
             'skills' => e($this->text(Arr::get($data, 'skills', ''))),
-            'body' => nl2br(e($this->text(Arr::get($data, 'body', '')))),
+            'body' => preg_match('/<[a-z][\s\S]*>/i', Arr::get($data, 'body', '')) ? $this->text(Arr::get($data, 'body', '')) : nl2br(e($this->text(Arr::get($data, 'body', '')))),
         ];
     }
 
@@ -404,6 +423,10 @@ HTML;
     {
         $items ??= [];
         $items = is_array($items) ? $items : explode("\n", $items);
+
+        if (count($items) === 1 && preg_match('/<[a-z][\s\S]*>/i', $items[0])) {
+            return $items[0];
+        }
 
         return '<ul>'.collect($items)->map(fn ($item) => $this->text($item))->filter()->map(fn ($item) => '<li>'.e($item).'</li>')->join('').'</ul>';
     }

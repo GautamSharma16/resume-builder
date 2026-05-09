@@ -12,7 +12,7 @@ class TemplateSeeder extends Seeder
         $templates = [
             // ATS Templates
             ['name' => 'ATS Classic', 'category' => 'ats', 'type' => 'resume', 'html' => $this->atsClassic()],
-            ['name' => 'ATS Modern', 'category' => 'ats', 'type' => 'resume', 'html' => $this->atsModern()],
+            ['name' => 'ATS Modern', 'category' => 'ats', 'type' => 'resume', 'html' => $this->atsModern(), 'has_image' => true],
             ['name' => 'ATS Minimal', 'category' => 'ats', 'type' => 'resume', 'html' => $this->atsMinimal()],
             ['name' => 'ATS Professional', 'category' => 'ats', 'type' => 'resume', 'html' => $this->atsProfessional()],
             ['name' => 'ATS Clean', 'category' => 'ats', 'type' => 'resume', 'html' => $this->atsClean()],
@@ -20,14 +20,14 @@ class TemplateSeeder extends Seeder
             // Fresher Templates
             ['name' => 'Fresher Starter', 'category' => 'fresher', 'type' => 'resume', 'html' => $this->fresherStarter()],
             ['name' => 'Fresher Simple', 'category' => 'fresher', 'type' => 'resume', 'html' => $this->fresherSimple()],
-            ['name' => 'Fresher Bright', 'category' => 'fresher', 'type' => 'resume', 'html' => $this->fresherBright()],
+            ['name' => 'Fresher Bright', 'category' => 'fresher', 'type' => 'resume', 'html' => $this->fresherBright(), 'has_image' => true],
             ['name' => 'Fresher Clean', 'category' => 'fresher', 'type' => 'resume', 'html' => $this->fresherClean()],
             ['name' => 'Fresher Bold', 'category' => 'fresher', 'type' => 'resume', 'html' => $this->fresherBold()],
 
             // Experienced Templates
-            ['name' => 'Executive', 'category' => 'experienced', 'type' => 'resume', 'html' => $this->executive()],
-            ['name' => 'Senior Pro', 'category' => 'experienced', 'type' => 'resume', 'html' => $this->seniorPro()],
-            ['name' => 'Leadership', 'category' => 'experienced', 'type' => 'resume', 'html' => $this->leadership()],
+            ['name' => 'Executive', 'category' => 'experienced', 'type' => 'resume', 'html' => $this->executive(), 'has_image' => true],
+            ['name' => 'Senior Pro', 'category' => 'experienced', 'type' => 'resume', 'html' => $this->seniorPro(), 'has_image' => true],
+            ['name' => 'Leadership', 'category' => 'experienced', 'type' => 'resume', 'html' => $this->leadership(), 'has_image' => true],
             ['name' => 'Advanced', 'category' => 'experienced', 'type' => 'resume', 'html' => $this->advanced()],
             ['name' => 'Master', 'category' => 'experienced', 'type' => 'resume', 'html' => $this->master()],
 
@@ -74,9 +74,12 @@ HTML;
     {
         return <<<'HTML'
 <div class="tpl-resume">
-    <div style="border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
-        <h1 style="margin: 0; font-size: 28px;">{{name}}</h1>
-        <p style="margin: 4px 0; font-size: 11px;">{{email}} • {{mobile}} • {{location}}</p>
+    <div style="display: flex; gap: 20px; align-items: center; border-bottom: 2px solid var(--primary, #000); padding-bottom: 8px; margin-bottom: 12px;">
+        <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: #eee;">{{profile_image_tag}}</div>
+        <div style="flex: 1;">
+            <h1 style="margin: 0; font-size: 28px; color: var(--primary, #000);">{{name}}</h1>
+            <p style="margin: 4px 0; font-size: 11px;">{{email}} • {{mobile}} • {{location}}</p>
+        </div>
     </div>
     <h2>Summary</h2>
     <p>{{summary}}</p>
@@ -152,11 +155,11 @@ HTML;
     {
         return <<<'HTML'
 <div class="tpl-resume">
-    <div style="text-align: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #4CAF50;">
-        <h1 style="margin: 0; color: #2E7D32; font-size: 26px;">{{name}}</h1>
+    <div style="text-align: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid var(--primary, #4CAF50);">
+        <h1 style="margin: 0; color: var(--primary, #2E7D32); font-size: 26px;">{{name}}</h1>
         <p style="margin: 4px 0; font-size: 11px;">{{email}} | {{mobile}} | {{location}}</p>
     </div>
-    <h2 style="color: #2E7D32;">About Me</h2>
+    <h2 style="color: var(--primary, #2E7D32);">About Me</h2>
     <p>{{summary}}</p>
     <h2 style="color: #2E7D32;">Experience</h2>
     {{experience}}
@@ -190,9 +193,12 @@ HTML;
     {
         return <<<'HTML'
 <div class="tpl-resume">
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px; margin: -38px -38px 14px; text-align: center;">
-        <h1 style="margin: 0; font-size: 28px;">{{name}}</h1>
-        <p style="margin: 4px 0; font-size: 11px;">{{location}} | {{email}} | {{mobile}}</p>
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px 16px; margin: -38px -38px 14px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.3); overflow: hidden; background: rgba(255,255,255,0.1);">{{profile_image_tag}}</div>
+        <div>
+            <h1 style="margin: 0; font-size: 28px; color: white;">{{name}}</h1>
+            <p style="margin: 4px 0; font-size: 11px; opacity: 0.9;">{{location}} | {{email}} | {{mobile}}</p>
+        </div>
     </div>
     <h2 style="color: #667eea;">About</h2>
     <p>{{summary}}</p>
@@ -245,17 +251,24 @@ HTML;
     private function executive(): string
     {
         return <<<'HTML'
-<div class="tpl-resume" style="column-count: 2; column-gap: 20px;">
-    <h1 style="column-span: all; margin: 0 0 4px; font-size: 26px; font-weight: 900;">{{name}}</h1>
-    <p style="column-span: all; margin: 0 0 14px; font-size: 11px;">{{location}} | {{email}} | {{mobile}}</p>
-    <h2 style="column-span: all;">Executive Summary</h2>
-    <p style="column-span: all;">{{summary}}</p>
-    <h2>Professional Experience</h2>
-    {{experience}}
-    <h2>Core Expertise</h2>
-    {{skills}}
-    <h2>Education</h2>
-    {{education}}
+<div class="tpl-resume">
+    <div style="display: flex; gap: 25px; margin-bottom: 20px; align-items: flex-start;">
+        <div style="width: 90px; height: 110px; border-radius: 4px; overflow: hidden; flex-shrink: 0; background: #f0f0f0;">{{profile_image_tag}}</div>
+        <div style="flex: 1;">
+            <h1 style="margin: 0 0 4px; font-size: 26px; font-weight: 900;">{{name}}</h1>
+            <p style="margin: 0 0 8px; font-size: 11px;">{{location}} | {{email}} | {{mobile}}</p>
+            <h2 style="margin-top: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">Executive Summary</h2>
+            <p style="margin: 0;">{{summary}}</p>
+        </div>
+    </div>
+    <div style="column-count: 2; column-gap: 20px;">
+        <h2>Professional Experience</h2>
+        {{experience}}
+        <h2>Core Expertise</h2>
+        {{skills}}
+        <h2>Education</h2>
+        {{education}}
+    </div>
 </div>
 HTML;
     }
@@ -264,9 +277,12 @@ HTML;
     {
         return <<<'HTML'
 <div class="tpl-resume">
-    <div style="border-left: 4px solid #1976d2; padding-left: 14px; margin-bottom: 12px;">
-        <h1 style="margin: 0; font-size: 28px; color: #1976d2;">{{name}}</h1>
-        <p style="margin: 4px 0; font-size: 11px; color: #666;">{{email}} • {{mobile}} • {{location}}</p>
+    <div style="display: flex; gap: 20px; margin-bottom: 12px; align-items: center;">
+        <div style="width: 75px; height: 75px; border-radius: 8px; overflow: hidden; flex-shrink: 0; border: 2px solid #1976d2;">{{profile_image_tag}}</div>
+        <div style="flex: 1; border-left: 4px solid #1976d2; padding-left: 14px;">
+            <h1 style="margin: 0; font-size: 28px; color: #1976d2;">{{name}}</h1>
+            <p style="margin: 4px 0; font-size: 11px; color: #666;">{{email}} • {{mobile}} • {{location}}</p>
+        </div>
     </div>
     <h2 style="color: #1976d2; border-bottom: 2px solid #1976d2; padding-bottom: 4px;">EXECUTIVE PROFILE</h2>
     <p>{{summary}}</p>
@@ -284,9 +300,12 @@ HTML;
     {
         return <<<'HTML'
 <div class="tpl-resume" style="background: #fafafa;">
-    <header style="background: #333; color: white; padding: 16px; margin: -38px -38px 14px; text-align: center;">
-        <h1 style="margin: 0; font-size: 32px;">{{name}}</h1>
-        <p style="margin: 4px 0;">{{email}} | {{mobile}} | {{location}}</p>
+    <header style="background: #333; color: white; padding: 24px 16px; margin: -38px -38px 14px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+        <div style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.2); overflow: hidden; background: rgba(255,255,255,0.1);">{{profile_image_tag}}</div>
+        <div>
+            <h1 style="margin: 0; font-size: 32px; color: white;">{{name}}</h1>
+            <p style="margin: 4px 0; opacity: 0.9;">{{email}} | {{mobile}} | {{location}}</p>
+        </div>
     </header>
     <h2 style="background: #333; color: white; padding: 6px 8px; margin: 12px -38px 8px; text-transform: uppercase;">Overview</h2>
     <p style="margin: 0 0 12px;">{{summary}}</p>
@@ -460,16 +479,26 @@ HTML;
     private function coverLetterModern(): string
     {
         return <<<'HTML'
-<div class="tpl-cover" style="font-family: 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; line-height: 1.8; color: #333;">
-    <div style="border-top: 4px solid #0f766e; padding-top: 20px; margin-bottom: 30px;">
-        <h1 style="margin: 0 0 5px; font-size: 24px; color: #0f766e;">{{name}}</h1>
-        <p style="margin: 0; color: #666; font-size: 13px;">{{email}} • {{mobile}} • {{location}}</p>
+<div class="tpl-cover" style="font-family: 'Segoe UI', system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 60px 50px; line-height: 1.8; color: #1f2937;">
+    <div style="margin-bottom: 30px;">
+        <h1 style="margin: 0 0 8px; font-size: 36px; font-weight: 800; color: #0f172a; letter-spacing: -0.03em; text-transform: uppercase; line-height: 1.1;">{{name}}</h1>
+        <p style="margin: 0; color: #64748b; font-size: 13px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;">{{email}} &bull; {{mobile}} &bull; {{location}}</p>
     </div>
-    <p style="margin: 0 0 20px; color: #666; font-size: 14px;">Dear Hiring Manager,</p>
-    <div style="margin: 0 0 30px; text-align: justify; line-height: 1.7;">{{body}}</div>
-    <div style="margin-top: 30px;">
-        <p style="margin: 0 0 10px;">Best regards,</p>
-        <p style="margin: 0; font-weight: 600; color: #0f766e;">{{name}}</p>
+    
+    <div style="height: 2px; background: #0d9488; margin-bottom: 40px; opacity: 0.6;"></div>
+
+    <div style="margin-bottom: 45px; border-left: 3px solid #0d9488; padding-left: 20px;">
+        <p style="margin: 0 0 4px; color: #64748b; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Opportunity</p>
+        <strong style="color: #0f172a; font-size: 18px; font-weight: 700;">{{job_role}} at {{company}}</strong>
+    </div>
+
+    <div style="margin-bottom: 25px; color: #1e293b; font-size: 15px; font-weight: 600;">Dear Hiring Manager,</div>
+    
+    <div style="margin-bottom: 60px; text-align: justify; color: #334155; font-size: 15px; line-height: 1.8; white-space: pre-wrap;">{{body}}</div>
+
+    <div style="color: #1e293b; font-size: 15px;">
+        <p style="margin-bottom: 8px; color: #64748b; font-size: 14px;">Sincerely,</p>
+        <p style="font-weight: 800; color: #0f172a; font-size: 18px; margin: 0;">{{name}}</p>
     </div>
 </div>
 HTML;

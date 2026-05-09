@@ -25,7 +25,19 @@ class CoverLetterController extends Controller
         if ($user) {
             $latestResume = \App\Models\Resume::where('user_id', $user->id)->latest()->first();
             if ($latestResume && !empty($latestResume->data)) {
-                $prefill = $renderer->coverLetterSampleData($latestResume->data);
+                $rd = $latestResume->data;
+                $prefill = [
+                    'name'            => $this->firstFilled(Arr::get($rd, 'name'), $sample['name']),
+                    'email'           => $this->firstFilled(Arr::get($rd, 'email'), $sample['email']),
+                    'mobile'          => $this->firstFilled(Arr::get($rd, 'mobile'), Arr::get($rd, 'contact'), $sample['mobile']),
+                    'location'        => $this->firstFilled(Arr::get($rd, 'location'), Arr::get($rd, 'address'), $sample['location']),
+                    'company'         => $sample['company'],
+                    'company_name'    => $sample['company_name'],
+                    'job_role'        => $this->firstFilled(Arr::get($rd, 'job_title'), $sample['job_role']),
+                    'skills'          => $this->firstFilled(Arr::get($rd, 'skills'), $sample['skills']),
+                    'job_description' => $sample['job_description'],
+                    'body'            => $sample['body'],
+                ];
             }
         }
 
@@ -57,12 +69,13 @@ class CoverLetterController extends Controller
                 'job_description' => ['nullable', 'string', 'max:8000'],
             ]);
 
-            $resume = isset($validated['resume_id']) ? Resume::find($validated['resume_id']) : null;
+            $uploadedResumeText = '';
+            $coverLetter = isset($request->cover_letter_id) ? CoverLetter::find($request->cover_letter_id) : null;
+            $resume = isset($validated['resume_id']) ? Resume::find($validated['resume_id']) : ($coverLetter ? $coverLetter->resume : null);
+
             if ($resume && $resume->user_id && $resume->user_id !== $request->user()?->id) {
                 abort(403);
             }
-
-            $uploadedResumeText = '';
 
             if ($request->hasFile('resume_file')) {
                 $uploadedResumeText = $this->cleanText($this->extractResumeText($request->file('resume_file')));
@@ -88,6 +101,9 @@ class CoverLetterController extends Controller
             if ($uploadedResumeText) {
                 $resumeContext['uploaded_resume_text'] = mb_substr($uploadedResumeText, 0, 12000);
                 $resumeContext['uploaded_resume_contact'] = $uploadedResumeContact;
+            } elseif ($coverLetter && Arr::get($coverLetter->data, 'resume_uploaded')) {
+                // If regenerating without a new file, but the previous one had a resume, we should ideally have stored the text
+                // For now, if we don't have the text, the AI will use the other pre-filled fields.
             }
             
             $result = $this->generateWithGemini($name, $jobRole, $company, $validated['job_description'] ?? '', $resumeContext, $validated['skills'] ?? '');
@@ -98,26 +114,47 @@ class CoverLetterController extends Controller
 
             $body = Arr::get($result, 'body');
 
-            $letter = CoverLetter::create([
-                'user_id' => $request->user()?->id,
-                'session_id' => $request->session()->getId(),
-                'template_id' => $validated['template_id'] ?? null,
-                'resume_id' => $resume?->id,
-                'job_role' => $jobRole,
-                'company' => $company ?: null,
-                'data' => [
-                    'name' => $name,
-                    'email' => $email,
-                    'mobile' => $mobile,
-                    'location' => $location,
-                    'company' => $company,
-                    'company_name' => $company,
+            if ($coverLetter) {
+                $coverLetter->update([
+                    'template_id' => $validated['template_id'] ?? $coverLetter->template_id,
                     'job_role' => $jobRole,
-                    'skills' => $validated['skills'] ?? '',
-                    'body' => $body,
-                    'resume_uploaded' => (bool) $uploadedResumeText,
-                ],
-            ]);
+                    'company' => $company ?: null,
+                    'data' => array_merge($coverLetter->data ?? [], [
+                        'name' => $name,
+                        'email' => $email,
+                        'mobile' => $mobile,
+                        'location' => $location,
+                        'company' => $company,
+                        'company_name' => $company,
+                        'job_role' => $jobRole,
+                        'skills' => $validated['skills'] ?? '',
+                        'body' => $body,
+                        'resume_uploaded' => (bool) ($uploadedResumeText ?: Arr::get($coverLetter->data, 'resume_uploaded')),
+                    ]),
+                ]);
+                $letter = $coverLetter;
+            } else {
+                $letter = CoverLetter::create([
+                    'user_id' => $request->user()?->id,
+                    'session_id' => $request->session()->getId(),
+                    'template_id' => $validated['template_id'] ?? null,
+                    'resume_id' => $resume?->id,
+                    'job_role' => $jobRole,
+                    'company' => $company ?: null,
+                    'data' => [
+                        'name' => $name,
+                        'email' => $email,
+                        'mobile' => $mobile,
+                        'location' => $location,
+                        'company' => $company,
+                        'company_name' => $company,
+                        'job_role' => $jobRole,
+                        'skills' => $validated['skills'] ?? '',
+                        'body' => $body,
+                        'resume_uploaded' => (bool) $uploadedResumeText,
+                    ],
+                ]);
+            }
 
             return response()->json(['success' => true, 'cover_letter_id' => $letter->id, 'letter' => $letter->data]);
         } catch (\Exception $e) {
@@ -147,26 +184,40 @@ class CoverLetterController extends Controller
             $mobile = trim($match[0]);
         }
 
-        $locationKeywords = '\b(?:India|USA|UK|Remote|Bengaluru|Bangalore|Mumbai|Delhi|Pune|Hyderabad|Chennai|Kolkata|Noida|Gurgaon|Ahmedabad|Jaipur|Surat|Lucknow|Kanpur|Nagpur|Indore|Thane|Bhopal|Visakhapatnam|Patna|Vadodara|Ghaziabad|Ludhiana|Agra|Nashik|Faridabad|Meerut|Rajkot|California|Texas|New York|London|Dubai|Singapore|Germany|France|Canada|Australia|Dubai|UAE|Singapore|Sydney|Melbourne|Toronto|Vancouver)\b';
+        $locationKeywords = '\b(?:India|USA|UK|Remote|Bengaluru|Bangalore|Mumbai|Delhi|Pune|Hyderabad|Chennai|Kolkata|Noida|Gurgaon|Ahmedabad|Jaipur|Surat|Lucknow|Kanpur|Nagpur|Indore|Thane|Bhopal|Visakhapatnam|Patna|Vadodara|Ghaziabad|Ludhiana|Agra|Nashik|Faridabad|Meerut|Rajkot|California|Texas|New York|London|Dubai|Singapore|Germany|France|Canada|Australia|Sydney|Melbourne|Toronto|Vancouver|San Francisco|Seattle|Chicago|Austin|Boston|Berlin|Paris|Amsterdam|Tokyo|Seoul)\b';
 
         $locationLine = $lines->first(function ($line) use ($locationKeywords) {
-            if (str_contains($line, '@') || preg_match('/\+?\d[\d\s().-]{7,}/', $line)) {
+            $line = trim($line);
+            if ($line === '') return false;
+
+            // Skip lines that look like email, mobile, or links
+            if (str_contains($line, '@') || preg_match('/\+?\d[\d\s().-]{7,}/', $line) || preg_match('/https?:\/\//i', $line)) {
                 return false;
             }
 
-            if (preg_match('/^(?:Location|Address|City|Place|Residence):\s*(.+)$/i', $line)) {
+            // Exclude common tech/skill keywords that often appear in comma-separated lists
+            $skillKeywords = '\b(?:React|JavaScript|HTML|CSS|PHP|Laravel|Python|Java|SQL|Node|Express|Git|AWS|Cloud|Agile|Scrum|Developer|Engineer|Consultant|Frontend|Backend|Fullstack|UI|UX|Designer|Manager|Lead|Senior|Junior)\b';
+            if (preg_match('/'.$skillKeywords.'/i', $line)) {
+                return false;
+            }
+
+            // High confidence patterns (prefixed with "Location:", "City:", etc.)
+            if (preg_match('/^(?:Location|Address|City|Place|Residence|Current Location):\s*(.+)$/i', $line)) {
                 return true;
             }
 
+            // Keyword based matches (must contain a known city/country)
             if (preg_match('/'.$locationKeywords.'/i', $line)) {
                 return true;
             }
 
-            return str_contains($line, ',') && mb_strlen($line) < 60;
+            // Strict city/state/country pattern (e.g. "Mumbai, MH" or "London, UK")
+            // Must have a comma, be short, and contain capitalized words
+            return str_contains($line, ',') && mb_strlen($line) < 50 && preg_match('/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z]/', $line);
         }) ?: '';
 
         $location = $locationLine;
-        if (preg_match('/^(?:Location|Address|City|Place|Residence):\s*(.+)$/i', $locationLine, $m)) {
+        if (preg_match('/^(?:Location|Address|City|Place|Residence|Current Location):\s*(.+)$/i', $locationLine, $m)) {
             $location = $m[1];
         }
 
@@ -241,6 +292,25 @@ class CoverLetterController extends Controller
         $text = preg_replace('/\n{3,}/', "\n\n", (string) $text);
 
         return trim((string) $text);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'letter' => ['required', 'array'],
+            'template_id' => ['nullable', 'exists:templates,id'],
+        ]);
+
+        $letter = CoverLetter::create([
+            'user_id' => auth()->id(),
+            'session_id' => $request->session()->getId(),
+            'template_id' => $validated['template_id'] ?? null,
+            'job_role' => Arr::get($validated['letter'], 'job_role'),
+            'company' => Arr::get($validated['letter'], 'company'),
+            'data' => $validated['letter'],
+        ]);
+
+        return response()->json(['success' => true, 'cover_letter_id' => $letter->id]);
     }
 
     public function save(Request $request, CoverLetter $coverLetter)

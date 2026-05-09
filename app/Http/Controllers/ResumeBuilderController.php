@@ -186,10 +186,9 @@ class ResumeBuilderController extends Controller
             $resume->forceFill(['is_paid' => true])->save();
         }
 
-        $normalized = $this->normalizeResume($resume->data);
         $html = $resume->template
-            ? view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderResume($resume->template, $normalized)])->render()
-            : view('resume.pdf', ['resume' => $normalized])->render();
+            ? view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderResume($resume->template, $resume->data)])->render()
+            : view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderResume(new \App\Models\Template(), $resume->data)])->render();
         $filename = str($resume->title ?: 'resume')->slug()->toString();
 
         if ($format === 'doc') {

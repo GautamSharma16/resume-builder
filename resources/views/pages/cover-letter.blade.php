@@ -5,6 +5,10 @@
 
 @section('content')
 
+<!-- Quill Rich Text Editor -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
 
 <style>
     /* ─── TOKENS - MATCHING HOMEPAGE STYLES ─────────────────── */
@@ -45,6 +49,14 @@
         --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
         --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+        /* Premium Glassmorphic Tokens */
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.4);
+        --glass-blur: blur(12px);
+        --emerald: #0f766e;
+        --emerald-glow: rgba(15, 118, 110, 0.15);
+        --navy-deep: #0f172a;
     }
 
     body {
@@ -275,6 +287,7 @@
         max-width: 1400px;
         margin: 0 auto;
         width: 100%;
+        overflow-x: hidden;
     }
     @media (min-width: 1024px) {
         .builder-main { grid-template-columns: 400px 1fr; }
@@ -287,24 +300,39 @@
         gap: 1.5rem;
     }
     .input-card {
-        background: var(--white);
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
         border-radius: var(--r-xl);
-        border: 1px solid var(--border);
+        border: 1px solid var(--glass-border);
         padding: 1.5rem;
-        box-shadow: var(--shadow-sm);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
         transition: all 0.3s var(--ease-spring);
+        position: relative;
+        overflow: hidden;
+    }
+    .input-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+        pointer-events: none;
     }
     .input-card:hover {
-        box-shadow: var(--shadow-md);
-        border-color: rgba(37,99,235,0.2);
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.12);
+        border-color: rgba(15, 118, 110, 0.3);
+        transform: translateY(-2px);
     }
     .input-card h2 {
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        color: var(--blue);
-        margin-bottom: 1.25rem;
+        font-size: 0.85rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        color: var(--emerald);
+        margin-bottom: 1.5rem;
         text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
     }
 
     .field-grid {
@@ -391,7 +419,7 @@
     .btn-generate {
         width: 100%;
         padding: 0.9rem;
-        background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+        background: linear-gradient(135deg, var(--emerald), #115e59);
         color: white;
         border: none;
         border-radius: var(--r-md);
@@ -404,10 +432,11 @@
         justify-content: center;
         gap: 0.6rem;
         margin-top: 0.5rem;
+        box-shadow: 0 4px 12px var(--emerald-glow);
     }
     .btn-generate:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(37,99,235,0.3);
+        box-shadow: 0 8px 24px rgba(15, 118, 110, 0.3);
     }
 
     /* Preview Panel */
@@ -417,15 +446,18 @@
         gap: 1.5rem;
     }
     .toolbar-card {
-        background: var(--white);
+        background: var(--glass-bg);
+        backdrop-filter: var(--glass-blur);
+        -webkit-backdrop-filter: var(--glass-blur);
         border-radius: var(--r-xl);
-        border: 1px solid var(--border);
-        padding: 0.75rem 1.25rem;
+        border: 1px solid var(--glass-border);
+        padding: 1rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
         flex-wrap: wrap;
-        gap: 0.75rem;
+        gap: 1rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     }
     .btn-toolbar {
         padding: 0.45rem 1rem;
@@ -457,23 +489,28 @@
     }
 
     .preview-canvas {
-        background: var(--surface-2);
-        border-radius: var(--r-xl);
-        padding: 2.5rem 1.5rem;
-        overflow: auto;
+        background: #f8fafc; /* Clean, minimal gray background like Image 2 */
+        border-radius: 0;
+        padding: 2.5rem 0.5rem;
+        overflow-x: hidden;
+        overflow-y: auto;
         display: flex;
         justify-content: center;
         align-items: flex-start;
-        min-height: 800px;
-        border: 1px solid var(--border);
+        min-height: calc(100vh - 120px);
+        width: 100%;
+        position: relative;
     }
     .preview-a4 {
         width: 794px;
         min-height: 1123px;
         background: white;
-        box-shadow: var(--shadow-lg);
-        border-radius: 4px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        border-radius: 2px;
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-family: 'EB Garamond', serif;
+        color: var(--navy-deep);
+        margin-bottom: 80px;
     }
 
     /* Loading Overlay (same scan loader as Enhance CV) */
@@ -637,6 +674,33 @@
         gap: 1.2rem;
         overflow-y: auto;
     }
+    .resume-upload-box {
+        display: block;
+        border: 2px dashed var(--border);
+        border-radius: var(--r-lg);
+        padding: 3rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: var(--surface);
+        position: relative;
+    }
+    .resume-upload-box:hover {
+        border-color: var(--blue);
+        background: var(--white);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+    .resume-upload-box.has-file {
+        border-color: var(--green);
+        background: var(--green-light);
+        border-style: solid;
+    }
+    .resume-upload-box:active {
+        transform: scale(0.98);
+    }
+    .resume-upload-content {
+        pointer-events: none;
+    }
     .modal-tmpl-card {
         border: 2px solid var(--border);
         border-radius: var(--r-lg);
@@ -644,6 +708,7 @@
         cursor: pointer;
         transition: all 0.2s;
         background: var(--white);
+        box-shadow: var(--shadow-md);
     }
     .modal-tmpl-card:hover {
         border-color: var(--blue);
@@ -668,6 +733,100 @@
     }
 
     /* Responsive */
+    @media (max-width: 1024px) {
+        .builder-main {
+            grid-template-columns: 1fr;
+            padding: 1rem 0.5rem;
+        }
+        .field-grid {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        .input-card {
+            padding: 1.25rem 1rem;
+        }
+        .builder-sidebar {
+            display: block;
+            width: 100%;
+            overflow-x: hidden;
+        }
+        .builder-sidebar.hidden-mobile {
+            display: none;
+        }
+        .builder-preview.hidden-mobile {
+            display: none;
+        }
+        .field-full {
+            grid-column: span 1 !important;
+        }
+        .toolbar-card {
+            display: none; /* Hide top toolbar on mobile */
+        }
+        .preview-canvas {
+            padding: 0.5rem 0; 
+            background: #fff;
+            min-height: 100vh;
+        }
+        .preview-a4 {
+            box-shadow: none;
+            border-radius: 0;
+            margin-bottom: 0;
+        }
+    }
+
+    .mobile-toggle {
+        display: none;
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #0f172a;
+        color: white;
+        padding: 0.5rem;
+        border-radius: 100px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        z-index: 2000;
+        gap: 0.5rem;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .mobile-toggle button {
+        padding: 0.6rem 1.4rem;
+        border-radius: var(--r-full);
+        border: none;
+        background: transparent;
+        color: rgba(255,255,255,0.7);
+        font-weight: 700;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.25s var(--ease-out);
+        white-space: nowrap;
+    }
+    .mobile-toggle button.active {
+        background: var(--emerald);
+        color: white;
+        box-shadow: 0 4px 12px rgba(15, 118, 110, 0.4);
+    }
+    @media (max-width: 1024px) {
+        .mobile-toggle { display: flex; }
+    }
+
+    /* Quill Styles Override */
+    .ql-container.ql-snow {
+        border-radius: 0 0 var(--r-md) var(--r-md);
+        border-color: var(--border) !important;
+        background: var(--surface);
+        font-family: var(--font-body);
+        font-size: 0.9rem;
+    }
+    .ql-toolbar.ql-snow {
+        border-radius: var(--r-md) var(--r-md) 0 0;
+        border-color: var(--border) !important;
+        background: white;
+    }
+    #cl-body-editor {
+        min-height: 350px;
+    }
+
     @media (max-width: 768px) {
         #step-pick { padding: 2rem 1rem; }
         .template-grid { gap: 1rem; }
@@ -676,11 +835,15 @@
         .preview-canvas { padding: 1rem; }
         .btn-toolbar { justify-content: center; }
     }
+    #cl-content {
+        width: 100%;
+        overflow-wrap: break-word;
+    }
 </style>
 
 {{-- STEP 1: PICKER (matching homepage section styling) --}}
 <div id="step-pick">
-    {{-- Decorative blobs (optional but matches homepage vibe) --}}
+    {{-- Decorative blobs --}}
     <div style="position: absolute; top: -80px; left: -80px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(37,99,235,0.08), transparent); border-radius: 50%; pointer-events: none; z-index: -1;"></div>
     <div style="position: absolute; bottom: 0; right: -60px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(139,92,246,0.06), transparent); border-radius: 50%; pointer-events: none; z-index: -1;"></div>
 
@@ -710,80 +873,167 @@
     </div>
 </div>
 
-{{-- STEP 2: BUILDER --}}
-<div id="step-build">
-    <div class="builder-main">
-        {{-- Sidebar --}}
-        <aside class="builder-sidebar">
-            <div class="input-card">
-                <h2>Upload Resume</h2>
-                <div class="field-group">
-                    <label>Resume <span style="font-weight:400;color:var(--muted);">(optional)</span></label>
-                    <label class="resume-upload-box" for="cl-resume-file">
-                        <input type="file" id="cl-resume-file" accept=".pdf,.doc,.docx">
-                        <span class="resume-upload-content">
-                            <span class="resume-upload-icon">
-                                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
-                            </span>
-                            <span class="resume-upload-text">
-                                <strong id="cl-resume-file-name">Upload resume for smarter AI writing</strong>
-                                <span>PDF, DOC, or DOCX. We will fill contact details when readable.</span>
-                            </span>
-                        </span>
-                    </label>
-                </div>
+{{-- STEP 2: ONBOARDING CHOICE --}}
+<div id="step-onboarding" style="display: none; padding: 6rem 2rem; max-width: 900px; margin: 0 auto; text-align: center;">
+    <div class="section-label">Getting Started</div>
+    <h1 class="section-heading">How would you like to <em>begin</em>?</h1>
+    <p style="color: var(--muted); margin-bottom: 3rem;">Upload your resume for AI-tailored content or start from scratch with a professional layout.</p>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+        <div class="input-card" onclick="chooseOnboarding('upload')" style="cursor: pointer; padding: 3rem 2rem; border: 2px solid var(--border); transition: all 0.3s var(--ease-spring);">
+            <div style="width: 60px; height: 60px; background: var(--blue-light); color: var(--blue); border-radius: var(--r-lg); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
             </div>
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem;">Upload Resume</h3>
+            <p style="font-size: 0.9rem; color: var(--muted);">We'll extract your details and match them to the job description using AI.</p>
+        </div>
 
-            <div class="input-card">
-                <h2>About You</h2>
-                <div class="field-grid">
-                    <div class="field-group">
-                        <label>Full Name</label>
-                        <input type="text" id="cl-name" class="form-input" placeholder="John Doe" value="{{ $prefill['name'] }}">
-                    </div>
-                    <div class="field-group">
-                        <label>Email Address</label>
-                        <input type="email" id="cl-email" class="form-input" placeholder="john@example.com" value="{{ $prefill['email'] }}">
-                    </div>
-                    <div class="field-group">
-                        <label>Phone Number</label>
-                        <input type="text" id="cl-mobile" class="form-input" placeholder="+91 98765 43210" value="{{ $prefill['mobile'] }}">
-                    </div>
-                    <div class="field-group">
-                        <label>Location</label>
-                        <input type="text" id="cl-location" class="form-input" placeholder="Bengaluru" value="{{ $prefill['location'] }}">
-                    </div>
-                </div>
+        <div class="input-card" onclick="chooseOnboarding('scratch')" style="cursor: pointer; padding: 3rem 2rem; border: 2px solid var(--border); transition: all 0.3s var(--ease-spring);">
+            <div style="width: 60px; height: 60px; background: var(--purple-light); color: var(--purple); border-radius: var(--r-lg); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
             </div>
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem;">Start from Scratch</h3>
+            <p style="font-size: 0.9rem; color: var(--muted);">Manually enter your details and write your own letter with our premium editor.</p>
+        </div>
+    </div>
 
-            <div class="input-card">
-                <h2>The Opportunity</h2>
+    <div style="margin-top: 3rem;">
+        <button onclick="goBack('pick')" class="btn-outline">Back to Templates</button>
+    </div>
+</div>
+
+{{-- STEP 3: RESUME & OPPORTUNITY --}}
+<div id="step-resume" style="display: none; padding: 2rem 1rem; max-width: 700px; margin: 0 auto;">
+    <style>
+        @media (min-width: 768px) {
+            #step-resume { padding: 4rem 2rem; }
+        }
+    </style>
+    <div class="input-card" style="margin-bottom: 2rem;">
+        <h2 style="text-align: center; font-size: 1.5rem; margin-bottom: 2rem;">Setup your <em>AI Writer</em></h2>
+        
+        <div class="field-group" style="margin-bottom: 2.5rem;">
+            <label style="font-size: 1rem; margin-bottom: 0.75rem;">Upload Resume</label>
+            <label class="resume-upload-box" for="cl-resume-file-main" style="padding: 2.5rem;">
+                <input type="file" id="cl-resume-file-main" accept=".pdf,.doc,.docx" style="opacity: 0; position: absolute; inset: 0; cursor: pointer; z-index: 1;">
+                <span class="resume-upload-content" style="flex-direction: column; text-align: center; gap: 1rem;">
+                    <span class="resume-upload-icon" style="width: 54px; height: 54px;">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+                    </span>
+                    <span class="resume-upload-text">
+                        <strong id="cl-resume-file-name-main" style="font-size: 1rem;">Click to upload your resume</strong>
+                        <span style="font-size: 0.8rem;">PDF, DOC, or DOCX up to 10MB</span>
+                    </span>
+                </span>
+            </label>
+        </div>
+
+        <div style="padding-top: 1rem; border-top: 1px solid var(--border); margin-bottom: 2rem;">
+            <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1.5rem;">The Opportunity (Optional)</h3>
+            <div class="field-grid">
                 <div class="field-group">
                     <label>Company Name</label>
-                    <input type="text" id="cl-company" class="form-input" placeholder="Acme Corp" value="{{ $prefill['company'] }}">
+                    <input type="text" id="cl-setup-company" class="form-input" placeholder="e.g. Acme Corp">
                 </div>
                 <div class="field-group">
                     <label>Job Title</label>
-                    <input type="text" id="cl-role" class="form-input" placeholder="Senior Product Designer" value="{{ $prefill['job_role'] }}">
+                    <input type="text" id="cl-setup-role" class="form-input" placeholder="e.g. Senior Designer">
+                </div>
+            </div>
+            <div class="field-group">
+                <label>Job Description</label>
+                <textarea id="cl-setup-description" class="form-input" placeholder="Paste the job requirements here for better AI tailoring..."></textarea>
+            </div>
+        </div>
+
+        <button id="generate-letter-main" class="btn-generate" style="padding: 1rem; font-size: 1rem;">
+            Generate My Cover Letter
+        </button>
+
+        <div style="text-align: center; margin-top: 1.5rem;">
+            <button onclick="goBack('onboarding')" class="btn-outline" style="border: none; color: var(--muted);">Back</button>
+        </div>
+    </div>
+</div>
+
+{{-- STEP 4: BUILDER --}}
+<div id="step-build" style="display: none;">
+    <div class="builder-main">
+        {{-- Sidebar --}}
+        <aside class="builder-sidebar">
+            {{-- 1. Letter Body (PRIORITY 1) --}}
+            <div class="input-card" id="edit-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h2 style="margin: 0;">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        Letter Content
+                    </h2>
+                    <button id="regenerate-letter" class="btn-generate" style="margin-top: 0; padding: 0.6rem 1.2rem; font-size: 0.85rem; width: auto; border-radius: var(--r-full);">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right: 4px;"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Regenerate
+                    </button>
+                </div>
+                <div id="resume-status-badge" class="hidden" style="margin-bottom: 1.5rem;">
+                    <span style="background: rgba(16, 185, 129, 0.1); color: var(--green); padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                        RESUME ATTACHED
+                    </span>
+                </div>
+                <div class="field-group">
+                    <div id="cl-body-editor"></div>
+                    <textarea id="cl-body" style="display:none;"></textarea>
+                </div>
+            </div>
+
+            {{-- 2. About You (PRIORITY 2) --}}
+            <div class="input-card">
+                <h2>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    Your Details
+                </h2>
+                <div class="field-grid">
+                    <div class="field-group">
+                        <label>Full Name</label>
+                        <input type="text" id="cl-name" class="form-input" placeholder="John Doe">
+                    </div>
+                    <div class="field-group">
+                        <label>Email Address</label>
+                        <input type="email" id="cl-email" class="form-input" placeholder="john@example.com">
+                    </div>
+                    <div class="field-group">
+                        <label>Phone Number</label>
+                        <input type="text" id="cl-mobile" class="form-input" placeholder="+91 98765 43210">
+                    </div>
+                    <div class="field-group">
+                        <label>Location</label>
+                        <input type="text" id="cl-location" class="form-input" placeholder="Bengaluru">
+                    </div>
+                </div>
+            </div>
+
+            {{-- 3. The Opportunity (PRIORITY 3) --}}
+            <div class="input-card">
+                <h2>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    Job Opportunity
+                </h2>
+                <div class="field-grid">
+                    <div class="field-group">
+                        <label>Company Name</label>
+                        <input type="text" id="cl-company" class="form-input" placeholder="Acme Corp">
+                    </div>
+                    <div class="field-group">
+                        <label>Job Title</label>
+                        <input type="text" id="cl-role" class="form-input" placeholder="Senior Product Designer">
+                    </div>
                 </div>
                 <div class="field-group">
                     <label>Key Skills</label>
-                    <input type="text" id="cl-skills" class="form-input" placeholder="UI/UX, React, Figma" value="{{ $prefill['skills'] }}">
+                    <input type="text" id="cl-skills" class="form-input" placeholder="UI/UX, React, Figma">
                 </div>
                 <div class="field-group">
                     <label>Job Description</label>
-                    <textarea id="cl-description" class="form-input" placeholder="Paste the job requirements here for better AI tailoring...">{{ $prefill['job_description'] ?? '' }}</textarea>
-                </div>
-                <button id="generate-letter" class="btn-generate">
-                    
-                    Generate Cover Letter
-                </button>
-            </div>
-            
-            <div class="input-card" id="edit-section">
-                <h2>Letter Body</h2>
-                <div class="field-group">
-                    <textarea id="cl-body" class="form-input" rows="12">{{ $prefill['body'] }}</textarea>
+                    <textarea id="cl-description" class="form-input" placeholder="Paste the job requirements..." style="min-height: 120px;"></textarea>
                 </div>
             </div>
         </aside>
@@ -794,14 +1044,14 @@
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                     <button class="btn-toolbar" id="btn-change-tmpl">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 5a1 1 0 01.3-.7l7-7a1 1 0 011.4 0l7 7a1 1 0 01.3.7v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/></svg>
-                        Change Template
+                        Template
                     </button>
                     <div style="padding-left: 0.5rem; border-left: 1px solid var(--border);">
                         <span id="active-tmpl-name" style="font-size: 0.8rem; font-weight: 600; color: var(--muted);">Modern</span>
                     </div>
                 </div>
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                    <button class="btn-toolbar" id="save-letter">Save Letter</button>
+                    <button class="btn-toolbar" id="save-letter">Save</button>
                     <button class="btn-toolbar btn-save" id="download-btn">Download PDF</button>
                 </div>
             </div>
@@ -812,6 +1062,10 @@
                 </div>
             </div>
         </main>
+    </div>
+    <div class="mobile-toggle">
+        <button id="toggle-edit" class="active">Edit Details</button>
+        <button id="toggle-preview">View Preview</button>
     </div>
 </div>
 
@@ -887,8 +1141,11 @@
             job_role: @json($prefill['job_role']),
             skills: @json($prefill['skills']),
             job_description: @json($prefill['job_description'] ?? ''),
-            body: @json($prefill['body'])
+            body: @json($prefill['body']),
+            resume_uploaded: @json($prefill['resume_uploaded'] ?? false)
         };
+
+        let quill = null;
 
         const $ = id => document.getElementById(id);
         const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -903,7 +1160,6 @@
 
         function showCoverScanOverlay() {
             const overlay = $('loading-overlay');
-            if (overlay && overlay.parentElement !== document.body) document.body.appendChild(overlay);
             overlay?.classList.add('active');
             document.body.style.overflow = 'hidden';
             startCoverScanAnimation();
@@ -943,7 +1199,7 @@
                         i.classList.add('done');
                     });
                 }
-                coverScanTimer = setTimeout(nextStage, stageIdx === 1 ? 600 : (stageIdx < coverScanStages.length ? 900 : 400));
+                coverScanTimer = setTimeout(nextStage, 800);
             }
 
             nextStage();
@@ -961,7 +1217,7 @@
                 company_name: esc(state.company),
                 job_role: esc(state.job_role),
                 skills: esc(state.skills),
-                body: nl2br(state.body)
+                body: state.body // Already HTML from Quill
             };
 
             Object.entries(tokens).forEach(([key, val]) => {
@@ -969,59 +1225,93 @@
                 html = html.replace(reg, val);
             });
 
+            // Cleanup empty separators like " |  | " or " •  • " if some tokens were empty
+            html = html.replace(/\s*[•|·]\s*(?=\s*[•|·]|$)/g, '');
+            html = html.replace(/[•|·]\s*$/g, '');
+            html = html.replace(/^\s*[•|·]\s*/g, '');
+
             $('cl-content').innerHTML = html;
-            scalePreview();
-        }
-
-        function syncLetterFields(letter) {
-            if (!letter) return;
-
-            const map = {
-                name: 'cl-name',
-                email: 'cl-email',
-                mobile: 'cl-mobile',
-                location: 'cl-location',
-                company: 'cl-company',
-                company_name: 'cl-company',
-                job_role: 'cl-role',
-                skills: 'cl-skills',
-                body: 'cl-body'
-            };
-
-            Object.entries(map).forEach(([key, id]) => {
-                if (!(key in letter)) return;
-                const value = letter[key] ?? '';
-                if (key === 'company_name' && (letter.company ?? '') !== '') return;
-                state[key === 'company_name' ? 'company' : key] = value;
-                const field = $(id);
-                if (field) field.value = value;
-            });
+            
+            const badge = $('resume-status-badge');
+            if (badge) {
+                badge.classList.toggle('hidden', !state.resume_uploaded);
+            }
+            
+            // Re-sync scroll height for better mobile experience
+            setTimeout(scalePreview, 50);
         }
 
         function scalePreview() {
             const canvas = $('preview-canvas');
             const a4 = $('preview-a4');
             if (!canvas || !a4) return;
-            const padding = 64;
-            const availW = canvas.clientWidth - padding;
-            const scale = Math.min(availW / 794, 0.85);
+            
+            const isMobile = window.innerWidth <= 1024;
+            const containerW = canvas.clientWidth;
+            if (containerW === 0) {
+                // If hidden, try to use the parent's width or window width
+                const parentW = canvas.parentElement.clientWidth;
+                if (parentW > 0) {
+                    scaleWithWidth(parentW, a4, isMobile);
+                }
+                return;
+            }
+            
+            scaleWithWidth(containerW, a4, isMobile);
+        }
+
+        function scaleWithWidth(containerW, a4, isMobile) {
+            const padding = isMobile ? 0 : 60; // Zero padding for edge-to-edge on mobile
+            const availW = containerW - padding;
+            const baseWidth = 794;
+            
+            let scale = availW / baseWidth;
+            
+            if (!isMobile) {
+                scale = Math.min(scale, 1);
+                if (scale > 0.85) scale = 0.85;
+            } else {
+                scale = (containerW / baseWidth); // Perfectly fill width
+            }
+
             a4.style.transform = `scale(${scale})`;
+            a4.style.transformOrigin = 'top center';
+            // Important: adjust the height of the container to match scaled height
             a4.style.marginBottom = `-${1123 * (1 - scale)}px`;
         }
 
         window.pickTemplate = function(id) {
             state.templateId = id;
             $('active-tmpl-name').textContent = tplNames[id];
-            $('step-pick').style.display = 'none';
-            $('step-build').style.display = 'flex';
-            render();
+            switchStep('onboarding');
+        };
+
+        window.chooseOnboarding = function(type) {
+            if (type === 'scratch') {
+                // Initialize with dummy data from state (already populated by $prefill)
+                syncStateToFields();
+                switchStep('build');
+                render();
+            } else {
+                switchStep('resume');
+            }
+        };
+
+        window.switchStep = function(stepId) {
+            ['step-pick', 'step-onboarding', 'step-resume', 'step-build'].forEach(id => {
+                $(id).style.display = (id === 'step-' + stepId) ? 'block' : 'none';
+                if (id === 'step-build' && id === 'step-' + stepId) $(id).style.display = 'flex';
+            });
             window.scrollTo(0,0);
+        };
+
+        window.goBack = function(stepId) {
+            switchStep(stepId);
         };
 
         window.applyTemplate = function(id) {
             state.templateId = id;
             $('active-tmpl-name').textContent = tplNames[id];
-            document.querySelectorAll('.modal-tmpl-card').forEach(c => c.classList.toggle('active', c.dataset.id === id));
             render();
             closeModal();
         };
@@ -1029,10 +1319,28 @@
         window.closeModal = () => $('tmpl-modal').classList.remove('open');
         $('btn-change-tmpl').addEventListener('click', () => $('tmpl-modal').classList.add('open'));
 
-        // Input Sync
-        const fields = ['cl-name', 'cl-email', 'cl-mobile', 'cl-location', 'cl-company', 'cl-role', 'cl-skills', 'cl-description', 'cl-body'];
+        function syncStateToFields() {
+            $('cl-name').value = state.name;
+            $('cl-email').value = state.email;
+            $('cl-mobile').value = state.mobile;
+            $('cl-location').value = state.location;
+            $('cl-company').value = state.company;
+            $('cl-role').value = state.job_role;
+            $('cl-skills').value = state.skills;
+            $('cl-description').value = state.job_description;
+            if (quill) {
+                quill.root.innerHTML = state.body;
+            } else {
+                $('cl-body').value = state.body;
+            }
+        }
+
+        // Input Sync for Builder
+        const fields = ['cl-name', 'cl-email', 'cl-mobile', 'cl-location', 'cl-company', 'cl-role', 'cl-skills', 'cl-description'];
         fields.forEach(id => {
-            $(id).addEventListener('input', e => {
+            const el = $(id);
+            if (!el) return;
+            el.addEventListener('input', e => {
                 let key = id.replace('cl-', '').replace('-', '_');
                 if (key === 'role') key = 'job_role';
                 if (key === 'description') key = 'job_description';
@@ -1041,97 +1349,182 @@
             });
         });
 
-        $('cl-resume-file')?.addEventListener('change', e => {
-            const file = e.target.files?.[0];
-            const label = $('cl-resume-file-name');
-            if (label) label.textContent = file ? file.name : 'Upload resume for smarter AI writing';
+        // Initialize Quill
+        function initQuill() {
+            if (!$('cl-body-editor')) return;
+            quill = new Quill('#cl-body-editor', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        ['bold', 'italic', 'underline'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['clean']
+                    ]
+                },
+                placeholder: 'Write your cover letter here...'
+            });
+
+            quill.on('text-change', () => {
+                state.body = quill.root.innerHTML;
+                render();
+            });
+
+            // Initial content
+            quill.root.innerHTML = state.body;
+        }
+
+        // Mobile Toggles
+        $('toggle-edit')?.addEventListener('click', () => {
+            document.querySelector('.builder-sidebar')?.classList.remove('hidden-mobile');
+            document.querySelector('.builder-preview')?.classList.add('hidden-mobile');
+            $('toggle-edit')?.classList.add('active');
+            $('toggle-preview')?.classList.remove('active');
         });
 
-        // AI Generation
-        $('generate-letter').addEventListener('click', async () => {
-            showCoverScanOverlay();
+        $('toggle-preview')?.addEventListener('click', () => {
+            document.querySelector('.builder-sidebar')?.classList.add('hidden-mobile');
+            document.querySelector('.builder-preview')?.classList.remove('hidden-mobile');
+            $('toggle-edit')?.classList.remove('active');
+            $('toggle-preview')?.classList.add('active');
             
+            // Multiple triggers to handle layout transitions
+            scalePreview();
+            setTimeout(scalePreview, 50);
+            setTimeout(scalePreview, 300);
+        });
+
+        // Ensure proper display on init
+        function initResponsive() {
+            if (window.innerWidth <= 1024) {
+                document.querySelector('.builder-preview')?.classList.add('hidden-mobile');
+            }
+            setTimeout(scalePreview, 500);
+        }
+        initResponsive();
+        initQuill();
+
+        // Resume file label sync
+        $('cl-resume-file-main')?.addEventListener('change', e => {
+            const file = e.target.files?.[0];
+            const nameEl = $('cl-resume-file-name-main');
+            const box = e.target.closest('.resume-upload-box');
+            
+            if (file) {
+                nameEl.textContent = 'Selected: ' + file.name;
+                box?.classList.add('has-file');
+                nameEl.style.color = 'var(--green)';
+                state.resume_uploaded = true;
+                render();
+            } else {
+                nameEl.textContent = 'Click to upload your resume';
+                box?.classList.remove('has-file');
+                nameEl.style.color = '';
+                state.resume_uploaded = false;
+                render();
+            }
+        });
+
+        // Generate flow
+        $('generate-letter-main').addEventListener('click', () => triggerGeneration(true));
+        $('regenerate-letter').addEventListener('click', () => triggerGeneration(false));
+
+        async function triggerGeneration(isFirst) {
+            if (!state.templateId) {
+                alert('Please select a template first.');
+                switchStep('pick');
+                return;
+            }
+
+            showCoverScanOverlay();
             try {
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
-                const appendFilled = (key, value) => {
-                    value = String(value ?? '').trim();
-                    if (value !== '') formData.append(key, value);
-                };
-
-                appendFilled('name', state.name);
-                appendFilled('email', state.email);
-                appendFilled('mobile', state.mobile);
-                appendFilled('location', state.location);
-                appendFilled('company_name', state.company);
-                appendFilled('job_role', state.job_role);
-                appendFilled('skills', state.skills);
-                appendFilled('job_description', $('cl-description').value);
-                appendFilled('template_id', state.templateId);
-
-                const resumeFile = $('cl-resume-file')?.files?.[0];
-                if (resumeFile) formData.append('resume_file', resumeFile);
+                formData.append('template_id', state.templateId);
+                
+                if (isFirst) {
+                    const company = $('cl-setup-company').value;
+                    const role = $('cl-setup-role').value;
+                    const desc = $('cl-setup-description').value;
+                    const file = $('cl-resume-file-main').files[0];
+                    
+                    if (company) formData.append('company_name', company);
+                    if (role) formData.append('job_role', role);
+                    if (desc) formData.append('job_description', desc);
+                    if (file) formData.append('resume_file', file);
+                } else {
+                    formData.append('name', state.name || '');
+                    formData.append('email', state.email || '');
+                    formData.append('mobile', state.mobile || '');
+                    formData.append('location', state.location || '');
+                    formData.append('company_name', state.company || '');
+                    formData.append('job_role', state.job_role || '');
+                    formData.append('skills', state.skills || '');
+                    formData.append('job_description', state.job_description || '');
+                    if (state.id) formData.append('cover_letter_id', state.id);
+                }
 
                 const response = await fetch('{{ route("cover-letter.generate") }}', {
                     method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                     body: formData
                 });
 
                 const data = await response.json();
                 if (data.success) {
-                    state.id = data.cover_letter_id;
-                    syncLetterFields(data.letter);
+                    state.id = data.cover_letter_id || state.id;
+                    if (data.letter) {
+                        const oldId = state.id;
+                        Object.assign(state, data.letter);
+                        state.id = oldId;
+                    }
+                    syncStateToFields();
+                    switchStep('build');
                     render();
                 } else {
                     alert(data.message || 'Generation failed.');
                 }
             } catch (err) {
-                console.error(err);
                 alert('Connection error.');
             } finally {
                 hideCoverScanOverlay();
             }
-        });
+        }
 
-        // Save
+        // Save & Download
         $('save-letter').addEventListener('click', async () => {
-            if (!state.id) {
-                alert('Please generate the letter first.');
-                return;
-            }
             try {
-                const response = await fetch(`/cover-letter/${state.id}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ letter: state })
+                const isNew = !state.id;
+                const url = isNew ? '/cover-letter' : `/cover-letter/${state.id}`;
+                const method = isNew ? 'POST' : 'PATCH';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ 
+                        letter: state,
+                        template_id: state.templateId
+                    })
                 });
-                if (response.ok) alert('Saved successfully!');
-                else alert('Save failed.');
+
+                const data = await response.json();
+                if (response.ok) {
+                    if (isNew && data.cover_letter_id) {
+                        state.id = data.cover_letter_id;
+                    }
+                    alert('Saved successfully!');
+                } else {
+                    alert('Save failed.');
+                }
             } catch (err) { alert('Save failed.'); }
         });
 
-        // Download
         $('download-btn').addEventListener('click', () => {
-            if (!state.id) {
-                alert('Please generate the letter first.');
-                return;
-            }
-            if (isAuthenticated && downloadRequiresPlan) {
-                window.openPlanDownloadModal?.();
-                return;
-            }
+            if (!state.id) { alert('Please generate the letter first.'); return; }
+            if (isAuthenticated && downloadRequiresPlan) { window.openPlanDownloadModal?.(); return; }
             window.location.href = `/cover-letter/${state.id}/download/pdf`;
         });
 
         window.addEventListener('resize', scalePreview);
-        setTimeout(scalePreview, 100);
     })();
 </script>
 

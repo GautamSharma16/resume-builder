@@ -36,7 +36,9 @@
             padding-bottom: 2px;
         }
         p { margin: 0 0 8px; overflow-wrap: anywhere; word-break: break-word; }
-        ul { margin: 6px 0 0 18px; padding: 0; }
+        ul, ol { margin: 6px 0 0 18px; padding: 0; }
+        ul { list-style-type: disc; }
+        ol { list-style-type: decimal; }
         li { margin-bottom: 4px; overflow-wrap: anywhere; word-break: break-word; }
         .skills span {
             display: inline-block;
@@ -67,7 +69,11 @@
 
     @if($resume['summary'])
         <h2>Summary</h2>
-        <p>{{ $resume['summary'] }}</p>
+        @if(preg_match('/<[a-z][\s\S]*>/i', $resume['summary']))
+            <div style="margin: 0 0 8px; overflow-wrap: anywhere; word-break: break-word;">{!! $resume['summary'] !!}</div>
+        @else
+            <p>{{ $resume['summary'] }}</p>
+        @endif
     @endif
 
     @if(count($resume['skills']))
@@ -88,11 +94,20 @@
                     <div class="muted">{{ $text($experience['company']) }}</div>
                 @endif
                 @if(count($experience['points']))
-                    <ul>
-                        @foreach($experience['points'] as $point)
-                            <li>{{ $text($point) }}</li>
-                        @endforeach
-                    </ul>
+                    @php 
+                        $isHtml = count($experience['points']) === 1 && preg_match('/<[a-z][\s\S]*>/i', $experience['points'][0]); 
+                    @endphp
+                    @if($isHtml)
+                        <div style="margin: 6px 0 0 18px;">
+                            {!! $experience['points'][0] !!}
+                        </div>
+                    @else
+                        <ul>
+                            @foreach($experience['points'] as $point)
+                                <li>{{ $text($point) }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
                 @endif
             </div>
         @endforeach

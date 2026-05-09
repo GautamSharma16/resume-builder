@@ -144,8 +144,11 @@
     function renderExperience() {
         return state.experience.map(e => {
             if (!e.company && !e.role && !e.period && !e.points.some(Boolean)) return '';
-            const pts = e.points.filter(Boolean).map(p => `<li>${rich(p)}</li>`).join('');
-            return `<div class="tpl-role"><div class="tpl-role-head"><strong>${esc(e.role)}</strong><span>${esc(e.period)}</span></div><p>${esc(e.company)}</p><ul>${pts}</ul></div>`;
+            const isHtml = e.points.length === 1 && /<[a-z][\s\S]*>/i.test(e.points[0]);
+            const pts = isHtml 
+                ? e.points[0] 
+                : (e.points.filter(Boolean).length ? `<ul>${e.points.filter(Boolean).map(p => `<li>${rich(p)}</li>`).join('')}</ul>` : '');
+            return `<div class="tpl-role"><div class="tpl-role-head"><strong>${esc(e.role)}</strong><span>${esc(e.period)}</span></div><p>${esc(e.company)}</p>${pts}</div>`;
         }).join('');
     }
     function renderList(arr) {
@@ -170,23 +173,26 @@
             .split('[[' + key + ']]').join(value);
     }
     function hasResumePlaceholders(html) {
-        return /\{\{\s*(name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image)\s*\}\}/i.test(html)
-            || /\[\[\s*(name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image)\s*\]\]/i.test(html)
+        const tokens = ['name', 'last_name', 'job_title', 'email', 'mobile', 'location', 'contact', 'address', 'summary', 'skills', 'experience', 'education', 'projects', 'social_links', 'profile_image', 'profile_image_url', 'profile_image_tag'];
+        return new RegExp('\\{\\{\\s*(' + tokens.join('|') + ')\\s*\\}\\}', 'i').test(html)
+            || new RegExp('\\[\\[\\s*(' + tokens.join('|') + ')\\s*\\]\\]', 'i').test(html)
             || /\{\{\s*\$resume|\{\{\s*\$(name|last_name|job_title|email|mobile|location|summary|skills|experience|education|projects|social_links|profile_image)|@@foreach\s*\(\s*\$resume/i.test(html);
     }
     function editableTemplateShell() {
         return `
             <div class="tpl-resume tpl-uploaded-editable" style="font-family:Inter,Arial,sans-serif;color:#172033;padding:42px;line-height:1.45;">
-                <header style="border-bottom:3px solid var(--primary, #2563eb);padding-bottom:16px;margin-bottom:22px;display:flex;gap:18px;align-items:flex-start;">
-                    <div>@{{profile_image}}</div>
-                    <div style="flex:1;">
-                        <h1 style="margin:0 0 6px;font-size:30px;letter-spacing:.04em;text-transform:uppercase;color:var(--primary, #2563eb);">@{{name}}</h1>
-                        <p style="margin:0 0 4px;font-size:14px;color:#334155;">@{{job_title}}</p>
-                        <p style="margin:0;font-size:12px;color:#475569;">@{{email}} | @{{mobile}} | @{{location}}</p>
-                        <p style="margin:4px 0 0;font-size:12px;color:#475569;">@{{social_links}}</p>
-                    </div>
-                </header>
-                <section><h2>Professional Summary</h2><p>@{{summary}}</p></section>
+                <table style="width:100%; border-bottom:3px solid var(--primary, #2563eb); padding-bottom:16px; margin-bottom:22px; border-collapse: collapse;">
+                    <tr>
+                        <td style="vertical-align: top; text-align: left;">
+                            <h1 style="margin:0 0 6px; font-size:30px; letter-spacing:.04em; text-transform:uppercase; color:var(--primary, #2563eb); text-align: left;">@{{name}}</h1>
+                            <p style="margin:0 0 4px; font-size:14px; color:#334155; text-align: left;">@{{job_title}}</p>
+                            <p style="margin:0; font-size:12px; color:#475569; text-align: left;">@{{email}} | @{{mobile}} | @{{location}}</p>
+                            <p style="margin:4px 0 0; font-size:12px; color:#475569; text-align: left;">@{{social_links}}</p>
+                        </td>
+                        <td style="width: 100px; vertical-align: top; text-align: right;">@{{profile_image}}</td>
+                    </tr>
+                </table>
+                <section><h2>Professional Summary</h2><div style="margin-bottom:7px">@{{summary}}</div></section>
                 <section><h2>Skills</h2><div class="tpl-badges">@{{skills}}</div></section>
                 <section><h2>Experience</h2>@{{experience}}</section>
                 <section><h2>Projects</h2>@{{projects}}</section>
@@ -247,6 +253,11 @@
                 border: 2px solid var(--primary);
                 border-radius: 8px;
             }
+            /* Broad overrides for templates without specific classes */
+            .resume-sheet-preview .tpl-resume h1, 
+            .resume-sheet-preview .tpl-resume h2,
+            .resume-sheet-preview .tpl-resume h3 { color: var(--primary) !important; }
+            .resume-sheet-preview .tpl-resume hr { border-top: 2px solid var(--primary) !important; }
         </style>`;
     }
     function renderTemplateHtml(template) {
@@ -265,7 +276,7 @@
             location:     esc(state.location || 'Mumbai, India'),
             contact:      esc(state.contact || [state.email, state.mobile].filter(Boolean).join(' | ') || 'alex@example.com | +91 98765 43210'),
             address:      esc(state.address || state.location || 'Mumbai, India'),
-            summary:      state.summary ? rich(state.summary) : '',
+            summary:      state.summary ? (/<[a-z][\s\S]*>/i.test(state.summary) ? state.summary : rich(state.summary)) : '',
             social_links: esc(state.social_links.join(' | ')),
             skills:       state.skills.length ? renderSkills() : '<span class="tpl-badge">Leadership</span><span class="tpl-badge">React</span><span class="tpl-badge">Python</span><span class="tpl-badge">Product Strategy</span>',
             experience:   state.experience.some(e => e.company || e.role || e.period || e.points.some(Boolean))
@@ -273,8 +284,9 @@
                 : '<div class="tpl-role"><div class="tpl-role-head"><strong>Senior Engineer</strong><span>2021-Present</span></div><p>TechCorp</p><ul><li>Led a team of 6 engineers across product and platform initiatives.</li><li>Reduced API latency by 40% through profiling and service optimization.</li></ul></div>',
             education:    state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ? renderList(state.education) : '',
             projects:     state.projects.some(p => p?.name || typeof p === 'string') ? renderList(state.projects) : '<ul><li><strong>Open Resume</strong><span class="tpl-description">Built a resume builder with React and Node.js.</span></li></ul>',
-            profile_image: state.profile_image ? `<img src="${state.profile_image}" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">` : '',
+            profile_image: state.profile_image || '',
             profile_image_url: state.profile_image || '',
+            profile_image_tag: state.profile_image ? `<img src="${state.profile_image}" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">` : '',
         };
         Object.entries(values).forEach(([k, v]) => { output = replaceToken(output, k, v); });
 
@@ -357,7 +369,7 @@
                 </div>
                 ${state.summary ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Summary</h2><p style="font-size:11.5px;margin:0 0 14px;">${rich(state.summary)}</p>` : ''}
                 ${state.skills.length ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Skills</h2><p style="font-size:11px;margin:0 0 14px;">${esc(state.skills.join(', '))}</p>` : ''}
-                ${state.experience.some(e=>e.company||e.role) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Experience</h2>${state.experience.map(e => e.company||e.role ? `<div style="margin-bottom:12px;"><strong style="font-size:11.5px;color:${primaryColor};">${esc(e.role)}</strong>${e.period?` <span style="float:right;color:#6b7280;font-size:10px;">${esc(e.period)}</span>`:''}<br><span style="color:#4b5563;font-size:10.5px;">${esc(e.company)}</span><ul style="margin:4px 0 0 14px;padding:0;">${e.points.filter(Boolean).map(p=>`<li style="font-size:11px;margin-bottom:2px;">${rich(p)}</li>`).join('')}</ul></div>` : '').join('')}` : ''}
+                ${state.experience.some(e=>e.company||e.role) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Experience</h2>${state.experience.map(e => e.company||e.role ? `<div style="margin-bottom:12px;"><strong style="font-size:11.5px;color:${primaryColor};">${esc(e.role)}</strong>${e.period?` <span style="float:right;color:#6b7280;font-size:10px;">${esc(e.period)}</span>`:''}<br><span style="color:#4b5563;font-size:10.5px;">${esc(e.company)}</span>${(e.points.length === 1 && /<[a-z][\\s\\S]*>/i.test(e.points[0])) ? `<div style="font-size:11px;margin:4px 0 0 14px;">${e.points[0]}</div>` : `<ul style="margin:4px 0 0 14px;padding:0;">${e.points.filter(Boolean).map(p=>`<li style="font-size:11px;margin-bottom:2px;">${rich(p)}</li>`).join('')}</ul>`}</div>` : '').join('')}` : ''}
                 ${state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Education</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.education.filter(e => e?.degree || e?.stream || e?.institution || e?.year).map(e=>`<li style="font-size:11px;"><strong>${esc([e.degree, e.stream].filter(Boolean).join(' - '))}</strong>${[e.institution, e.year].filter(Boolean).length ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc([e.institution, e.year].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>` : ''}
                 ${projectsHtml ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Projects</h2><ul style="margin:0 0 0 14px;padding:0;">${projectsHtml}</ul>` : ''}
             </div>`;
@@ -421,15 +433,17 @@
         const template = templates[selectedTemplateId];
         const imgSection = $('image-upload-section');
         if (imgSection) {
-            imgSection.style.display = template?.has_image ? 'block' : 'none';
+            imgSection.classList.toggle('hidden', !template?.has_image);
             const imgPreview = $('cv-image-preview');
             const placeholder = $('cv-image-placeholder');
             if (state.profile_image) {
                 if (imgPreview) { imgPreview.src = state.profile_image; imgPreview.classList.remove('hidden'); }
                 if (placeholder) placeholder.classList.add('hidden');
+                if ($('remove-image-btn')) $('remove-image-btn').classList.remove('hidden');
             } else {
                 if (imgPreview) imgPreview.classList.add('hidden');
                 if (placeholder) placeholder.classList.remove('hidden');
+                if ($('remove-image-btn')) $('remove-image-btn').classList.add('hidden');
             }
         }
 
@@ -452,17 +466,11 @@
                 </div>
                 <div class="rp-entry-field">
                     <label class="rp-entry-label">Key responsibilities <span class="rp-entry-hint">(one bullet per line)</span></label>
-                    <div class="rich-text-wrapper" style="margin-top: 0.3rem;">
-                        <div class="rich-text-toolbar">
-                            <button type="button" class="rt-btn" data-rich-command="bold" title="Bold"><b>B</b></button>
-                            <button type="button" class="rt-btn" data-rich-command="italic" title="Italic"><i>I</i></button>
-                            <button type="button" class="rt-btn" data-rich-command="underline" title="Underline"><u>U</u></button>
-                            <button type="button" class="rt-btn" data-rich-command="list" title="Bulleted list">•</button>
-                            <button type="button" class="ai-gen-btn" onclick="generateAIText('experience', this.closest('.rich-text-wrapper').querySelector('textarea'), this)">
-                                <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM15 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0115 10zM6.5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 016.5 10zM14.61 5.39a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM7.51 12.49a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM14.61 14.61a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06zM7.51 7.51a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06z"/></svg>
-                                Generate with AI
-                            </button>
-                        </div>
+                    <button type="button" class="ai-gen-btn" style="align-self: flex-start; margin-top: 0.3rem;" onclick="generateAIText('experience', this.closest('.rp-entry-field').querySelector('textarea'), this)">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM15 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0115 10zM6.5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 016.5 10zM14.61 5.39a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM7.51 12.49a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM14.61 14.61a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06zM7.51 7.51a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06z"/></svg>
+                        Generate with AI
+                    </button>
+                    <div style="margin-top: 0.5rem;">
                         <textarea class="rp-input rp-input-ta" data-k="points" rows="4" placeholder="• Led a team of 5 engineers&#10;• Reduced load time by 40%">${esc(e.points.join('\n'))}</textarea>
                     </div>
                 </div>
@@ -519,6 +527,11 @@
                     </button>
                 </div>`).join('');
         }
+        
+        if (typeof tinymce !== 'undefined') {
+            tinymce.remove('.rp-input-ta');
+            if (typeof initTinyMCE === 'function') initTinyMCE();
+        }
     }
 
     /* ── Zoom ── */
@@ -539,22 +552,48 @@
     function applyColorSelection(color) {
         state.primary_color = color || '';
         state.primary_color_customized = state.primary_color !== '';
-
-        document.querySelectorAll('.color-option').forEach(b => {
-            const buttonColor = b.dataset.color || '';
-            const active = buttonColor === state.primary_color;
-            b.classList.toggle('active', active);
-            b.style.borderColor = active
-                ? 'var(--navy, var(--slate-900, #0b1221))'
-                : (buttonColor ? 'transparent' : '#e5e7eb');
+        
+        // Update UI circles
+        document.querySelectorAll('.color-circle-btn').forEach(btn => {
+            btn.classList.remove('active');
+            btn.style.boxShadow = 'none';
+            btn.style.borderColor = btn.classList.contains('original') ? '#0b1221' : 'transparent';
         });
 
+        const activeBtn = Array.from(document.querySelectorAll('.color-circle-btn')).find(btn => {
+            if (color === '') return btn.classList.contains('original');
+            return btn.title.toLowerCase() === getColorName(color).toLowerCase();
+        });
+
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+            if (!activeBtn.classList.contains('original')) {
+                activeBtn.style.boxShadow = `0 0 0 2px #fff, 0 0 0 4px ${color}`;
+            } else {
+                activeBtn.style.borderColor = '#2563eb';
+                activeBtn.style.color = '#2563eb';
+            }
+        }
+
         renderTemplatePreview();
-        refreshTemplatePopupThumbs();
+    }
+    window.applyColorSelection = applyColorSelection;
+
+    function getColorName(hex) {
+        if (!hex) return 'original color';
+        const map = { '#3b82f6': 'blue', '#10b981': 'green', '#475569': 'slate', '#e11d48': 'rose', '#6366f1': 'indigo' };
+        return map[hex.toLowerCase()] || '';
     }
 
     /* ── Apply autofill ── */
     const applyResumeData = (resume) => {
+        // Hide onboarding and show builder
+        document.body.classList.add('is-builder');
+        const onboarding = $('rp-onboarding-view');
+        const builder = $('rp-builder-view');
+        if (onboarding) onboarding.style.display = 'none';
+        if (builder) builder.classList.add('visible');
+
         const keepColor = {
             primary_color: state.primary_color,
             primary_color_customized: state.primary_color_customized,
@@ -564,13 +603,14 @@
         ensureDefaults();
         renderEditor();
         applyColorSelection(state.primary_color_customized ? state.primary_color : '');
+        goToStep(1);
     };
     window.applyResumeData = applyResumeData;
 
     /* ═══════════════════════════════════════════
        STEP NAVIGATION — uses .rp-step-tab
     ═══════════════════════════════════════════ */
-    const stepNames = ["", "Contacts", "Experience", "Education", "Skills", "Summary", "Finalize"];
+    const stepNames = ["", "Contacts", "Summary", "Experience", "Education", "Skills", "Finalize"];
     function goToStep(step) {
         currentStep = Math.max(1, Math.min(step, 6));
 
@@ -598,7 +638,10 @@
         const btnNext = $('btn-next');
         const btnBack = $('btn-back');
         if (btnBack) {
-            btnBack.style.visibility = currentStep > 1 ? 'visible' : 'hidden';
+            btnBack.style.visibility = 'visible';
+            btnBack.innerHTML = currentStep > 1 
+                ? '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Back'
+                : '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Exit';
         }
         if (btnNext) {
             if (currentStep < 6) {
@@ -622,7 +665,10 @@
 
     /* Wire next / prev buttons */
     $('btn-next')?.addEventListener('click', () => goToStep(currentStep + 1));
-    $('btn-back')?.addEventListener('click', () => goToStep(currentStep - 1));
+    $('btn-back')?.addEventListener('click', () => {
+        if (currentStep > 1) goToStep(currentStep - 1);
+        else if (typeof backToOnboarding === 'function') backToOnboarding();
+    });
 
     $('edit-resume')?.addEventListener('click', () => goToStep(1));
 
@@ -665,7 +711,7 @@
         const i = Number(block.dataset.exp);
         const k = e.target.dataset.k;
         state.experience[i][k] = k === 'points'
-            ? e.target.value.split('\n').map(x => x.trim()).filter(Boolean)
+            ? (/<[a-z][\s\S]*>/i.test(e.target.value) ? [e.target.value] : e.target.value.split('\n').map(x => x.trim()).filter(Boolean))
             : e.target.value;
         renderTemplatePreview();
     });
@@ -694,6 +740,7 @@
 
     templateIdEl.addEventListener('change', e => {
         selectedTemplateId = String(e.target.value || '');
+        renderEditor();
         renderTemplatePreview();
     });
 
@@ -707,6 +754,11 @@
 
     function applyRichCommand(textarea, command) {
         if (!textarea) return;
+        if (typeof tinymce !== 'undefined' && textarea.id && tinymce.get(textarea.id)) {
+            tinymce.get(textarea.id).execCommand(command);
+            return;
+        }
+        
         const start = textarea.selectionStart ?? textarea.value.length;
         const end = textarea.selectionEnd ?? start;
         const selected = textarea.value.slice(start, end);
@@ -966,7 +1018,9 @@
                 templateIdEl.dispatchEvent(new Event('change'));
             }
 
-            applyColorSelection('');
+            // Independent color change: reset to original when switching templates
+            applyColorSelection(''); 
+            
             setTimeout(() => templatePopup.classList.remove('open', 'visible'), 160);
         });
     }
@@ -981,22 +1035,92 @@
         if (app.dataset.authenticated === '1' && app.dataset.downloadRequiresPlan === '1') {
             window.openPlanDownloadModal?.(); return;
         }
-        if (savedResumeId) { window.location.href = `/resume/${savedResumeId}/download/pdf`; return; }
-        const loginUrl = app.dataset.loginUrl;
-        if (loginUrl) window.location.href = loginUrl + '?redirect=' + encodeURIComponent(window.location.href);
+        // Trigger the save button click to ensure data is synced before redirecting
+        if (saveBtnEl) {
+            saveBtnEl.click();
+        } else if (savedResumeId) {
+            window.location.href = `/resume/${savedResumeId}/download/pdf`;
+        }
     });
 
     /* ── Bootstrap ── */
-    if (window.matchMedia('(max-width: 600px)').matches) previewZoom = 42;
+    if (window.matchMedia('(max-width: 600px)').matches) {
+        previewZoom = 42;
+    } else if (window.matchMedia('(max-width: 900px)').matches) {
+        previewZoom = 85;
+    } else if (window.matchMedia('(max-width: 1300px)').matches) {
+        previewZoom = 80;
+    }
     setZoom(previewZoom);
     setSourceState('manual');
     applyColorSelection(state.primary_color_customized ? state.primary_color : '');
     renderEditor();
     renderTemplatePreview();
     goToStep(1);
+
+    // Initialize color circles
+    applyColorSelection(state.primary_color || '');
+
+    window.setMobileView = (view) => {
+        const builder = $('rp-builder-view');
+        if (!builder) return;
+        
+        builder.classList.remove('view-form', 'view-preview');
+        builder.classList.add('view-' + view);
+
+        document.getElementById('mob-btn-form')?.classList.toggle('active', view === 'form');
+        document.getElementById('mob-btn-preview')?.classList.toggle('active', view === 'preview');
+        
+        if (view === 'preview') {
+            setTimeout(renderTemplatePreview, 50);
+        }
+    };
+
+    function updatePreviewScale() {
+        const viewport = $('preview-viewport');
+        const preview = $('cv-preview');
+        if (!viewport || !preview) return;
+
+        const isMobile = window.innerWidth <= 1024;
+        const containerWidth = viewport.offsetWidth;
+        
+        if (containerWidth === 0) {
+            setTimeout(updatePreviewScale, 150);
+            return;
+        }
+
+        const resumeWidth = 794; 
+        const padding = isMobile ? 0 : 40;
+        const availWidth = containerWidth - padding;
+        
+        let scale = availWidth / resumeWidth;
+        
+        if (isMobile) {
+            // Force it to fill the width on mobile
+            scale = containerWidth / resumeWidth;
+        } else {
+            scale = Math.min(0.98, scale);
+        }
+        
+        preview.style.transform = `scale(${scale})`;
+        preview.style.transformOrigin = 'top center';
+        preview.style.width = `${resumeWidth}px`;
+        preview.style.margin = isMobile ? '0' : '0 auto';
+        
+        // Adjust viewport height to match scaled preview
+        viewport.style.minHeight = (1123 * scale + 80) + 'px';
+    }
+    window.addEventListener('resize', updatePreviewScale);
+
+    // Patch renderTemplatePreview to include scaling
+    const originalRenderPreview = renderTemplatePreview;
+    renderTemplatePreview = function() {
+        originalRenderPreview();
+        setTimeout(updatePreviewScale, 10);
+    };
+
 })();
 </script>
-
 {{-- ── Entry card & edu row styles injected here so they apply to JS-rendered HTML ── --}}
 <style>
 /* ═══════════════════════════════════════════════════════
