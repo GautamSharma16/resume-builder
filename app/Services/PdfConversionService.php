@@ -33,6 +33,7 @@ class PdfConversionService
     // Override with absolute paths if binaries exist but aren't in PATH
     private string $pdftohtmlBin   = 'pdftohtml';
     private string $wkhtmltopdfBin = 'wkhtmltopdf';
+    private ?string $nodeBin = null;
 
     // ──────────────────────────────────────────────────────────────────────
     //  PDF → HTML
@@ -173,6 +174,20 @@ PROMPT;
             "Run: composer require dompdf/dompdf\n" .
             "This works on shared hosting and all other environments."
         );
+    }
+
+    /**
+     * Strict Puppeteer-only HTML to PDF conversion.
+     */
+    public function htmlToPdfWithPuppeteer(string $html): string
+    {
+        $nodeBin = $this->resolveNodeBinary();
+
+        if ($nodeBin === null) {
+            throw new \RuntimeException('Node.js is required for Puppeteer PDF generation.');
+        }
+
+        return $this->viaPuppeteer($html, $nodeBin);
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -334,41 +349,94 @@ HTML;
         return $pdf;
     }
 
-    private function viaPuppeteer(string $html): string
-    {
-        $inFile  = tempnam(sys_get_temp_dir(), 'pup_in_')  . '.html';
-        $outFile = tempnam(sys_get_temp_dir(), 'pup_out_') . '.pdf';
-        $jsFile  = tempnam(sys_get_temp_dir(), 'pup_js_')  . '.js';
-        file_put_contents($inFile, $html);
+ private function viaPuppeteer(string $html, string $nodeBin = 'node'): string
+{
+    $outFile  = tempnam(sys_get_temp_dir(), 'resume_') . '.pdf';
+    $htmlFile = tempnam(sys_get_temp_dir(), 'html_')   . '.html';
+    $jsFile   = tempnam(sys_get_temp_dir(), 'js_')     . '.cjs';
 
-        $script = <<<'JS'
-const puppeteer = require('puppeteer');
+    $chromePath   = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
+    $puppeteerDir = str_replace('\\', '/', base_path('node_modules/puppeteer'));
+
+    $js = str_replace(
+        ['__PUPPETEER_DIR__', '__CHROME_PATH__'],
+        [$puppeteerDir, $chromePath],
+        <<<'JS'
+const puppeteer = require('__PUPPETEER_DIR__');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
 (async () => {
-    const b = await puppeteer.launch({ args:['--no-sandbox','--disable-setuid-sandbox'] });
-    const p = await b.newPage();
-    await p.goto('file:///'+process.argv[2].replace(/\\/g,'/'), { waitUntil:'networkidle0' });
-    await p.pdf({ path:process.argv[3], format:'A4', printBackground:true,
-        margin:{ top:'10mm',bottom:'10mm',left:'10mm',right:'10mm' } });
-    await b.close();
-})();
-JS;
-        file_put_contents($jsFile, $script);
+    const htmlPath = process.argv[2];
+    const outPath  = process.argv[3];
 
-        $process = new Process(['node', $jsFile, $inFile, $outFile]);
-        $process->setTimeout(60);
-        $process->run();
+    const profileDir = path.join(os.tmpdir(), 'puppeteer-profile');
+    if (!fs.existsSync(profileDir)) fs.mkdirSync(profileDir, { recursive: true });
 
-        @unlink($jsFile);
-        @unlink($inFile);
+    const browser = await puppeteer.launch({
+        headless: true,
+        executablePath: '__CHROME_PATH__',
+        userDataDir: profileDir,
+        ignoreHTTPSErrors: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+        ],
+    });
 
-        if (! file_exists($outFile)) {
-            throw new \RuntimeException('Puppeteer: ' . $process->getErrorOutput());
-        }
+    const page = await browser.newPage();
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.pdf({
+        path: outPath,
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
+    });
 
-        $pdf = file_get_contents($outFile);
+    await browser.close();
+})().catch((err) => {
+    console.error(err && err.stack ? err.stack : String(err));
+    process.exit(1);
+});
+JS
+    );
+
+    file_put_contents($htmlFile, $html);
+    file_put_contents($jsFile, $js);
+    file_put_contents(base_path('debug-puppeteer.cjs'), $js);
+$process = new Process([$nodeBin, $jsFile, $htmlFile, $outFile]);
+$process->setWorkingDirectory(base_path());
+$process->setTimeout(120);
+$process->setEnv([
+    'PUPPETEER_EXECUTABLE_PATH' => 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    'PUPPETEER_SKIP_CHROMIUM_DOWNLOAD' => 'true',
+    'PATH' => getenv('PATH'),
+    'TEMP' => sys_get_temp_dir(),
+    'TMP'  => sys_get_temp_dir(),
+    'SystemRoot' => 'C:\\Windows',
+    'SystemDrive' => 'C:',
+]);
+$process->run();
+
+    @unlink($htmlFile);
+    @unlink($jsFile);
+
+    if (! $process->isSuccessful() || ! file_exists($outFile)) {
         @unlink($outFile);
-        return $pdf;
+        throw new \RuntimeException(
+            'Puppeteer PDF generation failed: ' .
+            trim($process->getErrorOutput() ?: $process->getOutput())
+        );
     }
+
+    $pdf = file_get_contents($outFile);
+    @unlink($outFile);
+    return $pdf;
+}
 
     private function viaDompdf(string $html): string
     {
@@ -427,11 +495,37 @@ JS;
         return $process->isSuccessful();
     }
 
-    private function nodeModuleAvailable(string $module): bool
+
+    private function resolveNodeBinary(): ?string
     {
-        $p = new Process(['node', '-e', "require('{$module}')"]);
-        $p->run();
-        return $p->isSuccessful();
+        if ($this->nodeBin !== null) {
+            return $this->nodeBin;
+        }
+
+        $candidates = array_filter(array_unique([
+            config('services.node.binary'),
+            env('NODE_BINARY'),
+            'node',
+            'node.exe',
+            'C:\\Program Files\\nodejs\\node.exe',
+            'C:\\Program Files (x86)\\nodejs\\node.exe',
+        ]));
+
+        foreach ($candidates as $candidate) {
+            try {
+                $process = new Process([$candidate, '--version']);
+                $process->setTimeout(10);
+                $process->run();
+
+                if ($process->isSuccessful()) {
+                    return $this->nodeBin = $candidate;
+                }
+            } catch (\Throwable) {
+                // Try next candidate
+            }
+        }
+
+        return null;
     }
 
     private function cleanup(string $dir): void

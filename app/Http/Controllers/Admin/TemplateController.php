@@ -15,10 +15,17 @@ class TemplateController extends Controller
     public function __construct(private readonly PdfConversionService $pdf) {}
 
     // ── List ──────────────────────────────────────────────────────────────
-    public function index()
+    public function index(Request $request)
     {
+        $type = $request->query('type');
+        $type = in_array($type, ['resume', 'cover_letter'], true) ? $type : null;
+
         return view('admin.templates.index', [
-            'templates' => Template::latest()->get(),
+            'templates' => Template::query()
+                ->when($type, fn ($q) => $q->where('type', $type))
+                ->latest()
+                ->get(),
+            'filterType' => $type,
         ]);
     }
 
@@ -60,7 +67,7 @@ class TemplateController extends Controller
 
         Template::create($data);
 
-        return redirect()->route('admin.templates.index')
+        return redirect()->route('admin.templates.index', ['type' => $data['type'] ?? null])
             ->with('status', 'Template created.');
     }
 
@@ -105,7 +112,7 @@ class TemplateController extends Controller
 
         $template->update($data);
 
-        return redirect()->route('admin.templates.index')
+        return redirect()->route('admin.templates.index', ['type' => $template->type])
             ->with('status', 'Template updated.');
     }
 
@@ -128,9 +135,24 @@ class TemplateController extends Controller
                 // If rendering fails (e.g. syntax error in generated Blade), show raw with error
                 $html = '<div style="background:#fee2e2;padding:1rem;color:#991b1b;font-family:sans-serif">Preview Render Error: ' . $e->getMessage() . '</div>' . $html;
             }
+        } else {
+            $renderer = app(\App\Services\TemplateRenderService::class);
+            if ($template->type === 'cover_letter' && ! $renderer->containsCoverLetterPlaceholders($html)) {
+                $html = $renderer->editableCoverLetterTemplateHtml();
+            }
+            if ($template->type === 'resume' && ! $renderer->containsResumePlaceholders($html)) {
+                $html = $renderer->editableResumeTemplateHtml();
+            }
+            if ($template->type === 'cover_letter') {
+                $html = (string) $renderer->renderCoverLetter($template, $renderer->coverLetterSampleData());
+            } else {
+                $html = (string) $renderer->renderResume($template, $renderer->resumeSampleData());
+            }
         }
 
-        return response($html)->header('Content-Type', 'text/html; charset=UTF-8');
+        return response(
+            view('templates.rendered-document', ['html' => $html])->render()
+        )->header('Content-Type', 'text/html; charset=UTF-8');
     }
 
 
@@ -171,11 +193,15 @@ class TemplateController extends Controller
 
     private function editableHtmlForUpload(array $data, string $html): string
     {
-        if (($data['type'] ?? null) !== 'resume') {
-            return $html;
-        }
-
         $renderer = app(TemplateRenderService::class);
+
+        if (($data['type'] ?? null) === 'cover_letter') {
+            if ($renderer->containsCoverLetterPlaceholders($html)) {
+                return $html;
+            }
+
+            return $renderer->editableCoverLetterTemplateHtml();
+        }
 
         if ($renderer->containsResumePlaceholders($html)) {
             return $html;

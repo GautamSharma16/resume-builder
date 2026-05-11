@@ -7,14 +7,20 @@
     </div>
 @endif
 
+@php
+    $defaultType = old('type', $template->type ?: request('type', 'resume'));
+    $defaultType = in_array($defaultType, ['resume', 'cover_letter'], true) ? $defaultType : 'resume';
+    $defaultCategory = $defaultType === 'cover_letter' ? 'professional' : 'ats';
+@endphp
+
 <div class="space-y-5">
 
     {{-- ── Type ──────────────────────────────────────────────────────────── --}}
     <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
         <select name="type" class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm">
-            <option value="resume"       @selected(old('type', $template->type) === 'resume')>Resume</option>
-            <option value="cover_letter" @selected(old('type', $template->type) === 'cover_letter')>Cover Letter</option>
+            <option value="resume"       @selected($defaultType === 'resume')>Resume</option>
+            <option value="cover_letter" @selected($defaultType === 'cover_letter')>Cover Letter</option>
         </select>
         @error('type')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
@@ -44,7 +50,7 @@
                 'executive'    => 'Executive Cover Letter',
                 'minimal'      => 'Minimal Cover Letter',
             ] as $value => $label)
-                <option value="{{ $value }}" @selected(old('category', $template->category ?: 'professional') === $value)>
+                <option value="{{ $value }}" @selected(old('category', $template->category ?: $defaultCategory) === $value)>
                     {{ $label }}
                 </option>
             @endforeach

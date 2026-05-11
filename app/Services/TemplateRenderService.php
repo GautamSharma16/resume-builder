@@ -168,6 +168,33 @@ class TemplateRenderService
 HTML;
     }
 
+    public function containsCoverLetterPlaceholders(string $html): bool
+    {
+        return preg_match('/\{\{\s*(?:name|email|mobile|location|company|company_name|job_role|skills|body)\s*\}\}|\[\[\s*(?:name|email|mobile|location|company|company_name|job_role|skills|body)\s*\]\]/i', $html) === 1
+            || preg_match('/\{\{\s*\$coverLetter|\@foreach\s*\(\s*\$coverLetter|\@if\s*\(\s*\$coverLetter/i', $html) === 1;
+    }
+
+    public function editableCoverLetterTemplateHtml(): string
+    {
+        return <<<'HTML'
+<div class="tpl-cover tpl-cover-clean" style="font-family: Inter, Arial, sans-serif; color:#0f172a; padding:42px; line-height:1.6;">
+    <header style="margin-bottom: 24px;">
+        <h1 style="margin:0 0 6px; font-size: 28px; color:#0f172a;">{{name}}</h1>
+        <p style="margin:0; font-size:13px; color:#475569;">{{email}} | {{mobile}} | {{location}}</p>
+    </header>
+
+    <section style="margin: 14px 0 20px;">
+        <p style="margin:0 0 4px;"><strong>Applying for:</strong> {{job_role}}</p>
+        <p style="margin:0;"><strong>Company:</strong> {{company_name}}</p>
+    </section>
+
+    <main style="margin-top: 18px;">
+        {{body}}
+    </main>
+</div>
+HTML;
+    }
+
     public function renderCoverLetter(Template $template, ?array $data = null): HtmlString
     {
         $data = $data ?: $this->coverLetterSampleData();
@@ -175,6 +202,10 @@ HTML;
 
         if ($this->shouldRenderWithBlade($html)) {
             return new HtmlString($this->renderBlade($html, $this->bladeRenderDataForCoverLetter($data)));
+        }
+
+        if (! $this->containsCoverLetterPlaceholders($html)) {
+            $html = $this->editableCoverLetterTemplateHtml();
         }
 
         return new HtmlString($this->render($html, $this->normalizeCoverLetter($data)));
@@ -314,6 +345,8 @@ HTML;
 
     private function normalizeCoverLetter(array $data): array
     {
+        $body = $this->formatCoverLetterBody($this->text(Arr::get($data, 'body', '')));
+
         return [
             'name' => e($this->text(Arr::get($data, 'name', ''))),
             'email' => e($this->text(Arr::get($data, 'email', ''))),
@@ -323,7 +356,7 @@ HTML;
             'company_name' => e($this->text(Arr::get($data, 'company_name', Arr::get($data, 'company', '')))),
             'job_role' => e($this->text(Arr::get($data, 'job_role', ''))),
             'skills' => e($this->text(Arr::get($data, 'skills', ''))),
-            'body' => preg_match('/<[a-z][\s\S]*>/i', Arr::get($data, 'body', '')) ? $this->text(Arr::get($data, 'body', '')) : nl2br(e($this->text(Arr::get($data, 'body', '')))),
+            'body' => $body,
         ];
     }
 
@@ -376,6 +409,8 @@ HTML;
 
     private function bladeRenderDataForCoverLetter(array $data): array
     {
+        $body = $this->formatCoverLetterBody($this->text(Arr::get($data, 'body', '')));
+
         $coverLetter = [
             'type' => 'cover_letter',
             'name' => $this->text(Arr::get($data, 'name', '')),
@@ -386,7 +421,7 @@ HTML;
             'company_name' => $this->text(Arr::get($data, 'company_name', Arr::get($data, 'company', ''))),
             'job_role' => $this->text(Arr::get($data, 'job_role', '')),
             'skills' => $this->text(Arr::get($data, 'skills', '')),
-            'body' => $this->text(Arr::get($data, 'body', '')),
+            'body' => $body,
         ];
 
         return array_merge(['coverLetter' => $coverLetter], $coverLetter);
@@ -444,16 +479,24 @@ HTML;
             }
 
             $name = $this->text($item['name'] ?? '');
+            $tech = $this->text($item['tech_stack'] ?? $item['tech'] ?? '');
+            $link = $this->text($item['link'] ?? $item['url'] ?? '');
             $description = $this->text($item['description'] ?? '');
 
-            if ($name === '' && $description === '') {
+            if ($name === '' && $tech === '' && $link === '' && $description === '') {
                 return '';
             }
 
-            $title = $name !== '' ? '<strong>'.e($name).'</strong>' : '';
-            $body = $description !== '' ? '<span class="tpl-description">'.e($description).'</span>' : '';
+            $title = $name !== ''
+                ? ($link !== '' ? '<strong><a href="'.e($link).'" target="_blank" rel="noopener">'.e($name).'</a></strong>' : '<strong>'.e($name).'</strong>')
+                : '';
+            $metaParts = array_values(array_filter([$tech, $link]));
+            $meta = ! empty($metaParts) ? '<span class="tpl-description">'.e(implode(' | ', $metaParts)).'</span>' : '';
+            $body = $description !== ''
+                ? (preg_match('/<[a-z][\s\S]*>/i', $description) ? '<span class="tpl-description">'.$description.'</span>' : '<span class="tpl-description">'.e($description).'</span>')
+                : '';
 
-            return '<li>'.$title.$body.'</li>';
+            return '<li>'.$title.$meta.$body.'</li>';
         })->filter()->join('').'</ul>';
     }
 
@@ -494,5 +537,31 @@ HTML;
         }
 
         return trim((string) ($value ?? ''));
+    }
+
+    private function formatCoverLetterBody(string $body): string
+    {
+        $body = trim($body);
+        if ($body === '') {
+            return '';
+        }
+
+        // If body already contains HTML (from rich editor), keep it.
+        if (preg_match('/<[a-z][\s\S]*>/i', $body)) {
+            return $body;
+        }
+
+        // Convert plain text into paragraph blocks, preserving blank-line spacing.
+        $paragraphs = preg_split('/\R{2,}/', $body) ?: [];
+        $paragraphs = array_values(array_filter(array_map('trim', $paragraphs), fn ($p) => $p !== ''));
+
+        if (empty($paragraphs)) {
+            return nl2br(e($body));
+        }
+
+        return implode('', array_map(
+            fn ($p) => '<p>'.nl2br(e($p)).'</p>',
+            $paragraphs
+        ));
     }
 }

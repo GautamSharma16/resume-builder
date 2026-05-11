@@ -80,7 +80,7 @@
         color: #fff;
         line-height: 1.2;
         margin-bottom: 1.5rem;
-        margin-top: 4rem;
+        margin-top: 2rem;
     }
     .lp-subtext {
         font-size: 1.15rem;
@@ -439,10 +439,7 @@
                 @endif
             </div>
 
-            <div class="ai-status">
-                <div class="dot-pulse"></div>
-                <span class="ai-text">AI Resume Engine Active</span>
-            </div>
+          
         </div>
     </div>
 </div>

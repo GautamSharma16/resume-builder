@@ -6,6 +6,7 @@ use App\Models\Resume;
 use App\Models\ResumeAnalysis;
 use App\Models\Template;
 use App\Services\PlanActivationService;
+use App\Services\PdfConversionService;
 use App\Services\TemplateRenderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -162,14 +163,16 @@ class ResumeBuilderController extends Controller
     {
         $this->authorizeResume($resume);
 
-        $renderedTemplate = $resume->template
-            ? app(TemplateRenderService::class)->renderResume($resume->template, $resume->data)
-            : null;
+        $renderedTemplate = null;
+        if ($resume->template) {
+            $rendered = app(TemplateRenderService::class)->renderResume($resume->template, $resume->data);
+            $renderedTemplate = view('templates.rendered-document', ['html' => $rendered])->render();
+        }
 
         return view('resume.preview', ['resume' => $resume, 'renderedTemplate' => $renderedTemplate]);
     }
 
-    public function download(Request $request, Resume $resume, string $format = 'pdf')
+    public function download(Request $request, Resume $resume, PdfConversionService $pdfConversionService, string $format = 'pdf')
     {
         $this->authorizeResume($resume);
 
@@ -205,7 +208,12 @@ class ResumeBuilderController extends Controller
             ]);
         }
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4')->download("{$filename}.pdf");
+        $pdf = $pdfConversionService->htmlToPdfWithPuppeteer($html);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "attachment; filename={$filename}.pdf",
+        ]);
     }
 
     private function authorizeResume(Resume $resume): void

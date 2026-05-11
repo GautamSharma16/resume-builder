@@ -6,6 +6,7 @@ use App\Models\CoverLetter;
 use App\Models\Resume;
 use App\Models\Template;
 use App\Services\PlanActivationService;
+use App\Services\PdfConversionService;
 use App\Services\TemplateRenderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -14,10 +15,14 @@ use ZipArchive;
 
 class CoverLetterController extends Controller
 {
-    public function create(TemplateRenderService $renderer)
+    public function create(Request $request, TemplateRenderService $renderer)
     {
         $templates = Template::where('type', 'cover_letter')->where('is_active', true)->get();
         $sample = $renderer->coverLetterSampleData();
+        $selectedTemplateId = $request->query('template_id');
+        $selectedTemplateId = $selectedTemplateId && $templates->contains('id', (int) $selectedTemplateId)
+            ? (int) $selectedTemplateId
+            : null;
         
         $user = auth()->user();
         $prefill = $sample;
@@ -48,6 +53,7 @@ class CoverLetterController extends Controller
                 $template->id => (string) $renderer->renderCoverLetter($template, $sample),
             ]),
             'prefill' => $prefill,
+            'selectedTemplateId' => $selectedTemplateId,
         ]);
     }
 
@@ -108,11 +114,20 @@ class CoverLetterController extends Controller
             
             $result = $this->generateWithGemini($name, $jobRole, $company, $validated['job_description'] ?? '', $resumeContext, $validated['skills'] ?? '');
 
+            $usedFallback = false;
             if (!Arr::get($result, 'success', true)) {
-                return response()->json(['success' => false, 'message' => Arr::get($result, 'message', 'AI Generation failed.')], 500);
+                $body = $this->buildFallbackCoverLetterBody(
+                    $name,
+                    $jobRole,
+                    $company,
+                    $validated['skills'] ?? '',
+                    $validated['job_description'] ?? '',
+                    $resumeContext
+                );
+                $usedFallback = true;
+            } else {
+                $body = Arr::get($result, 'body');
             }
-
-            $body = Arr::get($result, 'body');
 
             if ($coverLetter) {
                 $coverLetter->update([
@@ -156,7 +171,13 @@ class CoverLetterController extends Controller
                 ]);
             }
 
-            return response()->json(['success' => true, 'cover_letter_id' => $letter->id, 'letter' => $letter->data]);
+            return response()->json([
+                'success' => true,
+                'cover_letter_id' => $letter->id,
+                'letter' => $letter->data,
+                'used_fallback' => $usedFallback,
+                'message' => $usedFallback ? 'AI was temporarily unavailable (503), so we generated a professional draft using your details.' : null,
+            ]);
         } catch (\Exception $e) {
             \Log::error('Cover Letter Generation Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Failed to generate cover letter: ' . $e->getMessage()], 500);
@@ -316,16 +337,31 @@ class CoverLetterController extends Controller
     public function save(Request $request, CoverLetter $coverLetter)
     {
         $this->authorizeLetter($coverLetter);
-        $validated = $request->validate(['letter' => ['required', 'array']]);
+        $validated = $request->validate([
+            'letter' => ['required', 'array'],
+            'template_id' => ['nullable', 'exists:templates,id'],
+        ]);
+
+        $letterData = $validated['letter'];
+        $templateId = $validated['template_id']
+            ?? Arr::get($letterData, 'template_id')
+            ?? Arr::get($letterData, 'templateId')
+            ?? $coverLetter->template_id;
+
+        if ($templateId) {
+            $letterData['template_id'] = (int) $templateId;
+            $letterData['templateId'] = (int) $templateId;
+        }
+
         $coverLetter->update([
-            'template_id' => $validated['letter']['template_id'] ?? $coverLetter->template_id,
-            'data' => $validated['letter'],
+            'template_id' => $templateId,
+            'data' => $letterData,
         ]);
 
         return response()->json(['ok' => true]);
     }
 
-    public function download(Request $request, CoverLetter $coverLetter, string $format = 'pdf')
+    public function download(Request $request, CoverLetter $coverLetter, PdfConversionService $pdfConversionService, string $format = 'pdf')
     {
         $this->authorizeLetter($coverLetter);
 
@@ -355,7 +391,12 @@ class CoverLetterController extends Controller
             return response($html, 200, ['Content-Type' => 'application/vnd.ms-powerpoint', 'Content-Disposition' => "attachment; filename={$filename}.ppt"]);
         }
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)->setPaper('a4')->download("{$filename}.pdf");
+        $pdf = $pdfConversionService->htmlToPdfWithPuppeteer($html);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => "attachment; filename={$filename}.pdf",
+        ]);
     }
 
     private function generateWithGemini(string $name, string $role, string $company, string $description, array $resume, string $skills = ''): array
@@ -374,7 +415,9 @@ class CoverLetterController extends Controller
         $prompt = "Write a concise professional cover letter. Return only JSON: {\"body\":\"...\"}.\nName: {$name}\nRole: {$role}\nCompany: {$company}\nSkills: {$skills}\nJob Description: {$description}\nResume JSON: ".json_encode($resume);
         
         try {
-            $response = Http::timeout(60)->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=".urlencode($key), [
+            $response = Http::timeout(60)
+                ->retry(2, 500)
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=".urlencode($key), [
                 'contents' => [['parts' => [['text' => $prompt]]]],
                 'generationConfig' => ['temperature' => 0.35, 'maxOutputTokens' => 1500],
             ]);
@@ -382,6 +425,9 @@ class CoverLetterController extends Controller
             if (!$response->successful()) {
                 if ($response->status() === 429) {
                     return ['success' => false, 'message' => 'AI Rate limit exceeded.'];
+                }
+                if ($response->status() === 503) {
+                    return ['success' => false, 'message' => 'AI service temporarily unavailable (503).'];
                 }
                 return ['success' => false, 'message' => 'AI generation failed with status ' . $response->status()];
             }
@@ -413,6 +459,38 @@ class CoverLetterController extends Controller
             \Log::error('Gemini Cover Letter Exception: ' . $e->getMessage());
             return ['success' => false, 'message' => 'AI Connection Error: ' . $e->getMessage()];
         }
+    }
+
+    private function buildFallbackCoverLetterBody(
+        string $name,
+        string $jobRole,
+        string $company,
+        string $skills,
+        string $jobDescription,
+        array $resumeContext
+    ): string {
+        $role = trim($jobRole) !== '' ? trim($jobRole) : 'the role';
+        $companyName = trim($company);
+        $skillsText = trim($skills);
+
+        if ($skillsText === '' && !empty($resumeContext['skills']) && is_array($resumeContext['skills'])) {
+            $skillsText = implode(', ', array_slice(array_map('strval', $resumeContext['skills']), 0, 6));
+        }
+
+        $jobLine = trim(strip_tags($jobDescription));
+        $jobLine = mb_substr($jobLine, 0, 220);
+        $salutation = $companyName !== '' ? "Dear Hiring Team at {$companyName}," : 'Dear Hiring Manager,';
+        $closingName = trim($name) !== '' ? trim($name) : 'Candidate';
+
+        $paragraph1 = "I am excited to apply for {$role}" . ($companyName !== '' ? " at {$companyName}" : '') . ". I bring hands-on experience delivering reliable, user-focused work and collaborating across teams to ship high-quality outcomes.";
+        $paragraph2 = $skillsText !== ''
+            ? "My background includes {$skillsText}, and I am confident these strengths align well with your requirements."
+            : "My background aligns well with the role requirements, and I am confident I can contribute quickly.";
+        $paragraph3 = $jobLine !== ''
+            ? "I am especially interested in your focus on {$jobLine}, and I would value the opportunity to contribute with strong ownership, communication, and execution."
+            : "I would value the opportunity to contribute with strong ownership, communication, and execution.";
+
+        return "{$salutation}\n\n{$paragraph1}\n\n{$paragraph2}\n\n{$paragraph3}\n\nSincerely,\n{$closingName}";
     }
 
     private function decodeGeminiJson(string $text): array

@@ -478,6 +478,18 @@
         border-color: var(--blue);
         color: var(--blue);
     }
+    #btn-change-tmpl {
+        background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 12px rgba(37,99,235,0.28);
+    }
+    #btn-change-tmpl:hover {
+        color: #fff;
+        border: none;
+        background: linear-gradient(135deg, var(--blue-dark), var(--blue));
+        box-shadow: 0 7px 18px rgba(37,99,235,0.4);
+    }
     .btn-save {
         background: var(--green);
         color: white;
@@ -760,7 +772,10 @@
             grid-column: span 1 !important;
         }
         .toolbar-card {
-            display: none; /* Hide top toolbar on mobile */
+            display: flex;
+            position: sticky;
+            top: 8px;
+            z-index: 20;
         }
         .preview-canvas {
             padding: 0.5rem 0; 
@@ -1125,6 +1140,7 @@
     (function() {
         'use strict';
 
+        const selectedTemplateIdFromUrl = @json($selectedTemplateId ?? null);
         const downloadRequiresPlan = @json(auth()->check() && ! auth()->user()->activeSubscription?->hasDownloadsRemaining());
         const isAuthenticated = @json(auth()->check());
         const tplHtml = @json($templates->mapWithKeys(fn($t) => [$t->id => $t->html]));
@@ -1208,6 +1224,18 @@
         function render() {
             if (!state.templateId) return;
             let html = tplHtml[state.templateId] || '';
+            const normalizeBodyHtml = (input) => {
+                const raw = String(input || '').trim();
+                if (!raw) return '';
+                if (/<[a-z][\s\S]*>/i.test(raw)) return raw;
+                return raw
+                    .split(/\n{2,}/)
+                    .map(p => p.trim())
+                    .filter(Boolean)
+                    .map(p => `<p>${nl2br(p)}</p>`)
+                    .join('');
+            };
+            const bodyHtml = normalizeBodyHtml(state.body);
             const tokens = {
                 name: esc(state.name),
                 email: esc(state.email),
@@ -1217,8 +1245,10 @@
                 company_name: esc(state.company),
                 job_role: esc(state.job_role),
                 skills: esc(state.skills),
-                body: state.body // Already HTML from Quill
+                body: bodyHtml
             };
+
+            html = html.replace(/<p>\s*(\{\{\s*body\s*\}\}|\[\[\s*body\s*\]\])\s*<\/p>/gi, '$1');
 
             Object.entries(tokens).forEach(([key, val]) => {
                 const reg = new RegExp('\\{\\{\\s*'+key+'\\s*\\}\\}|\\[\\[\\s*'+key+'\\s*\\]\\]', 'gi');
@@ -1279,6 +1309,16 @@
             // Important: adjust the height of the container to match scaled height
             a4.style.marginBottom = `-${1123 * (1 - scale)}px`;
         }
+
+        // Deep-link support: /cover-letter?template_id=123
+        document.addEventListener('DOMContentLoaded', () => {
+            if (selectedTemplateIdFromUrl) {
+                state.templateId = String(selectedTemplateIdFromUrl);
+                const name = tplNames[state.templateId] || '';
+                if (name && $('active-tmpl-name')) $('active-tmpl-name').textContent = name;
+                switchStep('onboarding');
+            }
+        });
 
         window.pickTemplate = function(id) {
             state.templateId = id;

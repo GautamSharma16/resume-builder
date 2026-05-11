@@ -57,5 +57,8 @@ return [
     'tinymce' => [
         'key' => env('TINYMCE_API_KEY'),
     ],
+    'puppeteer' => [
+    'executable_path' => env('PUPPETEER_EXECUTABLE_PATH', ''),
+],
 
 ];

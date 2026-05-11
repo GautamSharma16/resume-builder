@@ -105,8 +105,13 @@
         education: ensureArray(r.education).map(educationToObject).filter(e => e.degree || e.stream || e.institution || e.year),
         projects:  ensureArray(r.projects).map(p =>
             typeof p === 'string'
-                ? { name: p, description: '' }
-                : { name: String(p?.name ?? ''), description: String(p?.description ?? '') }
+                ? { name: p, tech_stack: '', link: '', description: '' }
+                : {
+                    name: String(p?.name ?? ''),
+                    tech_stack: String(p?.tech_stack ?? p?.tech ?? ''),
+                    link: String(p?.link ?? p?.url ?? ''),
+                    description: String(p?.description ?? ''),
+                }
         ),
         primary_color: String(r.primary_color ?? ''),
         primary_color_customized: Boolean(r.primary_color_customized ?? (r.primary_color && r.primary_color !== '#2563eb')),
@@ -118,7 +123,7 @@
     const ensureDefaults = () => {
         if (!state.experience.length) state.experience.push({ company:'', role:'', period:'', points:[''] });
         if (!state.education.length)  state.education.push({ degree:'', stream:'', institution:'', year:'' });
-        if (!state.projects.length)   state.projects.push({ name:'', description:'' });
+        if (!state.projects.length)   state.projects.push({ name:'', tech_stack:'', link:'', description:'' });
     };
     ensureDefaults();
 
@@ -160,10 +165,12 @@
                 return `<li>${title ? `<strong>${esc(title)}</strong>` : ''}${meta ? `<span class="tpl-description">${esc(meta)}</span>` : ''}</li>`;
             }
             const name = esc(i?.name || '');
-            const desc = esc(i?.description || '');
-            return desc
-                ? `<li><strong>${name}</strong><span class="tpl-description">${desc}</span></li>`
-                : `<li>${name}</li>`;
+            const tech = esc(i?.tech_stack || i?.tech || '');
+            const link = esc(i?.link || i?.url || '');
+            const desc = i?.description ? (/<[a-z][\s\S]*>/i.test(i.description) ? i.description : esc(i.description)) : '';
+            const title = link ? `<a href="${link}" target="_blank" rel="noopener">${name}</a>` : `<strong>${name}</strong>`;
+            const meta = [tech, link].filter(Boolean).join(' | ');
+            return `<li>${title}${meta ? `<span class="tpl-description">${meta}</span>` : ''}${desc ? `<span class="tpl-description">${desc}</span>` : ''}</li>`;
         }).join('');
         return `<ul>${items}</ul>`;
     }
@@ -281,9 +288,9 @@
             skills:       state.skills.length ? renderSkills() : '<span class="tpl-badge">Leadership</span><span class="tpl-badge">React</span><span class="tpl-badge">Python</span><span class="tpl-badge">Product Strategy</span>',
             experience:   state.experience.some(e => e.company || e.role || e.period || e.points.some(Boolean))
                 ? renderExperience()
-                : '<div class="tpl-role"><div class="tpl-role-head"><strong>Senior Engineer</strong><span>2021-Present</span></div><p>TechCorp</p><ul><li>Led a team of 6 engineers across product and platform initiatives.</li><li>Reduced API latency by 40% through profiling and service optimization.</li></ul></div>',
+                : '',
             education:    state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ? renderList(state.education) : '',
-            projects:     state.projects.some(p => p?.name || typeof p === 'string') ? renderList(state.projects) : '<ul><li><strong>Open Resume</strong><span class="tpl-description">Built a resume builder with React and Node.js.</span></li></ul>',
+            projects:     state.projects.some(p => p?.name || typeof p === 'string') ? renderList(state.projects) : '',
             profile_image: state.profile_image || '',
             profile_image_url: state.profile_image || '',
             profile_image_tag: state.profile_image ? `<img src="${state.profile_image}" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">` : '',
@@ -513,13 +520,25 @@
         if (projectEditorEl) {
             projectEditorEl.innerHTML = state.projects.map((p, i) => `
                 <div class="rp-entry-card" data-project="${i}">
-                    <div class="rp-entry-field">
-                        <label class="rp-entry-label">Project Name</label>
-                        <input class="rp-input" data-k="name" value="${esc(p?.name || p || '')}" placeholder="e.g. Open-source Markdown editor">
+                    <div class="rp-entry-row">
+                        <div class="rp-entry-field">
+                            <label class="rp-entry-label">Project Title</label>
+                            <input class="rp-input" data-k="name" value="${esc(p?.name || p || '')}" placeholder="e.g. Open-source Markdown editor">
+                        </div>
+                        <div class="rp-entry-field">
+                            <label class="rp-entry-label">Tech Stack</label>
+                            <input class="rp-input" data-k="tech_stack" value="${esc(p?.tech_stack || p?.tech || '')}" placeholder="e.g. React, Node.js, PostgreSQL">
+                        </div>
+                    </div>
+                    <div class="rp-entry-row">
+                        <div class="rp-entry-field" style="grid-column: 1 / -1;">
+                            <label class="rp-entry-label">Project Link</label>
+                            <input class="rp-input" data-k="link" value="${esc(p?.link || p?.url || '')}" placeholder="https://github.com/you/project">
+                        </div>
                     </div>
                     <div class="rp-entry-field">
-                        <label class="rp-entry-label">Description <span class="rp-entry-hint">(impact, tech stack)</span></label>
-                        <textarea class="rp-input rp-input-ta" data-k="description" rows="2" placeholder="Built with React and Node.js. Reduced build time by 30%.">${esc(p?.description || '')}</textarea>
+                        <label class="rp-entry-label">Description <span class="rp-entry-hint">(impact, responsibilities, outcomes)</span></label>
+                        <textarea class="rp-input rp-input-ta rich-ta" data-k="description" rows="4" placeholder="Built with React and Node.js. Reduced build time by 30%.">${esc(p?.description || '')}</textarea>
                     </div>
                     <button type="button" data-remove-project class="rp-entry-remove">
                         <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
@@ -610,9 +629,9 @@
     /* ═══════════════════════════════════════════
        STEP NAVIGATION — uses .rp-step-tab
     ═══════════════════════════════════════════ */
-    const stepNames = ["", "Contacts", "Summary", "Experience", "Education", "Skills", "Finalize"];
+    const stepNames = ["", "Contacts", "Summary", "Experience", "Education", "Skills", "Projects", "Finalize"];
     function goToStep(step) {
-        currentStep = Math.max(1, Math.min(step, 6));
+        currentStep = Math.max(1, Math.min(step, 7));
 
         /* Update tab indicators */
         document.querySelectorAll('.rp-step-tab').forEach(tab => {
@@ -630,7 +649,7 @@
         /* Handle step-6 layout shift */
         const builderView = $('rp-builder-view');
         if (builderView) {
-            if (currentStep === 6) builderView.classList.add('step-6-active');
+            if (currentStep === 7) builderView.classList.add('step-6-active');
             else builderView.classList.remove('step-6-active');
         }
 
@@ -644,7 +663,7 @@
                 : '<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Exit';
         }
         if (btnNext) {
-            if (currentStep < 6) {
+            if (currentStep < 7) {
                 btnNext.textContent = `Next: ${stepNames[currentStep + 1]}`;
                 btnNext.style.display = 'block';
             } else {
@@ -807,7 +826,7 @@
 
         if (btn.id === 'add-exp-btn' || btn.id === 'add-exp') { state.experience.push({ company:'', role:'', period:'', points:[''] }); renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'add-edu-btn' || btn.id === 'add-edu') { state.education.push({ degree:'', stream:'', institution:'', year:'' }); renderEditor(); renderTemplatePreview(); }
-        if (btn.id === 'add-project-btn' || btn.id === 'add-project') { state.projects.push({ name:'', description:'' }); renderEditor(); renderTemplatePreview(); }
+        if (btn.id === 'add-project-btn' || btn.id === 'add-project') { state.projects.push({ name:'', tech_stack:'', link:'', description:'' }); renderEditor(); renderTemplatePreview(); }
 
         if (btn.dataset.removeExp !== undefined) {
             state.experience.splice(Number(btn.closest('[data-exp]').dataset.exp), 1);
@@ -821,7 +840,19 @@
         }
         if (btn.dataset.removeProject !== undefined) {
             state.projects.splice(Number(btn.closest('[data-project]').dataset.project), 1);
-            if (!state.projects.length) state.projects.push({ name:'', description:'' });
+            renderEditor(); renderTemplatePreview();
+        }
+
+        if (btn.id === 'clear-exp-section-btn') {
+            state.experience = [];
+            renderEditor(); renderTemplatePreview();
+        }
+        if (btn.id === 'clear-edu-section-btn') {
+            state.education = [];
+            renderEditor(); renderTemplatePreview();
+        }
+        if (btn.id === 'clear-project-section-btn') {
+            state.projects = [];
             renderEditor(); renderTemplatePreview();
         }
     });

@@ -15,6 +15,7 @@
     class="rp-root"
     data-store-url="{{ route('resume.store') }}"
     @if($editingResume) data-update-url="{{ route('resume.update', $editingResume) }}" data-resume-id="{{ $editingResume->id }}" @endif
+    data-is-editing="{{ $editingResume ? '1' : '0' }}"
     data-analyze-url="{{ route('resume.analyze') }}"
     data-login-url="{{ route('login') }}"
     data-plans-url="{{ route('plans') }}"
@@ -931,6 +932,51 @@
             #cv-preview { transform-origin: top center; margin: 0 auto; flex-shrink: 0; }
         }
 
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(11,18,33,0.72);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .loading-overlay.active { display: flex !important; }
+        .scan-card {
+            background: #fff;
+            border-radius: 18px;
+            padding: 1.8rem;
+            min-width: 300px;
+            max-width: 360px;
+            width: calc(100% - 2rem);
+            box-shadow: 0 28px 72px rgba(0,0,0,0.22);
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+            align-items: center;
+        }
+        .scan-header h2 { font-size: 16px; font-weight: 700; color: var(--navy); text-align:center; }
+        .scan-header p { color: var(--muted); font-size: 12px; text-align:center; margin-top: 0.2rem; }
+        .scan-paper { width: 150px; height: 190px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 1rem; position: relative; overflow: hidden; }
+        .scan-paper::before { content:''; position:absolute; left:0; right:0; top:-8px; height:4px; background: linear-gradient(90deg, transparent, var(--blue), #818cf8, transparent); animation: scanMove 1.6s ease-in-out infinite; }
+        .scan-paper-head { height: 18px; width: 58%; border-radius: var(--r-sm); background: linear-gradient(135deg, var(--blue), #6366f1); margin-bottom: 1rem; }
+        .scan-paper-line { height: 7px; border-radius: 999px; background: #dbe3ef; margin-bottom: 0.55rem; }
+        .scan-paper-line.wide { width: 100%; } .scan-paper-line.mid { width: 82%; } .scan-paper-line.short { width: 62%; } .scan-paper-line.tiny { width: 46%; }
+        .scan-progress-bar-wrap { width: 100%; background: #e2e8f0; border-radius: 999px; height: 6px; overflow: hidden; }
+        .scan-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--blue), #818cf8); border-radius: 999px; transition: width 0.3s ease; }
+        .scan-steps { width: 100%; display:flex; flex-direction:column; gap:0.45rem; }
+        .scan-step { display:flex; align-items:center; gap:0.5rem; font-size:12px; color: var(--soft); }
+        .scan-step.active { color: var(--blue); }
+        .scan-step.done { color: var(--green); }
+        .scan-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+        @keyframes scanMove {
+            0% { top: -5px; opacity: 1; }
+            90% { top: 100%; opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
         @media (max-width: 600px) {
             .rp-root { padding: 0; }
             .rp-onboarding { padding: 2rem 1.25rem 4rem !important; justify-content: flex-start !important; }
@@ -1004,6 +1050,32 @@
         <p id="resume-autofill-status" style="margin-top:2rem;color:var(--muted);font-size:0.875rem;"></p>
     </div>
 
+    <div id="resume-scan-overlay" class="loading-overlay" style="display:none;">
+        <div class="scan-card">
+            <div class="scan-header">
+                <h2>AI is Reading...</h2>
+                <p id="resumeScanStageLabel">Extracting resume text</p>
+            </div>
+            <div class="scan-paper" aria-hidden="true">
+                <div class="scan-paper-head"></div>
+                <div class="scan-paper-line wide"></div>
+                <div class="scan-paper-line mid"></div>
+                <div class="scan-paper-line wide"></div>
+                <div class="scan-paper-line short"></div>
+                <div class="scan-paper-line mid"></div>
+                <div class="scan-paper-line tiny"></div>
+            </div>
+            <div class="scan-progress-bar-wrap">
+                <div class="scan-progress-fill" id="resumeScanProgressFill"></div>
+            </div>
+            <div class="scan-steps">
+                <div class="scan-step" id="resumeScanStep1"><div class="scan-dot"></div>Extracting text from file...</div>
+                <div class="scan-step" id="resumeScanStep2"><div class="scan-dot"></div>Structuring sections...</div>
+                <div class="scan-step" id="resumeScanStep3"><div class="scan-dot"></div>Preparing your editor...</div>
+            </div>
+        </div>
+    </div>
+
     {{-- ══ FOOTER ══ --}}
     <div class="main-footer">
         @include('components.footer')
@@ -1029,7 +1101,7 @@
         <section class="rp-form-panel">
 
             <nav class="rp-step-nav">
-                @foreach(['Contacts','Summary','Experience','Education','Skills','Finalize'] as $i => $label)
+                @foreach(['Contacts','Summary','Experience','Education','Skills','Projects','Finalize'] as $i => $label)
                     <button class="rp-step-tab {{ $i === 0 ? 'active' : '' }}" data-step="{{ $i + 1 }}">
                         <span class="rp-step-name">{{ $label }}</span>
                         <div class="rp-step-dot"></div>
@@ -1167,6 +1239,12 @@
                             Experience tips
                         </button>
                     </div>
+                    <div style="margin-bottom:0.85rem; display:flex; justify-content:flex-end;">
+                        <button type="button" id="clear-exp-section-btn" class="rp-entry-remove">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                            Delete Entire Experience Section
+                        </button>
+                    </div>
                     <div id="rp-exp-editor"></div>
                     <button type="button" id="add-exp-btn" class="rp-add-btn">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1181,6 +1259,12 @@
                             <h2>Education</h2>
                             <p>Add your educational background.</p>
                         </div>
+                    </div>
+                    <div style="margin-bottom:0.85rem; display:flex; justify-content:flex-end;">
+                        <button type="button" id="clear-edu-section-btn" class="rp-entry-remove">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                            Delete Entire Education Section
+                        </button>
                     </div>
                     <div id="rp-edu-editor"></div>
                     <button type="button" id="add-edu-btn" class="rp-add-btn" style="margin-top:0.75rem;">
@@ -1205,8 +1289,29 @@
 
 
 
-                {{-- ── STEP 6: Finalize ── --}}
+                {{-- ── STEP 6: Projects ── --}}
                 <div class="rp-step-pane" data-step="6">
+                    <div class="step-head">
+                        <div>
+                            <h2>Projects</h2>
+                            <p>Add project title, tech stack, link, and description.</p>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:0.85rem; display:flex; justify-content:flex-end;">
+                        <button type="button" id="clear-project-section-btn" class="rp-entry-remove">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                            Delete Entire Projects Section
+                        </button>
+                    </div>
+                    <div id="project-editor"></div>
+                    <button type="button" id="add-project-btn" class="rp-add-btn" style="margin-top:0.75rem;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Project
+                    </button>
+                </div>
+
+                {{-- ── STEP 7: Finalize ── --}}
+                <div class="rp-step-pane" data-step="7">
                     <div class="step-head"><div><h2>Finalize</h2><p>Review your resume and export it.</p></div></div>
                     <div class="finalize-wrap">
                         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1295,23 +1400,102 @@
         /* ── Show builder if initial data exists ── */
         document.addEventListener('DOMContentLoaded', () => {
             const raw = document.getElementById('resume-initial-json')?.textContent;
+            const appEl = document.getElementById('create-cv-app');
+            const isEditing = appEl?.dataset?.isEditing === '1';
             let hasData = false;
             try {
                 const p = JSON.parse(raw);
-                if (p && (p.id || p.name || p.email)) hasData = true;
+                if (p && Object.values(p).some(v => {
+                    if (Array.isArray(v)) return v.length > 0;
+                    return String(v ?? '').trim() !== '';
+                })) hasData = true;
             } catch(e) {}
 
             const ob = document.getElementById('rp-onboarding-view');
             const bv = document.getElementById('rp-builder-view');
 
-            if (hasData) {
+            if (isEditing || hasData) {
                 ob.style.display = 'none';
                 bv.classList.add('visible');
+                document.body.classList.add('is-builder');
             } else {
                 ob.style.display = 'flex';
                 bv.classList.remove('visible');
+                document.body.classList.remove('is-builder');
             }
         });
+
+        const resumeScanStages = [
+            { label: 'Extracting resume text...', step: 0, pct: 28 },
+            { label: 'Structuring resume sections...', step: 1, pct: 64 },
+            { label: 'Preparing your editor...', step: 2, pct: 92 },
+            { label: 'Done', step: -1, pct: 100 },
+        ];
+        let resumeScanTimer = null;
+        function showResumeScanOverlay() {
+            const overlay = document.getElementById('resume-scan-overlay');
+            overlay?.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            const fill = document.getElementById('resumeScanProgressFill');
+            const stageLabel = document.getElementById('resumeScanStageLabel');
+            const items = [
+                document.getElementById('resumeScanStep1'),
+                document.getElementById('resumeScanStep2'),
+                document.getElementById('resumeScanStep3'),
+            ];
+            if (fill) fill.style.width = '0%';
+            items.forEach(i => { if (i) i.className = 'scan-step'; });
+            let stageIdx = 0;
+            const tick = () => {
+                if (stageIdx >= resumeScanStages.length) return;
+                const stage = resumeScanStages[stageIdx++];
+                if (stageLabel) stageLabel.textContent = stage.label;
+                if (fill) fill.style.width = stage.pct + '%';
+                if (stage.step >= 0) {
+                    const item = items[stage.step];
+                    if (item) item.classList.add('active');
+                    if (stage.step > 0) {
+                        items[stage.step - 1]?.classList.remove('active');
+                        items[stage.step - 1]?.classList.add('done');
+                    }
+                } else {
+                    items.forEach(i => { if (i) { i.classList.remove('active'); i.classList.add('done'); } });
+                }
+                resumeScanTimer = setTimeout(tick, 800);
+            };
+            tick();
+        }
+        function hideResumeScanOverlay() {
+            const overlay = document.getElementById('resume-scan-overlay');
+            overlay?.classList.remove('active');
+            document.body.style.overflow = '';
+            if (resumeScanTimer) clearTimeout(resumeScanTimer);
+            resumeScanTimer = null;
+        }
+
+        function sanitizeImportedResume(raw) {
+            const data = (raw && typeof raw === 'object') ? raw : {};
+            const toStr = (v) => String(v ?? '').trim();
+            const toArr = (v) => Array.isArray(v) ? v : [];
+            const contact = toStr(data.contact);
+            const [cEmail = '', cMobile = ''] = contact.split('|').map(v => v.trim());
+            const normalized = {
+                ...data,
+                name: toStr(data.name),
+                last_name: toStr(data.last_name),
+                job_title: toStr(data.job_title),
+                email: toStr(data.email) || cEmail,
+                mobile: toStr(data.mobile) || cMobile,
+                location: toStr(data.location || data.address),
+                summary: toStr(data.summary),
+                skills: toArr(data.skills).map(v => String(v).trim()).filter(Boolean),
+                social_links: toArr(data.social_links).map(v => String(v).trim()).filter(Boolean),
+                experience: toArr(data.experience),
+                education: toArr(data.education),
+                projects: toArr(data.projects),
+            };
+            return normalized;
+        }
 
         /* ── File autofill (upload card) ── */
         document.getElementById('resume-autofill-file')?.addEventListener('change', async function() {
@@ -1322,6 +1506,7 @@
                 statusEl.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; vertical-align: middle; margin-right: 6px; margin-top: -2px;"><circle cx="12" cy="12" r="10" stroke-dasharray="30 10"></circle></svg> Reading your resume with AI…';
                 statusEl.style.color = 'var(--blue)';
             }
+            showResumeScanOverlay();
 
             try {
                 const fd = new FormData();
@@ -1337,13 +1522,22 @@
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.success) throw new Error(data.message || 'Could not import this resume.');
 
-                // Apply data and switch to builder
-                if (typeof applyResumeData === 'function') applyResumeData(data.improved_resume || {});
+                const normalized = sanitizeImportedResume(data.improved_resume || {});
+                if (typeof applyResumeData === 'function') applyResumeData(normalized);
                 document.getElementById('rp-onboarding-view').style.display = 'none';
                 document.getElementById('rp-builder-view').classList.add('visible');
-                if (statusEl) statusEl.textContent = '';
+                if (statusEl) {
+                    const fieldCount = [
+                        normalized.name, normalized.email, normalized.mobile, normalized.location, normalized.summary
+                    ].filter(Boolean).length + normalized.skills.length;
+                    statusEl.textContent = fieldCount < 3
+                        ? 'Imported with limited data. Please review and fill missing details.'
+                        : '';
+                }
             } catch(err) {
                 if (statusEl) { statusEl.textContent = err.message || 'Could not read this file.'; statusEl.style.color = '#dc2626'; }
+            } finally {
+                hideResumeScanOverlay();
             }
         });
 
@@ -1416,13 +1610,19 @@
                 if (!res.ok || !data.text) throw new Error(data.message || 'AI generation failed.');
                 
                 if (targetEl.id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
-                    tinymce.get('cv-summary').setContent(data.text);
+                    const editor = tinymce.get('cv-summary');
+                    editor.setContent(data.text);
+                    editor.save(); // sync TinyMCE HTML back into underlying textarea value
+                    targetEl.value = editor.getContent();
                 } else {
                     targetEl.value = data.text;
                 }
             } catch(e) {
                 if (targetEl.id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
-                    tinymce.get('cv-summary').setContent(orig);
+                    const editor = tinymce.get('cv-summary');
+                    editor.setContent(orig);
+                    editor.save();
+                    targetEl.value = editor.getContent();
                 } else {
                     targetEl.value = orig;
                 }
@@ -1442,7 +1642,10 @@
                 const target = document.getElementById('cv-summary');
                 const newText = button.dataset.summaryTemplate || button.textContent.trim();
                 if (typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
-                    tinymce.get('cv-summary').setContent(newText);
+                    const editor = tinymce.get('cv-summary');
+                    editor.setContent(newText);
+                    editor.save();
+                    target.value = editor.getContent();
                 } else {
                     target.value = newText;
                 }

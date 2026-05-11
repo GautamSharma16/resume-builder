@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Template;
 use App\Models\ResumeAnalysis;
 use App\Services\PlanActivationService;
+use App\Services\PdfConversionService;
 use App\Services\TemplateRenderService;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -298,7 +298,7 @@ class ResumeController extends Controller
         return response()->json(['ok' => true, 'is_paid' => true]);
     }
 
-    public function download(Request $request)
+    public function download(Request $request, PdfConversionService $pdfConversionService)
     {
         $validated = $request->validate([
             'analysis_id' => ['required', 'integer', 'exists:resume_analyses,id'],
@@ -329,9 +329,13 @@ class ResumeController extends Controller
         $resume = $this->normalizeResume($analysisRecord->improved_resume_json ?? []);
         $filename = $this->pdfFilename($resume['name']);
 
-        return Pdf::loadView('resume.pdf', ['resume' => $resume])
-            ->setPaper('a4')
-            ->download($filename);
+        $html = view('resume.pdf', ['resume' => $resume])->render();
+        $pdf = $pdfConversionService->htmlToPdfWithPuppeteer($html);
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     private function extractText($file): string
