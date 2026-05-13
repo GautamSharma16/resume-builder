@@ -25,6 +25,7 @@
                     <p class="text-sm text-gray-500 truncate">{{ $letter->company ?: 'N/A' }}</p>
                     <p class="text-xs text-gray-400 mt-1">{{ $letter->template->name ?? 'Cover Letter Template' }}</p>
                     <div class="mt-3 flex items-center gap-3 text-sm">
+                        <button type="button" class="text-blue-700 font-semibold js-rename-letter" data-id="{{ $letter->id }}" data-title="{{ $letter->job_role ?: 'Cover Letter' }}">Rename</button>
                         <a class="text-gray-900 font-semibold" href="{{ route('cover-letter.download', [$letter, 'pdf']) }}">Download PDF</a>
                     </div>
                 </div>
@@ -39,5 +40,33 @@
     <div class="mt-8">
         {{ $letters->links() }}
     </div>
+
+    <form id="cover-letter-rename-form" method="POST" class="hidden">
+        @csrf
+        @method('PATCH')
+        <input type="hidden" name="title" id="cover-letter-rename-title">
+    </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('cover-letter-rename-form');
+    const titleInput = document.getElementById('cover-letter-rename-title');
+    if (!form || !titleInput) return;
+
+    document.querySelectorAll('.js-rename-letter').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const current = btn.dataset.title || '';
+            const next = window.prompt('Rename cover letter:', current);
+            if (next === null) return;
+            const trimmed = next.trim();
+            if (!trimmed) return;
+
+            form.action = `/cover-letter/${btn.dataset.id}/rename`;
+            titleInput.value = trimmed;
+            form.submit();
+        });
+    });
+});
+</script>
 @endsection

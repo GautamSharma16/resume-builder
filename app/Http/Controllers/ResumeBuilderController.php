@@ -14,10 +14,28 @@ use Illuminate\Support\Facades\Http;
 
 class ResumeBuilderController extends Controller
 {
-    public function index()
+    public function index(TemplateRenderService $renderer)
     {
+        $resumes = Resume::where('user_id', auth()->id())
+            ->with('template')
+            ->latest()
+            ->get();
+
+        $previews = $resumes->mapWithKeys(function (Resume $resume) use ($renderer) {
+            if (! $resume->template) {
+                return [$resume->id => null];
+            }
+
+            $html = (string) $renderer->renderResume($resume->template, $resume->data ?? []);
+
+            return [
+                $resume->id => view('templates.rendered-document', ['html' => $html])->render(),
+            ];
+        });
+
         return view('resume.index', [
-            'resumes' => Resume::where('user_id', auth()->id())->latest()->get(),
+            'resumes' => $resumes,
+            'previews' => $previews,
         ]);
     }
 

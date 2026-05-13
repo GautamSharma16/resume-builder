@@ -1219,8 +1219,8 @@
 <div id="workspaceSection" class="workspace-section">
     <div class="workspace-section-header">
         <div class="section-label">Your Enhanced Resume</div>
-        <h2>Choose a <em>Template</em> &amp; Download</h2>
-        <p>AI has optimized your content. Pick a layout and export your polished resume.</p>
+        <h2>Choose a <em>Template</em> &amp; Edit</h2>
+        <p>AI has optimized your content. Pick a layout and continue polishing in Resume Maker.</p>
     </div>
     <div class="workspace-grid">
         {{-- Left: Template selector --}}
@@ -1263,12 +1263,12 @@
         </div>
 
         {{-- Right: Live preview --}}
-        <div class="preview-card">
+            <div class="preview-card">
             <div class="card-header">
                 <h3>Live Preview</h3>
-                <button id="downloadBtn" class="btn-download">
-                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                    Download PDF
+                <button id="editWithResumeMakerBtn" class="btn-download" disabled>
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    Edit with Resume Maker
                 </button>
             </div>
             <div class="preview-wrapper" style="position:relative;">
@@ -1362,11 +1362,10 @@
     const heroSection   = document.getElementById('heroSection');
     const resumeTemplates   = @json($templates->keyBy('id'));
     const renderedTemplates = @json($renderedTemplates);
-    const loginUrl          = @json(route('login'));
-    const downloadRoute     = "{{ route('resume.download-improved') }}";
+    const resumeCreateRoute = "{{ route('resume.create') }}";
 
     let currentAnalysisId = null;
-    let resumeData = { name: '', summary: '', skills: [], experience: [], education: [], projects: [] };
+    let resumeData = { name: '', designation: '', job_title: '', summary: '', skills: [], experience: [], education: [], projects: [], certifications: [], achievements: [], social_links: [] };
     let selectedTemplateId = Object.keys(resumeTemplates)[0] || null;
 
     // ── Scan animation ──
@@ -1436,15 +1435,18 @@
     function renderListForTemplate(items) {
         return `<ul>${ensureArray(items).map(item => {
             if (typeof item === 'string') return `<li>${esc(item)}</li>`;
-            const name = esc(item?.name || item?.degree || '');
-            const meta = esc(item?.institution || item?.tech || '');
-            const desc = esc(item?.description || item?.year || '');
+            const name = esc(item?.name || item?.degree || item?.title || '');
+            const meta = esc(item?.institution || item?.tech || item?.company || item?.stream || '');
+            const desc = esc(item?.description || item?.year || item?.period || item?.details || '');
             return `<li>${name ? `<strong>${name}</strong>` : ''}${meta ? ` ${meta}` : ''}${desc ? `<span class="tpl-description">${desc}</span>` : ''}</li>`;
         }).join('')}</ul>`;
     }
     function renderExperienceForTemplate(data) {
         return ensureArray(data.experience).map(exp => {
-            const points = ensureArray(exp?.points).map(p => `<li>${esc(p)}</li>`).join('');
+            const pointsArray = Array.isArray(exp?.points)
+                ? exp.points
+                : (typeof exp?.points === 'string' ? exp.points.split('\n').map(p => p.trim()).filter(Boolean) : []);
+            const points = pointsArray.map(p => `<li>${esc(p)}</li>`).join('');
             return `<div class="tpl-role"><div class="tpl-role-head"><strong>${esc(exp?.role||'')}</strong><span>${esc(exp?.period||'')}</span></div><p>${esc(exp?.company||'')}</p><ul>${points}</ul></div>`;
         }).join('');
     }
@@ -1459,19 +1461,49 @@
         const template   = resumeTemplates[selectedTemplateId] || Object.values(resumeTemplates)[0];
         if (!previewDiv) return;
         if (!template) { previewDiv.innerHTML = '<div style="color:var(--muted);padding:2rem;">No templates found.</div>'; return; }
-        const normalized = { ...data, skills: ensureArray(data.skills), experience: ensureArray(data.experience), education: ensureArray(data.education), projects: ensureArray(data.projects) };
+        const normalized = {
+            ...data,
+            designation: String(data?.designation || data?.job_title || ''),
+            job_title: String(data?.job_title || data?.designation || ''),
+            linkedin: String(data?.linkedin || ''),
+            portfolio: String(data?.portfolio || data?.link || ''),
+            link: String(data?.link || data?.portfolio || ''),
+            skills: ensureArray(data.skills),
+            experience: ensureArray(data.experience),
+            education: ensureArray(data.education),
+            projects: ensureArray(data.projects),
+            certifications: ensureArray(data.certifications),
+            achievements: ensureArray(data.achievements),
+            social_links: ensureArray(data.social_links),
+        };
         const contact = [normalized.email, normalized.mobile, normalized.location].filter(Boolean).join(' | ');
         let html = template.html || '';
         const values = {
             name: esc(normalized.name || 'Your Name'),
+            designation: esc(normalized.designation || ''),
+            job_title: esc(normalized.job_title || ''),
             email: esc(normalized.email || ''), mobile: esc(normalized.mobile || ''),
             location: esc(normalized.location || ''), contact: esc(contact), address: esc(normalized.location || ''),
-            summary: esc(normalized.summary || ''), social_links: ensureArray(normalized.social_links).map(esc).join(' | '),
+            summary: esc(normalized.summary || ''),
+            linkedin: esc(normalized.linkedin || ''),
+            portfolio: esc(normalized.portfolio || ''),
+            link: esc(normalized.link || ''),
+            social_links: ensureArray(normalized.social_links).map(esc).join(' | '),
             skills: renderSkillsForTemplate(normalized), experience: renderExperienceForTemplate(normalized),
-            education: renderListForTemplate(normalized.education), projects: renderListForTemplate(normalized.projects),
+            education: renderListForTemplate(normalized.education),
+            projects: renderListForTemplate(normalized.projects),
+            certifications: renderListForTemplate(normalized.certifications),
+            achievements: renderListForTemplate(normalized.achievements),
         };
         const hasProjectsToken = /\{\{\s*projects\s*\}\}/i.test(html) || /\[\[\s*projects\s*\]\]/i.test(html);
         Object.entries(values).forEach(([key, val]) => { html = replaceToken(html, key, val); });
+
+        // Blade-style fallback for templates that use $resume['field'] placeholders
+        Object.entries(values).forEach(([key, val]) => {
+            const re = new RegExp('\\{\\{\\s*\\$resume\\[[\'"]' + key + '[\'"]\\]\\s*\\}\\}', 'gi');
+            html = html.replace(re, val);
+        });
+
         if (!hasProjectsToken && normalized.projects.length) {
             const last = html.lastIndexOf('</div>');
             const section = `<h2>Projects</h2>${values.projects}`;
@@ -1489,10 +1521,15 @@
     function fillEditor(data) {
         const normalizedData = {
             ...data,
+            designation: data?.designation || data?.job_title || '',
+            job_title: data?.job_title || data?.designation || '',
             skills:     Array.isArray(data.skills)     ? data.skills     : (data.skills||'').split(',').map(s=>s.trim()).filter(Boolean),
             experience: Array.isArray(data.experience) ? data.experience : [],
             education:  Array.isArray(data.education)  ? data.education  : [],
             projects:   Array.isArray(data.projects)   ? data.projects   : [],
+            certifications: Array.isArray(data.certifications) ? data.certifications : [],
+            achievements: Array.isArray(data.achievements) ? data.achievements : [],
+            social_links: Array.isArray(data.social_links) ? data.social_links : [],
         };
         resumeData = normalizedData;
         renderTemplatePreview(normalizedData);
@@ -1512,7 +1549,7 @@
         formData.append('_token', '{{ csrf_token() }}');
         try {
             const response = await fetch('{{ route("resume.analyze") }}', { method: 'POST', body: formData });
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
             if (!response.ok || !data.success) throw new Error(data.message || 'Analysis failed');
             hideScanOverlay();
             // Collapse hero to just the actions row
@@ -1524,6 +1561,7 @@
             populateInsights(data);
             fillEditor(data.improved_resume);
             currentAnalysisId = data.analysis_id;
+            document.getElementById('editWithResumeMakerBtn')?.removeAttribute('disabled');
             statusMsg.innerHTML = '<span class="status-dot"></span> Resume enhanced successfully!';
             improveAgainBtn.disabled = false;
             // Scroll to results
@@ -1548,6 +1586,7 @@
         fileInput.value = '';
         fileNameDisplay.textContent = 'PDF, DOC, DOCX up to 10 MB';
         currentAnalysisId = null;
+        document.getElementById('editWithResumeMakerBtn')?.setAttribute('disabled', 'disabled');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
@@ -1627,47 +1666,14 @@
         dropzone.style.borderColor = 'rgba(37,99,235,0.25)';
     });
 
-    // ── Download ──
-    document.getElementById('downloadBtn').addEventListener('click', async () => {
+    // ── Edit with Resume Maker ──
+    document.getElementById('editWithResumeMakerBtn').addEventListener('click', () => {
         if (!currentAnalysisId) return;
-        const btn = document.getElementById('downloadBtn');
-        const origHtml = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<svg class="spin" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg> Checking...';
-
-        try {
-            const url = `${downloadRoute}/${currentAnalysisId}?template_id=${selectedTemplateId}`;
-            const res = await fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
-            
-            if (res.status === 401) {
-                window.location.href = loginUrl;
-                return;
-            }
-
-            if (res.status === 402) {
-                const data = await res.json();
-                if (typeof showPaymentModal === 'function') {
-                    showPaymentModal(data.pricing_url);
-                } else {
-                    window.location.href = data.pricing_url || '/plans';
-                }
-                return;
-            }
-
-            if (!res.ok) throw new Error('Download failed');
-
-            // If it's a blob (the PDF), download it
-            const blob = await res.blob();
-            const link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            link.download = `Enhanced_Resume_${Date.now()}.pdf`;
-            link.click();
-        } catch (err) {
-            alert(err.message || 'Something went wrong. Please try again.');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = origHtml;
-        }
+        const params = new URLSearchParams({
+            analysis_id: String(currentAnalysisId),
+            template_id: String(selectedTemplateId || '')
+        });
+        window.location.href = `${resumeCreateRoute}?${params.toString()}`;
     });
 
     // Initial setup

@@ -214,10 +214,9 @@
                 <p class="ft-col-title">Resume</p>
                 <ul class="ft-links">
                     <li><a class="ft-link" href="{{ route('resume-maker') }}">Resume Maker</a></li>
-                    <li><a class="ft-link" href="#">Resume Examples</a></li>
+                    
                     <li><a class="ft-link" href="{{ route('templates') }}">Resume Templates</a></li>
-                    <li><a class="ft-link" href="#">How to Write a Resume</a></li>
-                    <li><a class="ft-link" href="#">ATS Resume Checker</a></li>
+         
                 </ul>
             </div>
 
@@ -239,7 +238,7 @@
                     <li><a class="ft-link" href="{{ route('interview') }}">Interview Preparation</a></li>
                     <li><a class="ft-link" href="{{ route('interview') }}">Career Blog</a></li>
                     <li><a class="ft-link" href="{{ route('interview') }}">Job Search Tips</a></li>
-                    <li><a class="ft-link" href="{{ route('plans') }}">Salary Guide</a></li >
+                    
                 </ul>
             </div>
 
@@ -247,11 +246,9 @@
             <div>
                 <p class="ft-col-title">Company</p>
                 <ul class="ft-links">
-                    <li><a class="ft-link" href="#">About Us</a></li>
-                    <li><a class="ft-link" href="#">Reviews</a></li>
-                    <li><a class="ft-link" href="#">Affiliates</a></li>
+                  
                     <li><a class="ft-link" href="{{ route('plans') }}">Pricing</a></li>
-                    <li><a class="ft-link" href="#">Work Here</a></li>
+                   
                 </ul>
             </div>
 

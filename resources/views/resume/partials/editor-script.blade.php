@@ -66,7 +66,12 @@
     const zoomInEl        = $('preview-zoom-in');
     const zoomOutEl       = $('preview-zoom-out');
     const zoomLvlEl       = $('preview-zoom-level');
+    const previewPageNavEl = $('preview-page-nav');
+    const previewPageRangeEl = $('preview-page-range');
+    const previewPageLabelEl = $('preview-page-label');
     let previewZoom = 100;
+    let previewPage = 1;
+    let previewTotalPages = 1;
     let uploadInProgress = false;
 
     if (!cvPreviewEl || !templateIdEl || !expEditorEl || !eduEditorEl || !saveBtnEl) {
@@ -207,10 +212,31 @@
             .replace(new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g'), value)
             .split('[[' + key + ']]').join(value);
     }
+    function applyHandlebarsIfBlocks(html, values) {
+        let output = String(html || '');
+        const pattern = /\{\{#if\s+([a-z0-9_.]+)\s*\}\}([\s\S]*?)(?:\{\{else\}\}([\s\S]*?))?\{\{\/if\}\}/gi;
+        let loops = 0;
+        while (pattern.test(output) && loops < 40) {
+            loops += 1;
+            output = output.replace(pattern, (_, key, truthy, falsy) => {
+                const value = values?.[key];
+                const isTruthy = !(
+                    value === null ||
+                    value === undefined ||
+                    value === '' ||
+                    value === false ||
+                    value === 'null'
+                );
+                return isTruthy ? (truthy || '') : (falsy || '');
+            });
+        }
+        return output;
+    }
     function hasResumePlaceholders(html) {
-        const tokens = ['name', 'last_name', 'job_title', 'designation', 'email', 'mobile', 'location', 'contact', 'address', 'summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'achievements', 'social_links', 'linkedin', 'portfolio', 'link', 'profile_image', 'profile_image_url', 'profile_image_tag'];
+        const tokens = ['name', 'last_name', 'job_title', 'designation', 'email', 'mobile', 'location', 'contact', 'address', 'summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'achievements', 'social_links', 'linkedin', 'portfolio', 'link', 'profile_image', 'profile_image_url', 'profile_image_tag', 'photo'];
         return new RegExp('\\{\\{\\s*(' + tokens.join('|') + ')\\s*\\}\\}', 'i').test(html)
             || new RegExp('\\[\\[\\s*(' + tokens.join('|') + ')\\s*\\]\\]', 'i').test(html)
+            || /\{\{#if\s+[a-z0-9_.]+\s*\}\}/i.test(html)
             || /\{\{\s*\$resume|\{\{\s*\$(name|last_name|job_title|designation|email|mobile|location|summary|skills|experience|education|projects|social_links|linkedin|portfolio|link|profile_image)|@@foreach\s*\(\s*\$resume/i.test(html);
     }
     function editableTemplateShell() {
@@ -331,7 +357,9 @@
             profile_image: state.profile_image || '',
             profile_image_url: state.profile_image || '',
             profile_image_tag: state.profile_image ? `<img src="${state.profile_image}" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">` : '',
+            photo: state.profile_image || '',
         };
+        output = applyHandlebarsIfBlocks(output, values);
         Object.entries(values).forEach(([k, v]) => { output = replaceToken(output, k, v); });
         
         // Dynamic Section Visibility: If a section is empty, remove its header and container
@@ -506,19 +534,24 @@
     function renderEditor() {
         $('cv-name').value     = state.name;
         if ($('cv-last-name')) $('cv-last-name').value = state.last_name;
-        if ($('cv-job-title')) $('cv-job-title').value = state.job_title;
+        if ($('cv-designation')) $('cv-designation').value = state.designation || state.job_title;
         $('cv-email').value    = state.email;
         $('cv-mobile').value   = state.mobile;
         $('cv-location').value = state.location;
+        if ($('cv-linkedin')) $('cv-linkedin').value = state.linkedin || '';
+        if ($('cv-github')) $('cv-github').value = state.github || '';
         $('cv-social').value   = state.social_links.join(', ');
         $('cv-summary').value  = state.summary;
         $('cv-skills').value   = state.skills.join(', ');
+        applyDynamicFormVisibility();
 
         /* ── Profile Image ── */
         const template = templates[selectedTemplateId];
         const imgSection = $('image-upload-section');
         if (imgSection) {
-            imgSection.classList.toggle('hidden', !template?.has_image);
+            const templateHtml = String(template?.html || '');
+            const usesImageToken = /\{\{\s*(profile_image|profile_image_url|profile_image_tag|photo)\s*\}\}|\[\[\s*(profile_image|profile_image_url|profile_image_tag|photo)\s*\]\]|\{\{#if\s+photo\s*\}\}/i.test(templateHtml);
+            imgSection.classList.toggle('hidden', !(template?.has_image || usesImageToken));
             const imgPreview = $('cv-image-preview');
             const placeholder = $('cv-image-placeholder');
             if (state.profile_image) {
@@ -671,6 +704,45 @@
         }
     }
 
+    function templateTokensForForm(templateId) {
+        const html = String(templates?.[templateId]?.html || '');
+        const tokens = new Set();
+
+        html.replace(/\{\{\s*([a-z_][a-z0-9_]*)\s*\}\}|\[\[\s*([a-z_][a-z0-9_]*)\s*\]\]/gi, (_, t1, t2) => {
+            tokens.add(String(t1 || t2 || '').toLowerCase());
+            return '';
+        });
+        html.replace(/\$resume\[['"]([a-z_][a-z0-9_]*)['"]\]/gi, (_, t) => {
+            tokens.add(String(t || '').toLowerCase());
+            return '';
+        });
+
+        return tokens;
+    }
+
+    function applyDynamicFormVisibility() {
+        const tokens = templateTokensForForm(selectedTemplateId);
+        const hasExplicitTokens = tokens.size > 0;
+
+        document.querySelectorAll('[data-template-field]').forEach((node) => {
+            const required = String(node.getAttribute('data-template-field') || '')
+                .split(',')
+                .map(v => v.trim().toLowerCase())
+                .filter(Boolean);
+            if (!required.length) return;
+
+            const show = !hasExplicitTokens || required.some(token => tokens.has(token));
+            node.style.display = show ? '' : 'none';
+        });
+
+        document.querySelectorAll('[data-template-section]').forEach((node) => {
+            const token = String(node.getAttribute('data-template-section') || '').trim().toLowerCase();
+            if (!token) return;
+            const show = !hasExplicitTokens || tokens.has(token);
+            node.style.display = show ? '' : 'none';
+        });
+    }
+
     /* ── Zoom ── */
     function setZoom(z) {
         const minZoom = window.matchMedia('(max-width: 600px)').matches ? 38 : 50;
@@ -814,6 +886,9 @@
         input.addEventListener('input', e => {
             const f = e.target.dataset.field;
             state[f] = ['skills','social_links'].includes(f) ? toList(e.target.value) : e.target.value;
+            if (f === 'designation') {
+                state.job_title = e.target.value;
+            }
             renderTemplatePreview();
         });
     });
@@ -1318,6 +1393,7 @@
                 sheet.style.transform = '';
                 sheet.style.transformOrigin = '';
             }
+            updatePreviewPageControls(1, 1);
             return;
         }
 
@@ -1334,6 +1410,7 @@
             }
             preview.style.transform = `scale(${scale})`;
             preview.style.margin = '0 auto';
+            updatePreviewPageControls(1, 1);
             return;
         }
 
@@ -1350,11 +1427,16 @@
         const scaledW = Math.round(resumeWidth * scale);
         const scaledH = Math.round(resumeHeight * scale);
 
+        const rawSheetHeight = Math.max(sheet.scrollHeight || 0, resumeHeight);
+        previewTotalPages = Math.max(1, Math.ceil(rawSheetHeight / resumeHeight));
+        previewPage = Math.min(previewPage, previewTotalPages);
+        const offsetY = (previewPage - 1) * resumeHeight;
+
         sheet.style.width = `${resumeWidth}px`;
-        sheet.style.minHeight = `${resumeHeight}px`;
+        sheet.style.minHeight = `${rawSheetHeight}px`;
         sheet.style.boxSizing = 'border-box';
         sheet.style.transformOrigin = 'top left';
-        sheet.style.transform = `scale(${scale})`;
+        sheet.style.transform = `translateY(-${offsetY}px) scale(${scale})`;
 
         preview.style.transform = '';
         preview.style.transformOrigin = '';
@@ -1376,8 +1458,29 @@
             stage.style.maxWidth = isMobile ? '100%' : 'none';
             stage.style.flexShrink = '0';
         }
+        updatePreviewPageControls(previewPage, previewTotalPages);
+    }
+
+    function updatePreviewPageControls(currentPage, totalPages) {
+        if (!previewPageNavEl || !previewPageRangeEl || !previewPageLabelEl) return;
+        const safeTotal = Math.max(1, totalPages || 1);
+        const safeCurrent = Math.min(Math.max(1, currentPage || 1), safeTotal);
+        const show = safeTotal > 1;
+        previewPageNavEl.classList.toggle('active', show);
+        previewPageRangeEl.max = String(safeTotal);
+        previewPageRangeEl.value = String(safeCurrent);
+        previewPageLabelEl.textContent = `${safeCurrent}/${safeTotal}`;
+        if (!show) {
+            previewPage = 1;
+            previewTotalPages = 1;
+        }
     }
     window.addEventListener('resize', updatePreviewScale);
+
+    previewPageRangeEl?.addEventListener('input', () => {
+        previewPage = parseInt(previewPageRangeEl.value || '1', 10) || 1;
+        updatePreviewScale();
+    });
 
     // Patch renderTemplatePreview to include scaling
     const originalRenderPreview = renderTemplatePreview;

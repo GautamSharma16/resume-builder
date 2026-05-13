@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Purchase;
 use App\Models\CoverLetter;
+use App\Models\Article;
 use App\Models\Resume;
 use App\Models\ResumeAnalysis;
 use App\Models\Template;
@@ -58,6 +59,12 @@ class DashboardController extends Controller
             ];
         });
 
+        $recentBlogs = Article::query()
+            ->where('is_published', true)
+            ->latest('published_at')
+            ->take(3)
+            ->get();
+
         return view('dashboard', [
             'user' => $user,
             'activeSubscription' => $activeSubscription,
@@ -65,6 +72,7 @@ class DashboardController extends Controller
             'recentResumePreviews' => $recentResumePreviews,
             'recentCoverLetters' => $recentCoverLetters,
             'recentCoverLetterPreviews' => $recentCoverLetterPreviews,
+            'recentBlogs' => $recentBlogs,
             'totalResumes' => \App\Models\Resume::where('user_id', $user->id)->count(),
             'totalCoverLetters' => \App\Models\CoverLetter::where('user_id', $user->id)->count(),
         ]);

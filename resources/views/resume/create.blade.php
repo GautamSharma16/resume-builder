@@ -720,7 +720,7 @@
             transition: background 0.15s, box-shadow 0.15s;
             flex-shrink: 0;
         }
-        .change-tpl-btn:hover { background: var(--surface); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
 
         .rp-viewport {
             flex: 1;
@@ -1268,14 +1268,14 @@
                     </div>
 
                     <div class="rp-row">
-                        <div class="rp-group">
-                            <label class="rp-label">First name</label>
+                        <div class="rp-group" data-template-field="name">
+                            <label class="rp-label">Full Name</label>
                             <div class="rp-input-wrap">
                                 <input id="cv-name" class="rp-input cv-field" placeholder="Jane" data-field="name">
                                 <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
                             </div>
                         </div>
-                        <div class="rp-group">
+                        <div class="rp-group" data-template-field="last_name">
                             <label class="rp-label">Last name</label>
                             <div class="rp-input-wrap">
                                 <input id="cv-last-name" class="rp-input cv-field" placeholder="Smith" data-field="last_name">
@@ -1285,31 +1285,24 @@
                     </div>
 
                     <div class="rp-row">
-                        <div class="rp-group">
-                            <label class="rp-label">Desired job title</label>
-                            <div class="rp-input-wrap">
-                                <input id="cv-job-title" class="rp-input cv-field" placeholder="e.g. Senior Product Designer" data-field="job_title">
-                                <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-                            </div>
-                        </div>
-                        <div class="rp-group">
+                        <div class="rp-group" data-template-field="designation,job_title">
                             <label class="rp-label">Designation</label>
                             <div class="rp-input-wrap">
-                                <input id="cv-designation" class="rp-input cv-field" placeholder="e.g. Product Designer" data-field="designation">
+                                <input id="cv-designation" class="rp-input cv-field" placeholder="e.g. Senior Product Designer" data-field="designation" data-template-field="designation,job_title">
                                 <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
                             </div>
                         </div>
                     </div>
 
                     <div class="rp-row">
-                        <div class="rp-group">
+                        <div class="rp-group" data-template-field="mobile,contact">
                             <label class="rp-label">Phone</label>
                             <div class="rp-input-wrap">
                                 <input id="cv-mobile" class="rp-input cv-field" placeholder="+1 123 456 7890" data-field="mobile">
                                 <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
                             </div>
                         </div>
-                        <div class="rp-group">
+                        <div class="rp-group" data-template-field="email,contact">
                             <label class="rp-label">Email</label>
                             <div class="rp-input-wrap">
                                 <input id="cv-email" class="rp-input cv-field" type="email" placeholder="you@example.com" data-field="email">
@@ -1319,7 +1312,7 @@
                     </div>
 
                     <div class="rp-row full">
-                        <div class="rp-group">
+                        <div class="rp-group" data-template-field="location,address,contact">
                             <label class="rp-label">Location</label>
                             <div class="rp-input-wrap">
                                 <input id="cv-location" class="rp-input cv-field" placeholder="City, State, Country" data-field="location">
@@ -1328,7 +1321,7 @@
                     </div>
 
                     <div class="rp-row full">
-                        <div class="rp-group">
+                        <div class="rp-group" data-template-field="social_links,portfolio,link">
                             <label class="rp-label">Social Links <span class="rp-hint">(comma separated)</span></label>
                             <div class="rp-input-wrap">
                                 <input id="cv-social" class="rp-input cv-field" placeholder="Other portfolio or website links" data-field="social_links">
@@ -1338,14 +1331,14 @@
                     </div>
                     
                     <div class="rp-row">
-                        <div class="rp-group">
+                        <div class="rp-group" data-template-field="linkedin">
                             <label class="rp-label">LinkedIn</label>
                             <div class="rp-input-wrap">
                                 <input id="cv-linkedin" class="rp-input cv-field" placeholder="linkedin.com/in/you" data-field="linkedin">
                                 <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
                             </div>
                         </div>
-                        <div class="rp-group">
+                        <div class="rp-group" data-template-field="github">
                             <label class="rp-label">GitHub</label>
                             <div class="rp-input-wrap">
                                 <input id="cv-github" class="rp-input cv-field" placeholder="github.com/you" data-field="github">
@@ -1468,7 +1461,7 @@
                     </div>
 
                     {{-- Projects --}}
-                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <div id="projects-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);" data-template-section="projects">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                             <h3 style="font-size: 1.1rem; font-weight: 700;">Projects</h3>
                             <button type="button" id="clear-project-section-btn" class="rp-entry-remove">
@@ -1484,7 +1477,7 @@
                     </div>
 
                     {{-- Certifications --}}
-                    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);">
+                    <div id="certifications-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);" data-template-section="certifications">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                             <h3 style="font-size: 1.1rem; font-weight: 700;">Certifications</h3>
                             <button type="button" id="clear-certification-section-btn" class="rp-entry-remove">
@@ -1500,7 +1493,7 @@
                     </div>
 
                     {{-- Achievements --}}
-                    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);">
+                    <div id="achievements-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);" data-template-section="achievements">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                             <h3 style="font-size: 1.1rem; font-weight: 700;">Achievements</h3>
                             <button type="button" id="clear-achievement-section-btn" class="rp-entry-remove">
@@ -1565,6 +1558,7 @@
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                     Change Template
                 </button>
+               
             </div>
             <div class="rp-viewport" id="preview-viewport" style="padding-bottom: 120px;">
                 <div id="cv-preview"></div>
@@ -1687,7 +1681,8 @@
                 ...data,
                 name: toStr(data.name),
                 last_name: toStr(data.last_name),
-                job_title: toStr(data.job_title),
+                designation: toStr(data.designation || data.job_title),
+                job_title: toStr(data.designation || data.job_title),
                 email: toStr(data.email) || cEmail,
                 mobile: toStr(data.mobile) || cMobile,
                 location: toStr(data.location || data.address),
@@ -1754,8 +1749,8 @@
             return {
                 name: read('cv-name'),
                 last_name: read('cv-last-name'),
-                job_title: read('cv-job-title'),
                 designation: read('cv-designation'),
+                job_title: read('cv-designation'),
                 email: read('cv-email'),
                 mobile: read('cv-mobile'),
                 location: read('cv-location'),
@@ -1867,9 +1862,9 @@
         function updateSummaryRoleLabel() {
             const label = document.getElementById('summary-role-label');
             if (!label) return;
-            label.textContent = document.getElementById('cv-job-title')?.value || 'your role';
+            label.textContent = document.getElementById('cv-designation')?.value || 'your designation';
         }
-        document.getElementById('cv-job-title')?.addEventListener('input', updateSummaryRoleLabel);
+        document.getElementById('cv-designation')?.addEventListener('input', updateSummaryRoleLabel);
         updateSummaryRoleLabel();
     </script>
 

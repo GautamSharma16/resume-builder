@@ -361,6 +361,26 @@ class CoverLetterController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function rename(Request $request, CoverLetter $coverLetter)
+    {
+        $this->authorizeLetter($coverLetter);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:160'],
+        ]);
+
+        $title = trim($validated['title']) ?: 'Cover Letter';
+        $data = $coverLetter->data ?? [];
+        $data['job_role'] = $title;
+
+        $coverLetter->update([
+            'job_role' => $title,
+            'data' => $data,
+        ]);
+
+        return back()->with('status', 'Cover letter renamed.');
+    }
+
     public function download(Request $request, CoverLetter $coverLetter, PdfConversionService $pdfConversionService, string $format = 'pdf')
     {
         $this->authorizeLetter($coverLetter);

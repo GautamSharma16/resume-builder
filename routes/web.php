@@ -60,6 +60,7 @@ Route::get('/cover-letter', [CoverLetterController::class, 'create'])->name('cov
 Route::post('/cover-letter', [CoverLetterController::class, 'store'])->name('cover-letter.store');
 Route::post('/cover-letter/generate', [CoverLetterController::class, 'generate'])->name('cover-letter.generate');
 Route::patch('/cover-letter/{coverLetter}', [CoverLetterController::class, 'save'])->name('cover-letter.save');
+Route::patch('/cover-letter/{coverLetter}/rename', [CoverLetterController::class, 'rename'])->name('cover-letter.rename');
 Route::get('/cover-letter/{coverLetter}/download/{format?}', [CoverLetterController::class, 'download'])->name('cover-letter.download');
 Route::get('/templates', [PageController::class, 'templates'])->name('templates');
 Route::get('/interview', [PageController::class, 'interview'])->name('interview');

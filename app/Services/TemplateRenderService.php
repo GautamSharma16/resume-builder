@@ -146,7 +146,8 @@ class TemplateRenderService
 
     public function containsResumePlaceholders(string $html): bool
     {
-        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag)\s*\]\]/i', $html) === 1
+        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\]\]/i', $html) === 1
+            || preg_match('/\{\{#if\s+[a-z0-9_.]+\s*\}\}/i', $html) === 1
             || $this->shouldRenderWithBlade($html);
     }
 
@@ -220,6 +221,8 @@ HTML;
     private function render(string $html, array $data, bool $allowInjection = true): string
     {
         $originalHtml = $html;
+        $html = $this->renderHandlebarsIfBlocks($html, $data);
+
         foreach ($data as $key => $value) {
             if (is_string($value)) {
                 $quotedKey = preg_quote($key, '/');
@@ -387,6 +390,7 @@ HTML;
             'profile_image' => Arr::get($data, 'profile_image', ''),
             'profile_image_url' => Arr::get($data, 'profile_image', ''),
             'profile_image_tag' => Arr::get($data, 'profile_image') ? '<img src="'.Arr::get($data, 'profile_image').'" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">' : '',
+            'photo' => Arr::get($data, 'profile_image', ''),
         ];
     }
 
@@ -452,9 +456,34 @@ HTML;
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
             'profile_image' => $this->text(Arr::get($data, 'profile_image', '')),
             'profile_image_url' => $this->text(Arr::get($data, 'profile_image', '')),
+            'photo' => $this->text(Arr::get($data, 'profile_image', '')),
         ];
 
         return array_merge(['resume' => $resume], $resume);
+    }
+
+    private function renderHandlebarsIfBlocks(string $html, array $data): string
+    {
+        $pattern = '/\{\{#if\s+([a-z0-9_.]+)\s*\}\}(?:(?!\{\{#if).)*?(?:\{\{else\}\}(?:(?!\{\{#if).)*?)?\{\{\/if\}\}/is';
+
+        // Handle multiple blocks safely
+        while (preg_match($pattern, $html)) {
+            $html = preg_replace_callback(
+                '/\{\{#if\s+([a-z0-9_.]+)\s*\}\}(.*?)(?:\{\{else\}\}(.*?))?\{\{\/if\}\}/is',
+                function ($matches) use ($data) {
+                    $key = trim($matches[1] ?? '');
+                    $truthyPart = $matches[2] ?? '';
+                    $elsePart = $matches[3] ?? '';
+                    $value = Arr::get($data, $key);
+                    $isTruthy = ! ($value === null || $value === '' || $value === false || $value === 'null');
+
+                    return $isTruthy ? $truthyPart : $elsePart;
+                },
+                $html
+            );
+        }
+
+        return $html;
     }
 
     private function bladeRenderDataForCoverLetter(array $data): array
