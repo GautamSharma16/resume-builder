@@ -112,6 +112,14 @@
                                            class="inline-flex items-center gap-1 rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-800">
                                             Edit
                                         </a>
+                                        <form action="{{ route('admin.templates.destroy', $template) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this template?');" class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit"
+                                                    class="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
+                                                Delete
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -167,6 +175,14 @@
                                class="inline-flex items-center justify-center rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-800">
                                 Edit
                             </a>
+                            <form action="{{ route('admin.templates.destroy', $template) }}" method="POST" onsubmit="return confirm('Are you sure?');" class="block w-full">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                        class="w-full inline-flex items-center justify-center rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50">
+                                    Delete
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

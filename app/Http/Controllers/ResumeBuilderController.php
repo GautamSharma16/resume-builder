@@ -159,6 +159,21 @@ class ResumeBuilderController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function rename(Request $request, Resume $resume)
+    {
+        $this->authorizeResume($resume);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:160'],
+        ]);
+
+        $resume->update([
+            'title' => trim($validated['title']) ?: 'Untitled Resume',
+        ]);
+
+        return back()->with('status', 'Resume title updated.');
+    }
+
     public function preview(Resume $resume)
     {
         $this->authorizeResume($resume);
@@ -315,7 +330,10 @@ class ResumeBuilderController extends Controller
             'summary' => $this->toText($resume['summary'] ?? ''),
             'last_name' => $this->toText($resume['last_name'] ?? ''),
             'job_title' => $this->toText($resume['job_title'] ?? ''),
+            'designation' => $this->toText($resume['designation'] ?? ''),
             'linkedin' => $this->toText($resume['linkedin'] ?? ''),
+            'portfolio' => $this->toText($resume['portfolio'] ?? $resume['link'] ?? ''),
+            'link' => $this->toText($resume['link'] ?? $resume['portfolio'] ?? ''),
             'github' => $this->toText($resume['github'] ?? ''),
             'tech_stack' => $this->toText($resume['tech_stack'] ?? ''),
             'skills' => $this->normalizeArray($resume['skills'] ?? []),
@@ -327,6 +345,7 @@ class ResumeBuilderController extends Controller
                 fn ($link) => ! preg_match('/(linkedin\.com\/in\/(?:alex|you)|github\.com\/(?:alex|you))/i', $link)
             )),
             'certifications' => $this->normalizeArray($resume['certifications'] ?? []),
+            'achievements' => $this->normalizeArray($resume['achievements'] ?? []),
             'profile_image' => $this->toText($resume['profile_image'] ?? ''),
         ]);
 

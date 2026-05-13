@@ -366,7 +366,7 @@ class CoverLetterController extends Controller
         $this->authorizeLetter($coverLetter);
 
         if (! $request->user()) {
-            return redirect()->route('login');
+            return redirect()->guest(route('login'));
         }
 
         if (! $coverLetter->is_paid && ! $request->user()->activeSubscription?->hasDownloadsRemaining()) {

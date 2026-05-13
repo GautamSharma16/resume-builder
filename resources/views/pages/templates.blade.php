@@ -143,8 +143,7 @@
     .qv-use-btn:hover { background: var(--blue-dark); transform: translateY(-2px); }
 </style>
 
-<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8" x-data="{
-    type: 'resume',
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8" x-data="{ 
     tab: 'ats'
 }">
     <div class="max-w-7xl mx-auto">
@@ -161,36 +160,10 @@
                     <span class="text-xs font-semibold text-gray-700 tracking-wide">PROFESSIONAL DESIGNS</span>
                 </div>
                 <h1 class="text-5xl md:text-6xl font-bold text-gray-900 mb-4 tracking-tight" style="font-family: var(--font-display);">
-                    Templates
-                    <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Gallery</span>
+                    Resume 
+                    <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Templates</span>
                 </h1>
-                <p class="text-base text-gray-500 max-w-2xl mx-auto">
-                    Pick a template, customize it in the builder, and download your resume or cover letter.
-                </p>
-            </div>
-        </div>
-
-        {{-- TYPE TABS (Resume / Cover Letter) --}}
-        <div class="relative mb-6">
-            <div class="flex flex-wrap gap-2 justify-center bg-white/60 backdrop-blur-sm p-2 rounded-2xl border border-gray-200/80 shadow-sm w-fit mx-auto">
-                <button
-                    @click="type='resume'; tab='ats'"
-                    :class="type==='resume'
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
-                        : 'bg-transparent text-gray-600 hover:text-blue-700 hover:bg-blue-50'"
-                    class="relative px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200">
-                    Resume
-                    <span x-show="type==='resume'" class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                </button>
-                <button
-                    @click="type='cover_letter'; tab='professional'"
-                    :class="type==='cover_letter'
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
-                        : 'bg-transparent text-gray-600 hover:text-blue-700 hover:bg-blue-50'"
-                    class="relative px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200">
-                    Cover Letter
-                    <span x-show="type==='cover_letter'" class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                </button>
+                <p class="text-base text-gray-500 max-w-2xl mx-auto">Choose from our collection of ATS-friendly and modern designs to create your perfect resume that stands out</p>
             </div>
         </div>
 
@@ -198,41 +171,22 @@
         <div class="relative mb-12">
             <div class="flex flex-wrap gap-2 justify-center bg-white/60 backdrop-blur-sm p-2 rounded-2xl border border-gray-200/80 shadow-sm w-fit mx-auto">
                 @php
-                    $resumeTabs = [
+                    $tabs = [
                         'ats' => 'ATS Optimized',
-                        'fresher' => 'Entry Level',
+                        'fresher' => 'Entry Level', 
                         'experienced' => 'Senior Level',
-                        'word' => 'MS Word',
-                    ];
-                    $coverTabs = [
-                        'professional' => 'Professional',
-                        'modern' => 'Modern',
-                        'executive' => 'Executive',
-                        'minimal' => 'Minimal',
+                        'word' => 'MS Word'
                     ];
                 @endphp
-                @foreach($resumeTabs as $key => $label)
+                @foreach($tabs as $key => $label)
                     <button
                         @click="tab='{{ $key }}'"
-                        x-show="type==='resume'"
-                        :class="type==='resume' && tab==='{{ $key }}'
+                        :class="tab==='{{ $key }}'
                             ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
                             : 'bg-transparent text-gray-600 hover:text-blue-700 hover:bg-blue-50'"
                         class="relative px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200">
                         {{ $label }}
-                        <span x-show="type==='resume' && tab==='{{ $key }}'" class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                    </button>
-                @endforeach
-                @foreach($coverTabs as $key => $label)
-                    <button
-                        @click="tab='{{ $key }}'"
-                        x-show="type==='cover_letter'"
-                        :class="type==='cover_letter' && tab==='{{ $key }}'
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
-                            : 'bg-transparent text-gray-600 hover:text-blue-700 hover:bg-blue-50'"
-                        class="relative px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200">
-                        {{ $label }}
-                        <span x-show="type==='cover_letter' && tab==='{{ $key }}'" class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                        <span x-show="tab==='{{ $key }}'" class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
                     </button>
                 @endforeach
             </div>
@@ -240,8 +194,7 @@
 
         {{-- TEMPLATES GRID --}}
         @php
-            $resumeCategories = ['ats', 'fresher', 'experienced', 'word'];
-            $coverCategories = ['professional', 'modern', 'executive', 'minimal'];
+            $categories = ['ats', 'fresher', 'experienced', 'word'];
             $categoryColors = [
                 'ats' => 'blue',
                 'fresher' => 'indigo',
@@ -257,10 +210,9 @@
         @endphp
 
        
-        {{-- RESUME CATEGORIES --}}
-        @foreach($resumeCategories as $category)
+        @foreach($categories as $category)
             <div 
-                x-show="type === 'resume' && tab === '{{ $category }}'" 
+                x-show="tab === '{{ $category }}'" 
                 class="transition-all d uration-300"
                 x-transition:enter="transition ease-out duration-300"
                 x-transition:enter-start="opacity-0 translate-y-4"
@@ -324,64 +276,6 @@
             </div>
         @endforeach
 
-        {{-- COVER LETTER CATEGORIES --}}
-        @foreach($coverCategories as $category)
-            <div
-                x-show="type === 'cover_letter' && tab === '{{ $category }}'"
-                class="transition-all duration-300"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4"
-                x-transition:enter-end="opacity-100 translate-y-0"
-                x-cloak
-            >
-                <div class="flex flex-wrap justify-center gap-12">
-                    @php
-                        $filteredTemplates = $templates->where('type', 'cover_letter');
-                        if($category !== 'all') $filteredTemplates = $filteredTemplates->where('category', $category);
-                    @endphp
-
-                    @forelse($filteredTemplates as $template)
-                        <div class="group flex flex-col relative animate-fadeUp w-[340px]" style="animation-delay: {{ $loop->index * 0.05 }}s;">
-                            <div class="relative cursor-pointer group/preview overflow-hidden rounded-2xl border-2 border-black bg-white w-full" style="height: 481px;">
-                                <div class="pointer-events-none absolute top-0 left-0 transition-all duration-700 group-hover/preview:scale-[1.05]"
-                                     style="width: 794px; transform: scale(0.4282); transform-origin: top left;">
-                                    <div class="bg-white" style="width: 794px; min-height: 1123px;">
-                                        {!! $rendered[$template->id] ?? '<div class="p-8 text-gray-400">Preview not available</div>' !!}
-                                    </div>
-                                </div>
-
-                                <div class="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-400 flex flex-col items-center justify-center p-6">
-                                    <h3 class="text-white text-xl font-bold mb-6 transform -translate-y-4 group-hover:translate-y-0 transition-transform duration-400 text-center">
-                                        {{ $template->name }}
-                                    </h3>
-                                    <div class="flex items-center gap-4 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-400">
-                                        <button type="button" class="template-preview-btn w-14 h-14 flex items-center justify-center bg-white text-gray-900 rounded-full shadow-2xl hover:bg-blue-600 hover:text-white transition-all duration-300"
-                                            onclick="openModal('{{ $template->id }}', '{{ $template->name }}')"
-                                            data-template-id="{{ $template->id }}"
-                                            data-template-name="{{ $template->name }}">
-                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                            </svg>
-                                        </button>
-
-                                        <a href="{{ route('cover-letter', ['template_id' => $template->id]) }}" class="w-14 h-14 flex items-center justify-center bg-blue-600 text-white rounded-full shadow-2xl hover:bg-blue-700 transition-all duration-300">
-                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-                                            </svg>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="col-span-full py-20 text-center">
-                            <p class="text-gray-400 font-medium">No templates in this category yet</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        @endforeach
-
         {{-- FOOTER NOTE --}}
         <div class="mt-20 text-center pt-8 border-t border-gray-100">
             <p class="text-xs text-gray-400">All templates are fully customizable. Create your professional resume in minutes.</p>
@@ -414,8 +308,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const rendered = @json($rendered);
-    const applyBaseResume  = "{{ route('resume.create', ['template_id' => '__ID__']) }}";
-    const applyBaseCover   = "{{ route('cover-letter', ['template_id' => '__ID__']) }}";
+    const applyBase  = "{{ route('resume.create', ['template_id' => '__ID__']) }}";
     const modal      = document.getElementById('template-modal');
     const modalBody  = document.getElementById('template-modal-body');
     const applyBtn   = document.getElementById('modal-apply-btn');
@@ -456,14 +349,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!currentTemplateId || !rendered[currentTemplateId]) return;
         modalBody.innerHTML = resumeAccentStyle(selectedColor) + rendered[currentTemplateId];
         if (applyBtn) {
-            const isCover = String(currentTemplateId) in rendered && (String(currentTemplateId) in rendered); // keep simple; url choice based on template type below
-            const templateRow = @json($templates->keyBy('id'));
-            const type = templateRow?.[currentTemplateId]?.type || 'resume';
-            const base = type === 'cover_letter' ? applyBaseCover : applyBaseResume;
-            const url = base.replace('__ID__', currentTemplateId);
-            applyBtn.href = (type === 'resume' && selectedColor)
-                ? `${url}&primary_color=${encodeURIComponent(selectedColor)}`
-                : url;
+            const url = applyBase.replace('__ID__', currentTemplateId);
+            applyBtn.href = selectedColor ? `${url}&primary_color=${encodeURIComponent(selectedColor)}` : url;
         }
         updateColorButtons();
         updateZoom();

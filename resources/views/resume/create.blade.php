@@ -21,7 +21,7 @@
     data-plans-url="{{ route('plans') }}"
     data-ai-text-url="{{ route('resume.ai-text') }}"
     data-authenticated="{{ auth()->check() ? '1' : '0' }}"
-    data-download-requires-plan="{{ auth()->check() && ((! auth()->user()->activeSubscription?->hasDownloadsRemaining()) && (! $editingResume || ! $editingResume->is_paid)) ? '1' : '0' }}"
+    data-download-requires-plan="{{ (!auth()->check() || (!auth()->user()->activeSubscription?->hasDownloadsRemaining() && (!$editingResume || !$editingResume->is_paid))) ? '1' : '0' }}"
     @if($selectedTemplateId) data-selected-template="{{ $selectedTemplateId }}" @endif>
 
     <script type="application/json" id="resume-templates-json">@json($templates->keyBy('id'))</script>
@@ -53,13 +53,13 @@
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        
+
         .tpl-resume ul { list-style-type: disc; margin-left: 1.5em; }
         .tpl-resume ol { list-style-type: decimal; margin-left: 1.5em; }
 
         html, body { margin: 0; padding: 0; min-height: 100%; overflow-y: auto; }
         body.is-builder { height: 100vh; overflow: hidden; }
-        body.is-builder .rp-topbar, 
+        body.is-builder .rp-topbar,
         body.is-builder .main-footer { display: none !important; }
 
         body {
@@ -80,7 +80,7 @@
         }
 
         /* ══════════════════════════════════════════
-           MINIMAL TOP BAR (branding only, no nav)
+           MINIMAL TOP BAR
         ══════════════════════════════════════════ */
         .rp-topbar {
             flex-shrink: 0;
@@ -111,7 +111,7 @@
             background: var(--blue-light);
             padding: 0.3rem 0.75rem;
             border-radius: 999px;
-            display: none; /* shown on mobile */
+            display: none;
         }
 
         /* ══════════════════════════════════════════
@@ -181,7 +181,7 @@
            BUILDER LAYOUT
         ══════════════════════════════════════════ */
         .rp-builder {
-            display: none; /* shown via JS */
+            display: none;
             flex: 1;
             overflow: hidden;
             padding: 1.25rem 1.5rem;
@@ -189,7 +189,7 @@
             grid-template-columns: 1fr 1fr;
         }
         .rp-builder.visible { display: grid; }
-        
+
         .rp-builder.step-6-active .change-tpl-btn {
             display: none !important;
         }
@@ -528,7 +528,7 @@
             margin-top: 0.1rem;
         }
 
-        /* Entry cards (experience / projects) */
+        /* Entry cards */
         .rp-entry-card {
             background: var(--white);
             border: 1.5px solid var(--border);
@@ -676,8 +676,9 @@
         .preview-topbar {
             flex-shrink: 0;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
         }
         .score-badge {
             background: var(--white);
@@ -691,6 +692,7 @@
             gap: 0.5rem;
             color: var(--navy);
             box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            flex-shrink: 0;
         }
         .score-pill {
             background: var(--green);
@@ -716,12 +718,13 @@
             font-family: var(--font-body);
             box-shadow: 0 1px 4px rgba(0,0,0,0.06);
             transition: background 0.15s, box-shadow 0.15s;
+            flex-shrink: 0;
         }
         .change-tpl-btn:hover { background: var(--surface); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
 
         .rp-viewport {
             flex: 1;
-            background: #f8fafc; /* Clean, minimal gray background */
+            background: #f8fafc;
             border-radius: 0;
             overflow: auto;
             padding: 1.5rem;
@@ -736,13 +739,21 @@
         .rp-viewport::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 999px; }
 
         #cv-preview {
-            background: var(--white);
+            background: transparent;
             width: 794px;
             min-height: 1123px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            box-shadow: none;
             transform-origin: top center;
             flex-shrink: 0;
-            margin: auto; /* safe centering for flex overflow */
+            margin: auto;
+        }
+
+        .resume-preview-stage {
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            background: var(--white);
+        }
+        .resume-sheet-preview {
+            background: var(--white);
         }
 
         /* ══════════════════════════════════════════
@@ -856,82 +867,7 @@
         .rp-popup-body::-webkit-scrollbar-track { background: transparent; }
         .rp-popup-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
 
-        /* ══════════════════════════════════════════
-           RESPONSIVE
-        ══════════════════════════════════════════ */
-        .rp-mobile-nav { display: none; }
-
-        @media (max-width: 1024px) {
-            .rp-builder { grid-template-columns: 1fr; }
-            .rp-builder.view-preview .rp-form-panel { display: none; }
-            .rp-builder.view-form .rp-preview-panel { display: none; }
-            
-            .rp-mobile-nav {
-                display: flex;
-                position: fixed;
-                bottom: 2rem;
-                left: 50%;
-                transform: translateX(-50%);
-                background: #0f172a;
-                padding: 0.5rem;
-                border-radius: 100px;
-                box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-                z-index: 2000;
-                gap: 0.5rem;
-                border: 1px solid rgba(255,255,255,0.1);
-            }
-            .rp-mobile-nav button {
-                background: transparent;
-                border: none;
-                color: rgba(255,255,255,0.7);
-                padding: 0.6rem 1.4rem;
-                border-radius: 100px;
-                font-size: 0.8rem;
-                font-weight: 700;
-                cursor: pointer;
-                transition: all 0.25s var(--ease-out);
-                white-space: nowrap;
-            }
-            .rp-mobile-nav button.active {
-                background: var(--blue);
-                color: #fff;
-                box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-            }
-
-            .rp-preview-panel { min-height: 100vh; }
-            .rp-form-body { padding-bottom: 140px !important; }
-            .rp-viewport { 
-                padding: 0 !important;
-                background: #fff !important; 
-                overflow-x: hidden;
-            }
-            #cv-preview { 
-                box-shadow: none !important; 
-                margin: 0 auto !important; 
-            }
-            
-            .preview-topbar { 
-                padding: 0.75rem; 
-                gap: 0.5rem; 
-                flex-direction: column;
-                align-items: center;
-                background: #fff;
-            }
-            .color-selector-wrap { 
-                padding: 4px 10px;
-                gap: 8px;
-                margin: 0 !important;
-                width: 100%;
-                justify-content: center;
-            }
-            .color-circle-btn { width: 20px !important; height: 20px !important; }
-            .color-circle-btn.original { padding: 2px 10px !important; font-size: 10px !important; }
-            .score-badge { display: none; }
-            .change-tpl-btn { width: 100%; justify-content: center; }
-            
-            #cv-preview { transform-origin: top center; margin: 0 auto; flex-shrink: 0; }
-        }
-
+        /* Loading overlay */
         .loading-overlay {
             position: fixed;
             inset: 0;
@@ -977,33 +913,244 @@
             100% { top: 100%; opacity: 0; }
         }
 
+        /* ══════════════════════════════════════════
+           MOBILE NAV — hidden on desktop
+        ══════════════════════════════════════════ */
+        .rp-mobile-nav { display: none; }
+
+        /* ══════════════════════════════════════════
+           RESPONSIVE — TABLET & MOBILE (≤1024px)
+        ══════════════════════════════════════════ */
+        @media (max-width: 1024px) {
+
+            /* Builder: single column */
+            .rp-builder {
+                grid-template-columns: 1fr;
+                grid-template-rows: minmax(0, 1fr);
+                min-height: 100dvh;
+                min-height: 100vh;
+                padding: 0;
+                gap: 0;
+                overflow-x: hidden;
+                max-width: 100vw;
+            }
+            .rp-root { overflow-x: hidden; max-width: 100vw; }
+
+            /* Show only one panel at a time */
+            .rp-builder.view-preview .rp-form-panel { display: none; }
+            .rp-builder.view-form .rp-preview-panel { display: none; }
+
+            /* Preview panel height */
+            .rp-builder.view-preview .rp-preview-panel {
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                max-height: min(100dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 5.75rem));
+            }
+
+            /* ── PREVIEW TOPBAR: horizontal single row ── */
+            .preview-topbar {
+                position: sticky;
+                top: 0;
+                z-index: 40;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                align-items: center !important;
+                gap: 6px !important;
+                padding: 6px 8px !important;
+                background: #fff;
+                border-bottom: 1px solid var(--border);
+                box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+                overflow: hidden;
+            }
+
+            /* Score badge — compact, left */
+            .preview-topbar .score-badge,
+            .score-badge {
+                flex-shrink: 0;
+                padding: 4px 10px;
+                font-size: 11px;
+                white-space: nowrap;
+            }
+
+            /* Color selector — scrollable strip, takes remaining space */
+            .preview-topbar .color-selector-wrap,
+            .color-selector-wrap {
+                flex: 1 1 0% !important;
+                min-width: 0 !important;
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                align-items: center !important;
+                gap: 6px !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                -webkit-overflow-scrolling: touch !important;
+                scrollbar-width: none !important;
+                padding: 4px 4px !important;
+                margin: 0 !important;
+                background: transparent !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                width: auto !important;
+            }
+            .color-selector-wrap::-webkit-scrollbar { display: none; }
+
+            /* "Original" pill */
+            .color-circle-btn.original {
+                padding: 3px 8px !important;
+                font-size: 10px !important;
+                width: auto !important;
+                min-width: 52px !important;
+                height: 24px !important;
+                white-space: nowrap !important;
+                flex-shrink: 0 !important;
+                border-radius: 20px !important;
+            }
+
+            /* Color dots */
+            .color-circle-btn:not(.original) {
+                width: 22px !important;
+                height: 22px !important;
+                min-width: 22px !important;
+                min-height: 22px !important;
+                flex-shrink: 0 !important;
+                border-radius: 50% !important;
+            }
+
+            /* Change Template button — compact, right */
+            .preview-topbar .change-tpl-btn,
+            .change-tpl-btn {
+                flex-shrink: 0 !important;
+                width: auto !important;
+                padding: 5px 10px !important;
+                font-size: 11px !important;
+                min-height: unset !important;
+                white-space: nowrap !important;
+                justify-content: center !important;
+            }
+
+            /* ── VIEWPORT ── */
+            .rp-preview-panel { min-height: 0; }
+            .rp-viewport {
+                padding: 8px 0 calc(88px + env(safe-area-inset-bottom, 0px)) 0 !important;
+                background: #f1f5f9 !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+                flex: 1;
+                min-height: 0;
+                align-items: flex-start !important;
+                justify-content: flex-start !important;
+            }
+
+            /* Resume preview scaling — JS (updatePreviewScale) handles the math */
+            .resume-preview-stage { transform-origin: top left !important; }
+            #cv-preview {
+                transform-origin: top left !important;
+                margin: 0 auto !important;
+                flex-shrink: 0;
+                background: transparent !important;
+                display: block !important;
+                overflow: hidden !important;
+            }
+
+            /* Form panel spacing for fixed dock */
+            .rp-form-body { padding-bottom: 190px !important; }
+            .rp-form-footer { padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px) + 84px) !important; }
+
+            /* ── MOBILE NAV DOCK ── */
+            .rp-mobile-nav {
+                display: flex;
+                position: fixed;
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+                left: 50%;
+                transform: translateX(-50%);
+                background: #0f172a;
+                padding: 5px;
+                border-radius: 100px;
+                box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+                z-index: 2000;
+                gap: 4px;
+                border: 1px solid rgba(255,255,255,0.1);
+                width: min(calc(100% - 24px), 340px);
+                justify-content: center;
+            }
+            .rp-mobile-nav button {
+                flex: 1;
+                padding: 10px 14px;
+                border-radius: 100px;
+                font-size: 13px;
+                font-weight: 600;
+                border: none;
+                background: transparent;
+                color: rgba(255,255,255,0.6);
+                cursor: pointer;
+                transition: background 0.2s, color 0.2s;
+                white-space: nowrap;
+                justify-content: center;
+            }
+            .rp-mobile-nav button.active {
+                background: var(--blue);
+                color: #fff;
+                box-shadow: 0 2px 10px rgba(59,130,246,0.4);
+            }
+        }
+
+        /* ══════════════════════════════════════════
+           RESPONSIVE — SMALL PHONES (≤600px)
+        ══════════════════════════════════════════ */
         @media (max-width: 600px) {
             .rp-root { padding: 0; }
             .rp-onboarding { padding: 2rem 1.25rem 4rem !important; justify-content: flex-start !important; }
             .ob-card { padding: 1.25rem; width: 100%; }
-            .rp-step-nav { padding: 1.25rem 1rem 0; gap: 8px; }
-            .rp-step-tab { min-width: 44px; }
-            .rp-step-name { display: none; } 
-            .rp-step-tab.active .rp-step-name { display: block; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 9px; background: var(--navy); color: #fff; padding: 1px 6px; border-radius: 4px; z-index: 10; }
-            
-            .rp-form-body { padding: 1rem !important; }
-            .rp-form-footer { flex-direction: column; padding: 1rem !important; }
-            .rp-form-footer .btn { width: 100%; }
-            
-            .preview-topbar { padding: 0.5rem; gap: 0.25rem; }
-            .color-selector-wrap { 
-                padding: 4px 8px;
-                gap: 6px;
-                background: #f1f5f9 !important;
-            }
-            .color-circle-btn { width: 18px !important; height: 18px !important; }
-            .color-circle-btn.original { padding: 2px 8px !important; font-size: 9px !important; }
-            
-            #cv-preview { transform-origin: top center; margin: 0 auto; flex-shrink: 0; }
-        }
-    </style>
 
-    
+            /* Step nav */
+            .rp-step-nav { padding: 10px 10px 0; gap: 2px; }
+            .rp-step-tab { min-width: 32px; padding-bottom: 12px; }
+            .rp-step-dot { width: 12px; height: 12px; }
+            .rp-step-name { display: none; }
+            .rp-step-tab.active .rp-step-name {
+                display: block;
+                position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+                font-size: 9px; background: var(--navy); color: #fff;
+                padding: 1px 6px; border-radius: 4px; z-index: 10;
+            }
+
+            /* Form */
+            .rp-form-body { padding: 1rem !important; }
+            .rp-form-footer { flex-direction: column; padding: 1rem !important; gap: 8px; }
+            .rp-form-footer .btn { width: 100%; justify-content: center; }
+
+            /* Topbar */
+            .rp-topbar { height: 48px !important; padding: 0 12px !important; }
+            .rp-topbar-logo img { height: 80px !important; }
+
+            /* Preview topbar on very small screens */
+            .preview-topbar { padding: 4px 6px !important; gap: 4px !important; }
+        }
+
+        /* ══════════════════════════════════════════
+           RESPONSIVE — EXTRA SMALL (≤480px)
+        ══════════════════════════════════════════ */
+        @media (max-width: 480px) {
+            /* Single-column form rows */
+            .rp-row { grid-template-columns: 1fr !important; }
+            .rp-entry-row { grid-template-columns: 1fr !important; }
+
+            /* Viewport padding */
+            .rp-viewport { padding: 4px 0 calc(88px + env(safe-area-inset-bottom, 0px)) 0 !important; }
+
+            /* Clip resume sheet overflow */
+            .resume-sheet-preview { max-width: 100vw; overflow: hidden; }
+
+            /* Mobile nav dock narrower */
+            .rp-mobile-nav { width: calc(100% - 1rem); padding: 4px; }
+            .rp-mobile-nav button { padding: 9px 10px; font-size: 12px; }
+        }
+
+    </style>
 
     {{-- ══ TOPBAR ══ --}}
     <header class="rp-topbar" style="position: relative; z-index: 100;">
@@ -1020,7 +1167,7 @@
     </header>
 
     {{-- ══ ONBOARDING ══ --}}
-    <div id="rp-onboarding-view" class="rp-onboarding" style=" padding: 6rem 1.5rem 4rem;">
+    <div id="rp-onboarding-view" class="rp-onboarding" style="padding: 6rem 1.5rem 4rem;">
         <h1>How will you make your resume?</h1>
         <p class="ob-sub">Choose how you'd like to get started</p>
         <div class="ob-cards">
@@ -1101,7 +1248,7 @@
         <section class="rp-form-panel">
 
             <nav class="rp-step-nav">
-                @foreach(['Contacts','Summary','Experience','Education','Skills','Projects','Finalize'] as $i => $label)
+                @foreach(['Contacts','Summary','Experience','Education','Skills','Additional','Finalize'] as $i => $label)
                     <button class="rp-step-tab {{ $i === 0 ? 'active' : '' }}" data-step="{{ $i + 1 }}">
                         <span class="rp-step-name">{{ $label }}</span>
                         <div class="rp-step-dot"></div>
@@ -1137,11 +1284,18 @@
                         </div>
                     </div>
 
-                    <div class="rp-row full">
+                    <div class="rp-row">
                         <div class="rp-group">
                             <label class="rp-label">Desired job title</label>
                             <div class="rp-input-wrap">
                                 <input id="cv-job-title" class="rp-input cv-field" placeholder="e.g. Senior Product Designer" data-field="job_title">
+                                <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+                            </div>
+                        </div>
+                        <div class="rp-group">
+                            <label class="rp-label">Designation</label>
+                            <div class="rp-input-wrap">
+                                <input id="cv-designation" class="rp-input cv-field" placeholder="e.g. Product Designer" data-field="designation">
                                 <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
                             </div>
                         </div>
@@ -1177,9 +1331,26 @@
                         <div class="rp-group">
                             <label class="rp-label">Social Links <span class="rp-hint">(comma separated)</span></label>
                             <div class="rp-input-wrap">
-                                <input id="cv-social" class="rp-input cv-field" placeholder="linkedin.com/in/you, github.com/you" data-field="social_links">
+                                <input id="cv-social" class="rp-input cv-field" placeholder="Other portfolio or website links" data-field="social_links">
                             </div>
                             <p class="rp-hint">Imported links are shown only when found in your resume. Add or remove any link here before continuing.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="rp-row">
+                        <div class="rp-group">
+                            <label class="rp-label">LinkedIn</label>
+                            <div class="rp-input-wrap">
+                                <input id="cv-linkedin" class="rp-input cv-field" placeholder="linkedin.com/in/you" data-field="linkedin">
+                                <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+                            </div>
+                        </div>
+                        <div class="rp-group">
+                            <label class="rp-label">GitHub</label>
+                            <div class="rp-input-wrap">
+                                <input id="cv-github" class="rp-input cv-field" placeholder="github.com/you" data-field="github">
+                                <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+                            </div>
                         </div>
                     </div>
 
@@ -1199,7 +1370,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 {{-- ── STEP 2: Summary ── --}}
                 <div class="rp-step-pane" data-step="2">
                     <div class="step-head">
@@ -1207,9 +1378,9 @@
                             <h2>Summary <span style="color:#cbd5e1;font-size:0.95rem;">✎</span></h2>
                             <p>Write a short introduction that highlights your experience, key skills, and career goals.</p>
                         </div>
-                        <button class="ai-btn" type="button" onclick="generateAISummary()" style="align-self: flex-start;">
+                        <button class="ai-btn" type="button" onclick="generateAISummary(this)" style="align-self: flex-start;">
                             <svg width="13" height="13" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM15 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0115 10zM6.5 10a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 016.5 10z"/></svg>
-                            Generate with AI
+                            <span>Generate with AI</span>
                         </button>
                     </div>
                     <div class="summary-editor-shell">
@@ -1287,27 +1458,62 @@
                     </div>
                 </div>
 
-
-
-                {{-- ── STEP 6: Projects ── --}}
+                {{-- ── STEP 6: Projects, Certifications, Achievements ── --}}
                 <div class="rp-step-pane" data-step="6">
                     <div class="step-head">
                         <div>
-                            <h2>Projects</h2>
-                            <p>Add project title, tech stack, link, and description.</p>
+                            <h2>Additional Sections</h2>
+                            <p>Add projects, certifications, and achievements to stand out.</p>
                         </div>
                     </div>
-                    <div style="margin-bottom:0.85rem; display:flex; justify-content:flex-end;">
-                        <button type="button" id="clear-project-section-btn" class="rp-entry-remove">
-                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                            Delete Entire Projects Section
+
+                    {{-- Projects --}}
+                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <h3 style="font-size: 1.1rem; font-weight: 700;">Projects</h3>
+                            <button type="button" id="clear-project-section-btn" class="rp-entry-remove">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                                Delete Section
+                            </button>
+                        </div>
+                        <div id="project-editor"></div>
+                        <button type="button" id="add-project-btn" class="rp-add-btn" style="margin-top:0.5rem;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Project
                         </button>
                     </div>
-                    <div id="project-editor"></div>
-                    <button type="button" id="add-project-btn" class="rp-add-btn" style="margin-top:0.75rem;">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Add Project
-                    </button>
+
+                    {{-- Certifications --}}
+                    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <h3 style="font-size: 1.1rem; font-weight: 700;">Certifications</h3>
+                            <button type="button" id="clear-certification-section-btn" class="rp-entry-remove">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                                Delete Section
+                            </button>
+                        </div>
+                        <div id="certification-editor"></div>
+                        <button type="button" id="add-certification-btn" class="rp-add-btn" style="margin-top:0.5rem;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Certification
+                        </button>
+                    </div>
+
+                    {{-- Achievements --}}
+                    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <h3 style="font-size: 1.1rem; font-weight: 700;">Achievements</h3>
+                            <button type="button" id="clear-achievement-section-btn" class="rp-entry-remove">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                                Delete Section
+                            </button>
+                        </div>
+                        <div id="achievement-editor"></div>
+                        <button type="button" id="add-achievement-btn" class="rp-add-btn" style="margin-top:0.5rem;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Achievement
+                        </button>
+                    </div>
                 </div>
 
                 {{-- ── STEP 7: Finalize ── --}}
@@ -1360,7 +1566,7 @@
                     Change Template
                 </button>
             </div>
-            <div class="rp-viewport" id="preview-viewport" style="padding-bottom: 160px; overflow-x: auto;">
+            <div class="rp-viewport" id="preview-viewport" style="padding-bottom: 120px;">
                 <div id="cv-preview"></div>
             </div>
         </section>
@@ -1383,7 +1589,6 @@
     </div>
 
     <script>
-        /* ── Onboarding: start from scratch ── */
         function startFromScratch() {
             document.body.classList.add('is-builder');
             document.getElementById('rp-onboarding-view').style.display = 'none';
@@ -1397,7 +1602,6 @@
             document.getElementById('rp-onboarding-view').style.display = 'flex';
         }
 
-        /* ── Show builder if initial data exists ── */
         document.addEventListener('DOMContentLoaded', () => {
             const raw = document.getElementById('resume-initial-json')?.textContent;
             const appEl = document.getElementById('create-cv-app');
@@ -1497,7 +1701,6 @@
             return normalized;
         }
 
-        /* ── File autofill (upload card) ── */
         document.getElementById('resume-autofill-file')?.addEventListener('change', async function() {
             const file = this.files?.[0];
             if (!file) return;
@@ -1541,7 +1744,6 @@
             }
         });
 
-        /* ── AI text generation helpers ── */
         function currentResumePayload() {
             const read = id => {
                 if (id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get(id)) {
@@ -1553,9 +1755,12 @@
                 name: read('cv-name'),
                 last_name: read('cv-last-name'),
                 job_title: read('cv-job-title'),
+                designation: read('cv-designation'),
                 email: read('cv-email'),
                 mobile: read('cv-mobile'),
                 location: read('cv-location'),
+                linkedin: read('cv-linkedin'),
+                github: read('cv-github'),
                 social_links: read('cv-social').split(',').map(v => v.trim()).filter(Boolean),
                 summary: read('cv-summary'),
                 skills: read('cv-skills').split(',').map(v => v.trim()).filter(Boolean),
@@ -1581,23 +1786,34 @@
                     institution: block.querySelector('[data-k="institution"]')?.value || '',
                     year: block.querySelector('[data-k="year"]')?.value || '',
                 })),
+                projects: Array.from(document.querySelectorAll('[data-project]')).map(block => ({
+                    name: block.querySelector('[data-k="name"]')?.value || '',
+                    tech_stack: block.querySelector('[data-k="tech_stack"]')?.value || '',
+                    link: block.querySelector('[data-k="link"]')?.value || '',
+                    description: block.querySelector('[data-k="description"]')?.value || '',
+                })),
+                certifications: Array.from(document.querySelectorAll('[data-certification]')).map(block => ({
+                    name: block.querySelector('[data-k="name"]')?.value || '',
+                    description: block.querySelector('[data-k="description"]')?.value || '',
+                })),
+                achievements: Array.from(document.querySelectorAll('[data-achievement]')).map(block => ({
+                    name: block.querySelector('[data-k="name"]')?.value || '',
+                    description: block.querySelector('[data-k="description"]')?.value || '',
+                })),
             };
         }
 
         async function generateAIText(context, targetEl, triggerButton = null) {
             if (!targetEl) return;
-            let orig = targetEl.value;
-            if (targetEl.id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
-                orig = tinymce.get('cv-summary').getContent();
-            }
-            const button = triggerButton || (context === 'summary'
-                ? document.querySelector('.rp-step-pane[data-step="5"] .ai-btn')
-                : null);
-            const oldButtonHtml = button?.innerHTML;
-            if (button) {
-                button.classList.add('loading');
-                button.innerHTML = 'Generating...';
-            }
+            if (triggerButton) triggerButton.classList.add('loading');
+
+            const getEditorForEl = (el) => {
+                if (typeof tinymce === 'undefined' || !el) return null;
+                if (el.id && tinymce.get(el.id)) return tinymce.get(el.id);
+                return (tinymce.editors || []).find((ed) => ed?.targetElm === el) || null;
+            };
+            const activeEditor = getEditorForEl(targetEl);
+            let orig = activeEditor ? activeEditor.getContent() : targetEl.value;
             try {
                 const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                 const app = document.getElementById('create-cv-app');
@@ -1608,34 +1824,29 @@
                 });
                 const data = await res.json();
                 if (!res.ok || !data.text) throw new Error(data.message || 'AI generation failed.');
-                
-                if (targetEl.id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
-                    const editor = tinymce.get('cv-summary');
-                    editor.setContent(data.text);
-                    editor.save(); // sync TinyMCE HTML back into underlying textarea value
-                    targetEl.value = editor.getContent();
+
+                if (activeEditor) {
+                    activeEditor.setContent(data.text);
+                    activeEditor.save();
+                    targetEl.value = activeEditor.getContent();
                 } else {
                     targetEl.value = data.text;
                 }
             } catch(e) {
-                if (targetEl.id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
-                    const editor = tinymce.get('cv-summary');
-                    editor.setContent(orig);
-                    editor.save();
-                    targetEl.value = editor.getContent();
+                if (activeEditor) {
+                    activeEditor.setContent(orig);
+                    activeEditor.save();
+                    targetEl.value = activeEditor.getContent();
                 } else {
                     targetEl.value = orig;
                 }
-                alert(e.message || 'AI generation failed.');
             } finally {
-                if (button) {
-                    button.classList.remove('loading');
-                    button.innerHTML = oldButtonHtml;
-                }
+                if (triggerButton) triggerButton.classList.remove('loading');
             }
+
             targetEl.dispatchEvent(new Event('input', { bubbles: true }));
         }
-        function generateAISummary() { generateAIText('summary', document.getElementById('cv-summary')); }
+        function generateAISummary(btn) { generateAIText('summary', document.getElementById('cv-summary'), btn); }
 
         document.querySelectorAll('.summary-suggestion').forEach(button => {
             button.addEventListener('click', () => {
@@ -1662,8 +1873,9 @@
         updateSummaryRoleLabel();
     </script>
 
+    @include('components.format-download-modal')
     @include('resume.partials.editor-script')
-    
+
     <script src="https://cdn.tiny.cloud/1/{{ config('services.tinymce.key', 'no-api-key') }}/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
     <script>
         function initTinyMCE() {

@@ -17,9 +17,8 @@ class PageController extends Controller
             ->limit(12)
             ->get();
 
-        $rendered = [];
         foreach ($templates as $template) {
-            $rendered[$template->id] = (string) $renderer->renderResume($template);
+            $rendered[$template->id] = (string) $renderer->renderResume($template, null, false);
         }
 
         return view('pages.home', [
@@ -36,10 +35,9 @@ class PageController extends Controller
             ->orderBy('name')
             ->get();
 
-        $rendered = [];
         foreach ($templates as $template) {
             if ($template->type === 'resume') {
-                $rendered[$template->id] = (string) $renderer->renderResume($template);
+                $rendered[$template->id] = (string) $renderer->renderResume($template, null, false);
             } else {
                 $rendered[$template->id] = (string) $renderer->renderCoverLetter($template);
             }

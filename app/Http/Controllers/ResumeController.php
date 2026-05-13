@@ -30,7 +30,7 @@ class ResumeController extends Controller
             'downloadCurrency' => config('services.razorpay.currency'),
             'templates' => $templates,
             'renderedTemplates' => $templates->mapWithKeys(fn (Template $template) => [
-                $template->id => (string) $renderer->renderResume($template),
+                $template->id => (string) $renderer->renderResume($template, null, false),
             ]),
         ]);
     }
@@ -52,8 +52,8 @@ class ResumeController extends Controller
             }
 
             $resumeJson = $this->structureResume($text);
-            $jobRole = 'General';
-            $jobDescription = null;
+            $jobRole = $request->input('job_role') ?: 'General';
+            $jobDescription = $request->input('job_description');
 
             $analysis = $this->askGeminiForAnalysis(
                 $resumeJson,
@@ -298,24 +298,29 @@ class ResumeController extends Controller
         return response()->json(['ok' => true, 'is_paid' => true]);
     }
 
-    public function download(Request $request, PdfConversionService $pdfConversionService)
+    public function download(Request $request, PdfConversionService $pdfConversionService, TemplateRenderService $renderer)
     {
         $validated = $request->validate([
             'analysis_id' => ['required', 'integer', 'exists:resume_analyses,id'],
+            'template_id' => ['nullable', 'integer', 'exists:templates,id'],
         ]);
 
         $analysisRecord = $this->findAuthorizedAnalysis($request, (int) $validated['analysis_id']);
 
         if (! $request->user()) {
-            return redirect()->route('login');
+            return redirect()->guest(route('login'));
         }
 
-        if (! $analysisRecord->is_paid && ! $request->user()->activeSubscription?->hasDownloadsRemaining()) {
-            return response()->json([
-                'message' => 'Choose a plan to unlock downloads.',
-                'requires_payment' => true,
-                'pricing_url' => route('plans'),
-            ], 402);
+        // Subscription check (Premium gating)
+        if (! $analysisRecord->is_paid && (! $request->user()->activeSubscription?->hasDownloadsRemaining())) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'message' => 'Choose a plan to unlock downloads.',
+                    'requires_payment' => true,
+                    'pricing_url' => route('plans'),
+                ], 402);
+            }
+            return redirect()->route('plans')->with('status', 'Choose a plan to unlock downloads.');
         }
 
         if (! $analysisRecord->is_paid) {
@@ -329,7 +334,19 @@ class ResumeController extends Controller
         $resume = $this->normalizeResume($analysisRecord->improved_resume_json ?? []);
         $filename = $this->pdfFilename($resume['name']);
 
-        $html = view('resume.pdf', ['resume' => $resume])->render();
+        $template = null;
+        if ($validated['template_id'] ?? null) {
+            $template = Template::find($validated['template_id']);
+        }
+
+        if ($template) {
+            $htmlContent = $renderer->renderResume($template, $resume);
+            $html = view('templates.rendered-document', ['html' => $htmlContent])->render();
+        } else {
+            // Fallback to basic PDF view if no template is specified or found
+            $html = view('resume.pdf', ['resume' => $resume])->render();
+        }
+
         $pdf = $pdfConversionService->htmlToPdfWithPuppeteer($html);
 
         return response($pdf, 200, [
@@ -507,30 +524,42 @@ STRICT RULES:
 
 FORMAT:
 {
-  "score": number,
-  "strengths": [],
-  "weaknesses": [],
-  "missing_keywords": [],
-  "suggestions": [],
+  "score": 0-100,
+  "strengths": ["list of 3-5 specific strengths"],
+  "weaknesses": ["list of 3-5 specific weaknesses"],
+  "missing_keywords": ["list of 5-10 specific missing industry keywords"],
+  "suggestions": ["specific actionable advice"],
   "improved_resume": {
-    "name": "",
-    "email": "",
-    "mobile": "",
-    "location": "",
-    "social_links": [],
-    "summary": "",
-    "skills": [],
+    "name": "Full Name",
+    "email": "Email",
+    "mobile": "Phone",
+    "location": "City, State",
+    "social_links": ["LinkedIn URL", "GitHub URL"],
+    "summary": "Professional summary...",
+    "skills": ["Skill 1", "Skill 2", ...],
     "experience": [
-      { "company": "", "role": "", "points": [] }
+      { 
+        "company": "Company", 
+        "role": "Title", 
+        "period": "Jan 2020 - Present",
+        "points": ["Achievement 1", "Achievement 2"] 
+      }
     ],
     "education": [
-      { "degree": "", "stream": "", "institution": "", "year": "" }
+      { "degree": "Degree", "stream": "Major", "institution": "University", "year": "2020" }
     ],
     "projects": [
-      { "name": "", "tech": "", "description": "" }
+      { "name": "Name", "tech": "Stack", "description": "Description" }
     ]
   }
 }
+
+CRITICAL:
+1. "improved_resume" MUST contain all keys: name, email, mobile, location, social_links, summary, skills, experience, education, projects.
+2. "experience" items MUST have: company, role, period, points (array of bullets).
+3. "education" items MUST have: degree, stream, institution, year.
+4. "projects" items MUST have: name, tech, description.
+5. If a section is missing in input, try to infer it from context or leave as empty array/string. DO NOT OMIT THE KEYS.
 
 {$instruction}
 
@@ -666,7 +695,7 @@ PROMPT;
             ? ''
             : $safeStr($val);
 
-        return [
+        $normalized = [
             'name' => (string) ($resume['name'] ?? ''),
             'email' => (string) ($resume['email'] ?? ''),
             'mobile' => (string) ($resume['mobile'] ?? $resume['contact'] ?? ''),
@@ -681,6 +710,7 @@ PROMPT;
                 return [
                     'company' => (string) ($item['company'] ?? ''),
                     'role' => (string) ($item['role'] ?? ''),
+                    'period' => (string) ($item['period'] ?? $item['duration'] ?? ''),
                     'points' => array_values(array_filter(array_map($safeStr, $item['points'] ?? []))),
                 ];
             }, $resume['experience'] ?? [])),

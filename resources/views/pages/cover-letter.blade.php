@@ -665,7 +665,7 @@
     .modal-content {
         background: var(--white);
         width: 100%;
-        max-width: 1000px;
+        max-width: 1240px;
         max-height: 85vh;
         border-radius: var(--r-2xl);
         display: flex;
@@ -682,7 +682,7 @@
     .modal-grid {
         padding: 1.5rem;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
         gap: 1.2rem;
         overflow-y: auto;
     }
@@ -714,34 +714,54 @@
         pointer-events: none;
     }
     .modal-tmpl-card {
-        border: 2px solid var(--border);
+        border: 2px solid #dbe3ef;
         border-radius: var(--r-lg);
         overflow: hidden;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.2s ease;
         background: var(--white);
         box-shadow: var(--shadow-md);
+        display: flex;
+        flex-direction: column;
     }
     .modal-tmpl-card:hover {
         border-color: var(--blue);
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
     }
     .modal-tmpl-card.active {
         border-color: var(--blue);
-        background: var(--blue-light);
+        box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12), 0 14px 30px rgba(15, 23, 42, 0.12);
     }
     .modal-thumb {
-        height: 200px;
+        height: 232px;
         background: var(--surface);
         display: flex;
         justify-content: center;
+        align-items: flex-start;
         overflow: hidden;
+        border-bottom: 1px solid #e5e7eb;
     }
     .modal-scaler {
-        transform: scale(0.22);
-        transform-origin: top center;
+        transform: scale(0.318);
+        transform-origin: top left;
         width: 794px;
+        pointer-events: none;
+    }
+    .modal-paper {
+        width: 794px;
+        min-height: 1123px;
+        background: #fff;
+    }
+    .modal-tmpl-footer {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #334155;
+        background: #f8fafc;
     }
 
     /* Responsive */
@@ -849,6 +869,23 @@
         .toolbar-card { flex-direction: column; align-items: stretch; }
         .preview-canvas { padding: 1rem; }
         .btn-toolbar { justify-content: center; }
+        .modal-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+        .modal-thumb { height: 190px; }
+        .modal-scaler { transform: scale(0.24); }
+        .modal-tmpl-footer { font-size: 0.95rem; min-height: 40px; }
+    }
+
+    /* Small phones */
+    @media (max-width: 480px) {
+        .mobile-toggle { bottom: 1rem; }
+        .mobile-toggle button { padding: 0.55rem 1rem; font-size: 0.78rem; }
+        .modal { padding: 0.75rem; }
+        .modal-content { max-height: 92vh; border-radius: 16px; }
+        .modal-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); padding: 1rem; gap: 0.85rem; }
+        .modal-thumb { height: 160px; }
+        .modal-scaler { transform: scale(0.2); }
+        .modal-tmpl-footer { font-size: 0.82rem; min-height: 36px; }
+        .preview-canvas { padding: 0.5rem; }
     }
     #cl-content {
         width: 100%;
@@ -1124,12 +1161,12 @@
             <div class="modal-tmpl-card" data-id="{{ $template->id }}" onclick="applyTemplate('{{ $template->id }}')">
                 <div class="modal-thumb">
                     <div class="modal-scaler">
-                        <div style="width: 794px; min-height: 1123px; background: white;">
+                        <div class="modal-paper">
                             {!! $renderedTemplates[$template->id] !!}
                         </div>
                     </div>
                 </div>
-                <div style=" font-size: 0.75rem; font-weight: 600; text-align: center;">{{ $template->name }}</div>
+                <div class="modal-tmpl-footer">{{ $template->name }}</div>
             </div>
             @endforeach
         </div>
@@ -1323,6 +1360,7 @@
         window.pickTemplate = function(id) {
             state.templateId = id;
             $('active-tmpl-name').textContent = tplNames[id];
+            setActiveModalTemplate(id);
             switchStep('onboarding');
         };
 
@@ -1352,12 +1390,22 @@
         window.applyTemplate = function(id) {
             state.templateId = id;
             $('active-tmpl-name').textContent = tplNames[id];
+            setActiveModalTemplate(id);
             render();
             closeModal();
         };
 
         window.closeModal = () => $('tmpl-modal').classList.remove('open');
-        $('btn-change-tmpl').addEventListener('click', () => $('tmpl-modal').classList.add('open'));
+        $('btn-change-tmpl').addEventListener('click', () => {
+            setActiveModalTemplate(state.templateId);
+            $('tmpl-modal').classList.add('open');
+        });
+
+        function setActiveModalTemplate(id) {
+            document.querySelectorAll('.modal-tmpl-card').forEach((card) => {
+                card.classList.toggle('active', String(card.dataset.id) === String(id));
+            });
+        }
 
         function syncStateToFields() {
             $('cl-name').value = state.name;
@@ -1561,11 +1609,33 @@
         $('download-btn').addEventListener('click', () => {
             if (!state.id) { alert('Please generate the letter first.'); return; }
             if (isAuthenticated && downloadRequiresPlan) { window.openPlanDownloadModal?.(); return; }
-            window.location.href = `/cover-letter/${state.id}/download/pdf`;
+
+            const doDownload = async (format) => {
+                try {
+                    await fetch(`/cover-letter/${state.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                        body: JSON.stringify({
+                            letter: state,
+                            template_id: state.templateId
+                        })
+                    });
+                } catch (_) {}
+
+                window.location.href = `/cover-letter/${state.id}/download/${format}`;
+            };
+
+            if (window.openFormatDownloadModal) {
+                window.openFormatDownloadModal(doDownload);
+            } else {
+                doDownload('pdf');
+            }
         });
 
         window.addEventListener('resize', scalePreview);
     })();
 </script>
+
+@include('components.format-download-modal')
 
 @endsection

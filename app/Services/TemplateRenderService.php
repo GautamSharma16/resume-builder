@@ -84,9 +84,15 @@ class TemplateRenderService
                 'MongoDB Certified Developer',
                 'Certified React.js Specialist',
             ],
+            'achievements' => [
+                'Won First Place at the State-Level Hackathon 2023.',
+                'Published a research paper on AI-driven UI optimization in IJCS.',
+                'Recognized as Employee of the Month for outstanding delivery in Q3 2022.',
+            ],
             'social_links' => ['linkedin.com/in/johndoe', 'github.com/johndoe'],
         ];
     }
+
 
     public function coverLetterSampleData(?array $overrides = []): array
     {
@@ -105,7 +111,7 @@ class TemplateRenderService
         ], $overrides ?? []);
     }
 
-    public function renderResume(Template $template, ?array $data = null): HtmlString
+    public function renderResume(Template $template, ?array $data = null, bool $allowInjection = true): HtmlString
     {
         $data = $data ?: $this->resumeSampleData();
         $html = $template->html ?: '';
@@ -135,12 +141,12 @@ class TemplateRenderService
             $html = str_replace('var(--primary)', '#2563eb', $html);
         }
 
-        return new HtmlString($this->render($html, $this->normalizeResume($data)));
+        return new HtmlString($this->render($html, $this->normalizeResume($data), $allowInjection));
     }
 
     public function containsResumePlaceholders(string $html): bool
     {
-        return preg_match('/\{\{\s*(?:name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image|profile_image_tag)\s*\}\}|\[\[\s*(?:name|last_name|job_title|email|mobile|location|contact|address|summary|skills|experience|education|projects|social_links|profile_image|profile_image_tag)\s*\]\]/i', $html) === 1
+        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag)\s*\]\]/i', $html) === 1
             || $this->shouldRenderWithBlade($html);
     }
 
@@ -211,7 +217,7 @@ HTML;
         return new HtmlString($this->render($html, $this->normalizeCoverLetter($data)));
     }
 
-    private function render(string $html, array $data): string
+    private function render(string $html, array $data, bool $allowInjection = true): string
     {
         $originalHtml = $html;
         foreach ($data as $key => $value) {
@@ -233,22 +239,61 @@ HTML;
             }
         }
 
-        // Some stored resume templates don't include a {{projects}} placeholder.
-        // Ensure projects are still visible in both preview and PDF output.
-        $hasProjectsToken = str_contains($originalHtml, '{{projects}}') || str_contains($originalHtml, '[[projects]]');
-        if (! $hasProjectsToken && str_contains($originalHtml, 'tpl-resume') && ! empty($data['projects'])) {
-            $projectsSection = '<h2>Projects</h2>'.$data['projects'];
-            $pos = strrpos($html, '</div>');
-            if ($pos !== false) {
-                $html = substr($html, 0, $pos).$projectsSection.substr($html, $pos);
-            } else {
-                $html .= $projectsSection;
+        // Dynamic Section Visibility: If a section is empty, remove its header and token
+        foreach (['projects', 'certifications', 'achievements', 'experience', 'education'] as $key) {
+            $val = $data[$key] ?? '';
+            if (empty($val) || $val === '<ul></ul>' || $val === '""' || $val === 'null') {
+                // Regex to find a section header followed by the token.
+                // We use a non-greedy match and limit the content between them to be safe.
+                $re = '/<(h2|h3|h4|div)[^>]*>[^<]*?' . preg_quote($key, '/') . '[^<]*?<\/\1>\s*(?:<[^>]+>\s*)*?(\{\{\s*' . preg_quote($key, '/') . '\s*\}\}|\[\[' . preg_quote($key, '/') . '\]\])/i';
+                $html = preg_replace($re, '', $html);
+                
+                // Also just remove the token if it's still there
+                $html = str_replace(['{{'.$key.'}}', '[['.$key.']]'], '', $html);
             }
+        }
+
+        if ($allowInjection) {
+            // Ensure projects, certifications, and achievements are visible in output if they exist but tokens are missing.
+            // We also check if a section header with the title already exists to avoid duplicates.
+            $this->ensureSectionVisible($html, $data, 'projects', 'Projects');
+            $this->ensureSectionVisible($html, $data, 'certifications', 'Certifications');
+            $this->ensureSectionVisible($html, $data, 'achievements', 'Achievements');
         }
 
         $html = $this->resumeAccentStyle($this->resumeAccentColor($data)).$html;
 
         return $html;
+    }
+
+    private function ensureSectionVisible(string &$html, array $data, string $key, string $title): void
+    {
+        $token = '{{'.$key.'}}';
+        $altToken = '[['.$key.']]';
+        if (str_contains($html, $token) || str_contains($html, $altToken)) {
+            return;
+        }
+
+        // Check if the title already exists as a header or bold text (case-insensitive)
+        if (preg_match('/<(h2|h3|h4|div|strong|b)[^>]*>[^<]*?' . preg_quote($title, '/') . '[^<]*?<\/\1>/i', $html)) {
+            return;
+        }
+
+        if (empty($data[$key]) || $data[$key] === '<ul></ul>' || $data[$key] === '' || $data[$key] === '""') {
+            return;
+        }
+
+        if (! str_contains($html, 'tpl-resume')) {
+            return;
+        }
+
+        $section = '<h2>'.$title.'</h2>'.$data[$key];
+        $pos = strrpos($html, '</div>');
+        if ($pos !== false) {
+            $html = substr($html, 0, $pos).$section.substr($html, $pos);
+        } else {
+            $html .= $section;
+        }
     }
 
     private function resumeAccentStyle(string $color): string
@@ -261,21 +306,17 @@ HTML;
 
         return '<style>
             :root, .tpl-resume { --primary: '.$primaryColor.'; }
-            .tpl-resume {
+            .tpl-resume h2 {
                 border-color: var(--primary) !important;
-                border-top-color: var(--primary) !important;
-                border-right-color: var(--primary) !important;
-                border-bottom-color: var(--primary) !important;
-                border-left-color: var(--primary) !important;
+                color: var(--primary) !important;
             }
             .tpl-resume h1,
-            .tpl-resume h2,
             .tpl-resume h3,
             .tpl-resume a,
             .tpl-role-head strong {
                 color: var(--primary) !important;
-                border-color: var(--primary) !important;
             }
+
             .tpl-badge {
                 background: var(--primary) !important;
                 border-color: var(--primary) !important;
@@ -326,15 +367,21 @@ HTML;
             'name' => e($fullName),
             'last_name' => e($lastName),
             'job_title' => e($this->text(Arr::get($data, 'job_title', ''))),
+            'designation' => e($this->text(Arr::get($data, 'designation', ''))),
             'email' => e($this->text(Arr::get($data, 'email', ''))),
             'mobile' => e($this->text(Arr::get($data, 'mobile', Arr::get($data, 'contact', '')))),
             'location' => e($this->text(Arr::get($data, 'location', Arr::get($data, 'address', '')))),
             'summary' => preg_match('/<[a-z][\s\S]*>/i', Arr::get($data, 'summary', '')) ? $this->text(Arr::get($data, 'summary', '')) : e($this->text(Arr::get($data, 'summary', ''))),
+            'linkedin' => e($this->text(Arr::get($data, 'linkedin', ''))),
+            'portfolio' => e($this->text(Arr::get($data, 'portfolio', Arr::get($data, 'link', Arr::get($data, 'social_links.0', ''))))),
+            'link' => e($this->text(Arr::get($data, 'link', Arr::get($data, 'portfolio', '')))),
             'skills' => $this->badges(Arr::get($data, 'skills', [])),
             'experience' => $this->experience(Arr::get($data, 'experience', [])),
             'education' => $this->list(Arr::get($data, 'education', [])),
             'projects' => $this->projectList(Arr::get($data, 'projects', [])),
             'social_links' => $this->inline(Arr::get($data, 'social_links', [])),
+            'certifications' => $this->list(Arr::get($data, 'certifications', [])),
+            'achievements' => $this->list(Arr::get($data, 'achievements', [])),
             'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
             'profile_image' => Arr::get($data, 'profile_image', ''),
@@ -382,11 +429,13 @@ HTML;
             'name' => trim($this->text(Arr::get($data, 'name', '')).' '.$this->text(Arr::get($data, 'last_name', ''))) ?: $this->text(Arr::get($data, 'name', '')),
             'last_name' => $this->text(Arr::get($data, 'last_name', '')),
             'job_title' => $this->text(Arr::get($data, 'job_title', '')),
+            'designation' => $this->text(Arr::get($data, 'designation', '')),
             'email' => $this->text(Arr::get($data, 'email', '')),
             'mobile' => $this->text(Arr::get($data, 'mobile', Arr::get($data, 'contact', ''))),
             'location' => $this->text(Arr::get($data, 'location', Arr::get($data, 'address', ''))),
             'summary' => $this->text(Arr::get($data, 'summary', '')),
             'linkedin' => $this->text(Arr::get($data, 'linkedin', '')),
+            'portfolio' => $this->text(Arr::get($data, 'portfolio', Arr::get($data, 'link', Arr::get($data, 'social_links.0', '')))),
             'github' => $this->text(Arr::get($data, 'github', '')),
             'tech_stack' => $this->text(Arr::get($data, 'tech_stack', '')),
             'skills' => $this->normalizeBladeArray(Arr::get($data, 'skills', [])),
@@ -394,6 +443,7 @@ HTML;
             'education' => $this->normalizeBladeArray(Arr::get($data, 'education', [])),
             'projects' => $this->normalizeBladeArray(Arr::get($data, 'projects', [])),
             'certifications' => $this->normalizeBladeArray(Arr::get($data, 'certifications', [])),
+            'achievements' => $this->normalizeBladeArray(Arr::get($data, 'achievements', [])),
             'social_links' => $this->normalizeBladeArray(Arr::get($data, 'social_links', [])),
             'link' => $this->text(Arr::get($data, 'link', '')),
             'contact' => $this->text(Arr::get($data, 'contact', '')),
@@ -458,12 +508,28 @@ HTML;
     {
         $items ??= [];
         $items = is_array($items) ? $items : explode("\n", $items);
+        $normalized = collect($items)->map(function ($item) {
+            if (is_array($item)) {
+                if (array_key_exists('description', $item)) {
+                    return $this->text($item['description']);
+                }
 
-        if (count($items) === 1 && preg_match('/<[a-z][\s\S]*>/i', $items[0])) {
-            return $items[0];
+                if (array_key_exists('points', $item)) {
+                    return $this->text($item['points']);
+                }
+
+                return $this->text($item);
+            }
+
+            return $this->text($item);
+        })->filter()->values();
+
+        $first = $normalized->first();
+        if ($normalized->count() === 1 && is_string($first) && preg_match('/<[a-z][\s\S]*>/i', $first)) {
+            return $first;
         }
 
-        return '<ul>'.collect($items)->map(fn ($item) => $this->text($item))->filter()->map(fn ($item) => '<li>'.e($item).'</li>')->join('').'</ul>';
+        return '<ul>'.$normalized->map(fn ($item) => '<li>'.e($item).'</li>')->join('').'</ul>';
     }
 
     private function projectList(array|string|null $items): string
@@ -481,7 +547,14 @@ HTML;
             $name = $this->text($item['name'] ?? '');
             $tech = $this->text($item['tech_stack'] ?? $item['tech'] ?? '');
             $link = $this->text($item['link'] ?? $item['url'] ?? '');
-            $description = $this->text($item['description'] ?? '');
+            $description = '';
+            if (array_key_exists('description', $item)) {
+                $description = $this->text($item['description']);
+            } elseif (array_key_exists('highlights', $item)) {
+                $description = $this->text($item['highlights']);
+            } elseif (array_key_exists('points', $item)) {
+                $description = $this->text($item['points']);
+            }
 
             if ($name === '' && $tech === '' && $link === '' && $description === '') {
                 return '';

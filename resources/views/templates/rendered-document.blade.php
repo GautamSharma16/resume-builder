@@ -1,21 +1,34 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="utf-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+        body { 
+            background: #fff; 
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            -webkit-print-color-adjust: exact;
+        }
 
         .tpl-resume, .tpl-cover {
-            width: 100%; max-width: 794px; margin: 0 auto; background: #fff; padding: 38px; color: #111827; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word;
+            width: 100%; max-width: 794px; margin: 0 auto; background: #fff; padding: 42px; color: #0f172a; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word;
+        }
+
+        .tpl-cover {
+            font-family: 'EB Garamond', serif;
+            font-size: 16px;
+            line-height: 1.5;
         }
 
         .tpl-resume *, .tpl-cover * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
 
-        .tpl-resume h1, .tpl-cover h1 { font-size: 26px; line-height: 1.1; margin: 0 0 8px; font-weight: 800; }
+        .tpl-resume h1 { font-size: 28px; line-height: 1.1; margin: 0 0 8px; font-weight: 800; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .tpl-cover h1 { font-size: 32px; line-height: 1.1; margin: 0 0 12px; font-weight: 500; font-family: 'EB Garamond', serif; }
         .tpl-resume h2, .tpl-cover h2 { font-size: 12px; text-transform: uppercase; margin: 16px 0 7px; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; font-weight: 700; }
         .tpl-resume h3 { font-size: 13px; margin: 8px 0 4px; font-weight: 700; }
-        .tpl-resume p, .tpl-cover p { margin: 0 0 7px; }
+        .tpl-resume p { margin: 0 0 7px; }
+        .tpl-cover p { margin: 0 0 16px; }
         .tpl-resume ul, .tpl-resume ol { margin: 5px 0 0 18px; padding: 0; }
         .tpl-resume li { margin: 2px 0; }
 
@@ -90,7 +103,26 @@
         /* Print styles */
         @media print {
             body { margin: 0; padding: 0; }
-            .tpl-resume, .tpl-cover { padding: 20px; }
+            .tpl-resume, .tpl-cover {
+                padding: 20px;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
+                overflow: visible !important;
+                page-break-inside: auto;
+            }
+            .tpl-resume *,
+            .tpl-cover * {
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            .tpl-resume section,
+            .tpl-cover section,
+            .tpl-resume article,
+            .tpl-cover article {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
         }
     </style>
 </head>

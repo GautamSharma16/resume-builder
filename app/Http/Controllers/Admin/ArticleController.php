@@ -17,7 +17,14 @@ class ArticleController extends Controller
 
     public function create()
     {
-        return view('admin.articles.create', ['article' => new Article()]);
+        $categories = Article::distinct()->pluck('category')->toArray();
+        if (empty($categories)) {
+            $categories = ['Freshers', 'Experienced', 'Preparation'];
+        }
+        return view('admin.articles.create', [
+            'article' => new Article(),
+            'categories' => $categories
+        ]);
     }
 
     public function store(Request $request)
@@ -38,7 +45,11 @@ class ArticleController extends Controller
 
     public function edit(Article $article)
     {
-        return view('admin.articles.edit', compact('article'));
+        $categories = Article::distinct()->pluck('category')->toArray();
+        if (empty($categories)) {
+            $categories = ['Freshers', 'Experienced', 'Preparation'];
+        }
+        return view('admin.articles.edit', compact('article', 'categories'));
     }
 
     public function update(Request $request, Article $article)
@@ -63,7 +74,7 @@ class ArticleController extends Controller
     {
         return $request->validate([
             'title' => ['required', 'string', 'max:180'],
-            'category' => ['required', 'in:Freshers,Experienced,Preparation'],
+            'category' => ['required', 'string', 'max:100'],
             'excerpt' => ['nullable', 'string', 'max:500'],
             'body' => ['required', 'string'],
             'thumbnail' => ['nullable', 'image', 'max:2048'],
@@ -71,3 +82,4 @@ class ArticleController extends Controller
         ]) + ['is_published' => false];
     }
 }
+

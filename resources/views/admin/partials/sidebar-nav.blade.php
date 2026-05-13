@@ -38,15 +38,7 @@
        
         Templates
     </a>
-    <a href="{{ route('admin.templates.index', ['type' => 'cover_letter']) }}"
-       class="group flex items-center px-4 py-3 rounded-xl font-medium transition-all duration-200
-            @if(request()->routeIs('admin.templates.*') && request('type') === 'cover_letter')
-                bg-blue-600 text-white shadow-lg shadow-blue-200
-            @else
-                text-slate-600 hover:bg-slate-50 hover:text-blue-600
-            @endif">
-        Cover Letters
-    </a>
+   
     @endif
     @if(Auth::user()->hasPermission('articles'))
     <a href="{{ route('admin.articles.index') }}" class="group flex items-center px-4 py-3 rounded-xl font-medium transition-all duration-200 @if(request()->routeIs('admin.articles.*')) bg-blue-600 text-white shadow-lg shadow-blue-200 @else text-slate-600 hover:bg-slate-50 hover:text-blue-600 @endif">

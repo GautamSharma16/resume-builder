@@ -3,42 +3,96 @@
 namespace App\Http\Controllers;
 
 use App\Models\Purchase;
+use App\Models\CoverLetter;
 use App\Models\Resume;
 use App\Models\ResumeAnalysis;
 use App\Models\Template;
 use App\Models\User;
 use App\Models\VisitorLog;
+use App\Services\TemplateRenderService;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(TemplateRenderService $renderer)
     {
         $user = auth()->user();
         
         // Active Plan
         $activeSubscription = $user->activeSubscription()->with('plan')->first();
         
-        // Recent Resumes
+        // Recent Resumes (Take 4)
         $recentResumes = \App\Models\Resume::where('user_id', $user->id)
             ->with('template')
             ->latest()
-            ->take(6)
+            ->take(4)
             ->get();
+
+        $recentResumePreviews = $recentResumes->mapWithKeys(function (Resume $resume) use ($renderer) {
+            if (! $resume->template) {
+                return [$resume->id => null];
+            }
+
+            $html = (string) $renderer->renderResume($resume->template, $resume->data ?? []);
+
+            return [
+                $resume->id => view('templates.rendered-document', ['html' => $html])->render(),
+            ];
+        });
             
-        // Recent Cover Letters
+        // Recent Cover Letters (Take 4)
         $recentCoverLetters = \App\Models\CoverLetter::where('user_id', $user->id)
             ->with('template')
             ->latest()
-            ->take(6)
+            ->take(4)
             ->get();
+
+        $recentCoverLetterPreviews = $recentCoverLetters->mapWithKeys(function (CoverLetter $letter) use ($renderer) {
+            if (! $letter->template) {
+                return [$letter->id => null];
+            }
+
+            $html = (string) $renderer->renderCoverLetter($letter->template, $letter->data ?? []);
+
+            return [
+                $letter->id => view('templates.rendered-document', ['html' => $html])->render(),
+            ];
+        });
 
         return view('dashboard', [
             'user' => $user,
             'activeSubscription' => $activeSubscription,
             'recentResumes' => $recentResumes,
+            'recentResumePreviews' => $recentResumePreviews,
             'recentCoverLetters' => $recentCoverLetters,
+            'recentCoverLetterPreviews' => $recentCoverLetterPreviews,
             'totalResumes' => \App\Models\Resume::where('user_id', $user->id)->count(),
             'totalCoverLetters' => \App\Models\CoverLetter::where('user_id', $user->id)->count(),
+        ]);
+    }
+
+    public function coverLetters(TemplateRenderService $renderer)
+    {
+        $letters = CoverLetter::query()
+            ->where('user_id', auth()->id())
+            ->with('template')
+            ->latest()
+            ->paginate(12);
+
+        $previews = $letters->getCollection()->mapWithKeys(function (CoverLetter $letter) use ($renderer) {
+            if (! $letter->template) {
+                return [$letter->id => null];
+            }
+
+            $html = (string) $renderer->renderCoverLetter($letter->template, $letter->data ?? []);
+
+            return [
+                $letter->id => view('templates.rendered-document', ['html' => $html])->render(),
+            ];
+        });
+
+        return view('cover-letter.index', [
+            'letters' => $letters,
+            'previews' => $previews,
         ]);
     }
 

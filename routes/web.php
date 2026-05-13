@@ -80,6 +80,7 @@ Route::post('/resume/ai-text', [ResumeBuilderController::class, 'generateAiText'
 Route::post('/resume', [ResumeBuilderController::class, 'store'])->name('resume.store');
 Route::get('/resume/edit/{resume}', [ResumeBuilderController::class, 'edit'])->name('resume.edit');
 Route::patch('/resume/{resume}', [ResumeBuilderController::class, 'update'])->name('resume.update');
+Route::patch('/resume/{resume}/rename', [ResumeBuilderController::class, 'rename'])->name('resume.rename');
 Route::get('/resume/{resume}/preview', [ResumeBuilderController::class, 'preview'])->name('resume.preview');
 Route::get('/resume/{resume}/download/{format?}', [ResumeBuilderController::class, 'download'])->name('resume.download');
 
@@ -92,6 +93,7 @@ Route::get('/resume/{resume}/download/{format?}', [ResumeBuilderController::clas
 
 Route::middleware(['auth', 'user'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/cover-letters', [DashboardController::class, 'coverLetters'])->name('dashboard.cover-letters');
     Route::get('/plans/{plan}/checkout', [SubscriptionController::class, 'checkout'])->name('plans.checkout');
     Route::post('/plans/{plan}/order', [SubscriptionController::class, 'order'])->name('plans.order');
     Route::post('/purchases/{purchase}/verify', [SubscriptionController::class, 'verify'])->name('plans.verify');
@@ -123,7 +125,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
         // Content Management
         Route::middleware('permission:templates')->group(function () {
-            Route::resource('templates', AdminTemplateController::class)->except(['show', 'destroy']);
+            Route::resource('templates', AdminTemplateController::class)->except(['show']);
             Route::get('templates/{template}/preview', [AdminTemplateController::class, 'preview'])->name('templates.preview');
             Route::get('templates/{template}/download', [AdminTemplateController::class, 'download'])->name('templates.download');
         });

@@ -276,6 +276,23 @@ if (app) {
             validateStatus: (status) => status < 500,
         });
 
+        const contentType = String(response.headers?.['content-type'] || '').toLowerCase();
+
+        if (response.request?.responseURL && !response.request.responseURL.includes('/download-resume')) {
+            window.location.href = response.request.responseURL;
+            return;
+        }
+
+        if (contentType.includes('text/html')) {
+            const html = await response.data.text();
+            const loginPathMatch = html.match(/action="([^"]*\/login[^"]*)"/i) || html.match(/href="([^"]*\/login[^"]*)"/i);
+            if (loginPathMatch?.[1]) {
+                window.location.href = loginPathMatch[1];
+                return;
+            }
+            throw new Error('Please log in to continue with download.');
+        }
+
         if (response.status === 402) {
             showPaymentModal();
             return;

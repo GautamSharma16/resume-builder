@@ -164,7 +164,7 @@
         grid-template-columns: 1fr 1fr;
         align-items: center;
         gap: 3rem;
-        padding: 1rem 4% 2rem;
+        padding: 6rem 4% 4rem;
         background: linear-gradient(135deg, #ffffff 0%, #fafcff 100%);
         position: relative;
         overflow: hidden;
@@ -795,86 +795,130 @@
     }
     .btn-reset:hover { background: var(--blue-light); }
 
-    /* ─── TEMPLATE MODAL ──────────────────────────────────────── */
-    .template-modal {
-        display: none;
+    /* ─── TEMPLATE POPUP ───────────────────────────────────────── */
+    .rp-overlay {
         position: fixed;
         inset: 0;
+        background: rgba(15,23,42,0.55);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
         z-index: 10001;
-        background: rgba(11,18,33,0.62);
-        backdrop-filter: blur(8px);
+        display: none;
         align-items: center;
         justify-content: center;
-        padding: 1rem;
+        padding: 1.5rem;
     }
-    .template-modal.open { display: flex; }
-    .template-modal-box {
-        width: min(1120px, 100%);
+    .rp-overlay.open { display: flex; }
+    .rp-popup {
+        background: var(--white);
+        border-radius: var(--r-2xl);
+        width: 100%;
+        max-width: 1020px;
         max-height: 88vh;
-        overflow: hidden;
-        background: white;
-        border-radius: var(--r-xl);
-        box-shadow: 0 28px 72px rgba(0,0,0,0.22);
         display: flex;
         flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.18);
     }
-    .template-modal-header {
+    .rp-popup-head {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border);
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 1rem;
-        padding: 1.2rem 1.4rem;
-        border-bottom: 1px solid var(--border);
     }
-    .template-modal-header h2 { font-family: var(--font-display); font-weight: 400; color: var(--navy); font-size: 1.7rem; }
-    .template-modal-header p { color: var(--muted); font-size: 0.8rem; margin-top: 0.15rem; }
-    .template-modal-close {
+    .rp-popup-head h3 {
+        font-family: var(--font-display);
+        font-size: 1.4rem;
+        color: var(--navy);
+        font-weight: 400;
+    }
+    .rp-popup-close {
         width: 36px; height: 36px;
-        border-radius: var(--r-full);
-        border: 1px solid var(--border);
         background: white;
         display: inline-flex; align-items: center; justify-content: center;
         cursor: pointer;
     }
-    .template-modal-grid {
-        overflow: auto;
-        padding: 1.2rem;
+    .rp-popup-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
+    .rp-tpl-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
     }
-    .tpl-item {
-        border: 1px solid var(--border);
-        border-radius: var(--r-lg);
-        padding: 0.65rem;
+    .rp-tpl-card {
+        border: 2px solid var(--border);
+        border-radius: var(--r-xl);
+        overflow: hidden;
         cursor: pointer;
-        transition: all 0.3s;
-        text-align: center;
+        transition: all 0.25s var(--ease-spring);
         background: white;
+        display: flex;
+        flex-direction: column;
+        position: relative;
     }
-    .tpl-item:hover { border-color: var(--blue); background: var(--blue-light); }
-    .tpl-item.active {
+    .rp-tpl-card:hover {
         border-color: var(--blue);
-        background: var(--blue-light);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+    .rp-tpl-card.selected {
+        border-color: var(--blue);
         box-shadow: 0 0 0 4px var(--blue-glow);
     }
-    .tpl-thumb {
-        height: 210px;
-        background: #ffffff;
-        border-radius: var(--r-md);
-        margin-bottom: 0.5rem;
-        display: flex; align-items: flex-start; justify-content: center;
+    .rp-tpl-thumb {
+        position: relative;
+        width: 100%;
+        height: 240px;
+        background: #f8fafc;
         overflow: hidden;
-        border: 1px solid rgba(0,0,0,0.04);
+        border-bottom: 1px solid var(--border);
     }
-    .tpl-thumb-scaler {
+    .rp-tpl-thumb-inner {
+        position: absolute;
+        top: 0;
+        left: 50%;
         width: 794px;
-        min-height: 1123px;
-        transform: scale(0.19);
-        transform-origin: top center;
+        transform: scale(0.25) translateX(-50%);
+        transform-origin: top left;
         pointer-events: none;
     }
-    .tpl-name { font-size: 0.75rem; font-weight: 700; color: var(--navy); }
+    .rp-tpl-check {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--blue);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        opacity: 0;
+        transform: scale(0.5);
+        transition: all 0.3s var(--ease-spring);
+        box-shadow: 0 4px 10px rgba(37,99,235,0.4);
+    }
+    .rp-tpl-card.selected .rp-tpl-check {
+        opacity: 1;
+        transform: scale(1);
+    }
+    .rp-tpl-check svg {
+        width: 14px;
+        height: 14px;
+        stroke: white;
+        stroke-width: 3;
+        fill: none;
+    }
+    .rp-tpl-name {
+        padding: 0.8rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-align: center;
+        color: var(--navy);
+        background: white;
+    }
 
     /* ─── PAYMENT MODAL ───────────────────────────────────────── */
     .payment-modal {
@@ -1043,6 +1087,14 @@
             </div>
             <div class="upload-card-body">
                 <form id="resumeForm">
+                    <div class="rp-group" style="margin-bottom: 1.25rem;">
+                        <label class="rp-label" style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--muted); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Target Job Title (Optional)</label>
+                        <div class="rp-input-wrap" style="position: relative;">
+                            <input type="text" name="job_role" id="jobRoleInput" class="rp-input" placeholder="e.g. Senior Software Engineer" style="width: 100%; padding: 0.75rem 1rem; border-radius: var(--r-md); border: 1px solid var(--border); font-family: var(--font-body); font-size: 0.9rem; transition: all 0.2s;">
+                        </div>
+                        <p style="font-size: 0.65rem; color: var(--soft); margin-top: 0.35rem;">AI will optimize keywords for this specific role.</p>
+                    </div>
+
                     <div class="dropzone" id="dropzoneEl">
                         <input type="file" id="resumeFile" name="resume" accept=".pdf,.doc,.docx" style="display:none" required>
                         <div class="dropzone-content">
@@ -1083,7 +1135,7 @@
 <section class="how-it-works">
     <div class="hiw-inner">
         <div class="hiw-header">
-            <div class="section-label">Simple Process</div>
+            
             <h2>How It <em>Works</em></h2>
         </div>
         <div class="hiw-grid">
@@ -1263,28 +1315,19 @@
 {{-- ═══════════════════════════════════════════════════════
      TEMPLATE SELECTOR MODAL
 ═══════════════════════════════════════════════════════ --}}
-<div id="resumeTemplateModal" class="template-modal">
-    <div class="template-modal-box">
-        <div class="template-modal-header">
-            <div>
-                <h2>Choose a different style</h2>
-                <p>Your enhanced resume content stays the same.</p>
-            </div>
-            <button type="button" id="closeTemplateModal" class="template-modal-close">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+{{-- ═══════════════════════════════════════════════════════
+     TEMPLATE POPUP (Modern Live Canvas Style)
+═══════════════════════════════════════════════════════ --}}
+<div id="template-popup" class="rp-overlay">
+    <div class="rp-popup">
+        <div class="rp-popup-head">
+            <h3>Choose a Template</h3>
+            <button class="rp-popup-close" id="closeTemplateModal">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
         </div>
-        <div class="template-modal-grid">
-            @foreach($templates as $template)
-            <div class="tpl-item @if($loop->first) active @endif" data-template-id="{{ $template->id }}">
-                <div class="tpl-thumb">
-                    <div class="tpl-thumb-scaler">
-                        {!! $renderedTemplates[$template->id] ?? '' !!}
-                    </div>
-                </div>
-                <div class="tpl-name">{{ $template->name }}</div>
-            </div>
-            @endforeach
+        <div class="rp-popup-body">
+            <div class="rp-tpl-grid" id="templateGrid"></div>
         </div>
     </div>
 </div>
@@ -1317,8 +1360,10 @@
     const workspace     = document.getElementById('workspaceSection');
     const improveAgainBtn = document.getElementById('improveAgainBtn');
     const heroSection   = document.getElementById('heroSection');
-    const resumeTemplates = @json($templates->keyBy('id'));
-    const loginUrl      = @json(route('login'));
+    const resumeTemplates   = @json($templates->keyBy('id'));
+    const renderedTemplates = @json($renderedTemplates);
+    const loginUrl          = @json(route('login'));
+    const downloadRoute     = "{{ route('resume.download-improved') }}";
 
     let currentAnalysisId = null;
     let resumeData = { name: '', summary: '', skills: [], experience: [], education: [], projects: [] };
@@ -1463,6 +1508,7 @@
         await showScanOverlay();
         const formData = new FormData();
         formData.append('resume', file);
+        formData.append('job_role', document.getElementById('jobRoleInput')?.value || '');
         formData.append('_token', '{{ csrf_token() }}');
         try {
             const response = await fetch('{{ route("resume.analyze") }}', { method: 'POST', body: formData });
@@ -1528,28 +1574,44 @@
     });
 
     // ── Template modal ──
-    const templateModal     = document.getElementById('resumeTemplateModal');
+    const templatePopup     = document.getElementById('template-popup');
     const changeTemplateBtn = document.getElementById('changeTemplateBtn');
-    const closeTemplateModal = document.getElementById('closeTemplateModal');
+    const closeTemplateBtn  = document.getElementById('closeTemplateModal');
+    const templateGrid      = document.getElementById('templateGrid');
 
-    function syncActiveTemplateCards() {
-        document.querySelectorAll('.tpl-item[data-template-id]').forEach(card => {
-            card.classList.toggle('active', card.dataset.templateId === String(selectedTemplateId));
+    function buildTemplateGrid() {
+        if (!templateGrid) return;
+        templateGrid.innerHTML = Object.values(resumeTemplates).map(tpl => `
+            <div class="rp-tpl-card ${String(tpl.id) === String(selectedTemplateId) ? 'selected' : ''}" data-template-id="${tpl.id}">
+                <div class="rp-tpl-thumb">
+                    <div class="rp-tpl-check">
+                        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                    <div class="rp-tpl-thumb-inner">
+                        ${renderedTemplates[tpl.id] || ''}
+                    </div>
+                </div>
+                <div class="rp-tpl-name">${tpl.name}</div>
+            </div>
+        `).join('');
+
+        document.querySelectorAll('.rp-tpl-card').forEach(card => {
+            card.addEventListener('click', () => {
+                selectedTemplateId = card.dataset.templateId;
+                document.querySelectorAll('.rp-tpl-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                renderTemplatePreview(resumeData);
+                templatePopup?.classList.remove('open');
+            });
         });
     }
 
-    document.querySelectorAll('.tpl-item[data-template-id]').forEach(item => {
-        item.addEventListener('click', () => {
-            selectedTemplateId = item.dataset.templateId;
-            syncActiveTemplateCards();
-            renderTemplatePreview(resumeData);
-            templateModal?.classList.remove('open');
-        });
+    changeTemplateBtn?.addEventListener('click', () => {
+        buildTemplateGrid();
+        templatePopup?.classList.add('open');
     });
-
-    changeTemplateBtn?.addEventListener('click', () => templateModal?.classList.add('open'));
-    closeTemplateModal?.addEventListener('click', () => templateModal?.classList.remove('open'));
-    templateModal?.addEventListener('click', e => { if (e.target === templateModal) templateModal.classList.remove('open'); });
+    closeTemplateBtn?.addEventListener('click', () => templatePopup?.classList.remove('open'));
+    templatePopup?.addEventListener('click', e => { if (e.target === templatePopup) templatePopup.classList.remove('open'); });
 
     // ── File input ──
     dropzone.addEventListener('click', () => fileInput.click());
@@ -1566,7 +1628,50 @@
     });
 
     // ── Download ──
-    document.getElementById('downloadBtn').addEventListener('click', () => { window.location.href = loginUrl; });
+    document.getElementById('downloadBtn').addEventListener('click', async () => {
+        if (!currentAnalysisId) return;
+        const btn = document.getElementById('downloadBtn');
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="spin" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg> Checking...';
+
+        try {
+            const url = `${downloadRoute}/${currentAnalysisId}?template_id=${selectedTemplateId}`;
+            const res = await fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+            
+            if (res.status === 401) {
+                window.location.href = loginUrl;
+                return;
+            }
+
+            if (res.status === 402) {
+                const data = await res.json();
+                if (typeof showPaymentModal === 'function') {
+                    showPaymentModal(data.pricing_url);
+                } else {
+                    window.location.href = data.pricing_url || '/plans';
+                }
+                return;
+            }
+
+            if (!res.ok) throw new Error('Download failed');
+
+            // If it's a blob (the PDF), download it
+            const blob = await res.blob();
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `Enhanced_Resume_${Date.now()}.pdf`;
+            link.click();
+        } catch (err) {
+            alert(err.message || 'Something went wrong. Please try again.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    });
+
+    // Initial setup
+    buildTemplateGrid();
 })();
 </script>
 

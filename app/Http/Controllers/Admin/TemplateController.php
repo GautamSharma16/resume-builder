@@ -129,7 +129,7 @@ class TemplateController extends Controller
                 if ($template->type === 'cover_letter') {
                     $html = (string) $renderer->renderCoverLetter($template);
                 } else {
-                    $html = (string) $renderer->renderResume($template);
+                    $html = (string) $renderer->renderResume($template, null, false);
                 }
             } catch (\Throwable $e) {
                 // If rendering fails (e.g. syntax error in generated Blade), show raw with error
@@ -146,7 +146,7 @@ class TemplateController extends Controller
             if ($template->type === 'cover_letter') {
                 $html = (string) $renderer->renderCoverLetter($template, $renderer->coverLetterSampleData());
             } else {
-                $html = (string) $renderer->renderResume($template, $renderer->resumeSampleData());
+                $html = (string) $renderer->renderResume($template, $renderer->resumeSampleData(), false);
             }
         }
 
@@ -176,6 +176,23 @@ class TemplateController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
             'Content-Length'      => strlen($pdfBytes),
         ]);
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────
+    public function destroy(Template $template)
+    {
+        if ($template->preview_image) {
+            Storage::disk('public')->delete($template->preview_image);
+        }
+
+        if ($template->pdf_path) {
+            Storage::disk('public')->delete($template->pdf_path);
+        }
+
+        $template->delete();
+
+        return redirect()->route('admin.templates.index', ['type' => $template->type])
+            ->with('status', 'Template deleted.');
     }
 
     // ── Shared validation ─────────────────────────────────────────────────
