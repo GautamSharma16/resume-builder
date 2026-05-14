@@ -1563,6 +1563,38 @@
             <div class="rp-viewport" id="preview-viewport" style="padding-bottom: 120px;">
                 <div id="cv-preview"></div>
             </div>
+            <div id="preview-page-nav" class="rp-page-nav" style="display:none;" aria-label="Resume page navigation">
+ 
+    <button type="button" id="preview-page-prev" class="rp-page-btn"
+            aria-label="Previous page" title="Previous page">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"
+             viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"/>
+        </svg>
+    </button>
+ 
+    <span id="preview-page-label" class="rp-page-label">1 / 1</span>
+ 
+    <button type="button" id="preview-page-next" class="rp-page-btn"
+            aria-label="Next page" title="Next page">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"
+             viewBox="0 0 24 24" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"/>
+        </svg>
+    </button>
+ 
+    {{-- Hidden range — JS backward compat ke liye --}}
+    <input type="range" id="preview-page-range" min="1" max="1" value="1" step="1"
+           style="display:none;" aria-hidden="true">
+</div>
+ 
+
+
+
+
+
+
+
         </section>
 
     </div>{{-- /rp-builder --}}

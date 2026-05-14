@@ -682,7 +682,7 @@
     .modal-grid {
         padding: 1.5rem;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 1.2rem;
         overflow-y: auto;
     }
@@ -734,7 +734,7 @@
         box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12), 0 14px 30px rgba(15, 23, 42, 0.12);
     }
     .modal-thumb {
-        height: 232px;
+        height: 282px;
         background: var(--surface);
         display: flex;
         justify-content: center;
@@ -743,8 +743,8 @@
         border-bottom: 1px solid #e5e7eb;
     }
     .modal-scaler {
-        transform: scale(0.318);
-        transform-origin: top left;
+        transform: scale(0.252);
+        transform-origin: top center;
         width: 794px;
         pointer-events: none;
     }

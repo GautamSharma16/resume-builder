@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <meta charset="utf-8">
+    <title>Cvbliss Resume</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -85,20 +88,95 @@
         .tpl-dense p { margin: 0 0 4px; }
 
         /* Cover letters */
-        .tpl-cover { font-size: 13px; line-height: 1.65; }
-        .tpl-cover main, .tpl-cover section { margin-top: 28px; }
-        .tpl-cover header { margin-bottom: 20px; }
-        .tpl-cover aside { background: #f3f4f6; padding: 12px; margin: 12px 0; font-weight: 600; }
-        .tpl-cover footer { margin-top: 20px; }
-        .tpl-kicker { font-weight: 800; margin-bottom: 8px; }
-        .tpl-company { font-weight: 800; margin: 8px 0; }
+        .tpl-cover {
+            background: #fff;
+            padding: 64px;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            color: #111827;
+            font-size: 16px;
+            line-height: 1.75;
+        }
 
-        .tpl-cover-modern header { background: #f3f4f6; padding: 16px; margin: -38px -38px 16px; }
-        .tpl-cover-executive header { text-align: right; margin-bottom: 20px; }
-        .tpl-cover-fresher { }
-        .tpl-cover-switch header { text-align: center; margin-bottom: 16px; }
-        .tpl-cover-minimal { }
-        .tpl-cover-clean { }
+        .tpl-cover h1 {
+            font-size: 34px;
+            font-weight: 800;
+            margin: 0 0 6px;
+            letter-spacing: -0.01em;
+        }
+
+        .tpl-cover h2 {
+            font-size: 20px;
+            font-weight: 800;
+            margin: 24px 0 8px;
+            color: #0f172a;
+        }
+
+        .tpl-cover main,
+        .tpl-cover section {
+            margin-top: 48px;
+        }
+
+        .tpl-cover-modern header {
+            border-bottom: 4px solid #0f766e;
+            padding-bottom: 22px;
+        }
+
+        .tpl-cover-modern aside {
+            margin-top: 28px;
+            background: #ecfdf5;
+            padding: 18px;
+            font-weight: 700;
+            border-radius: 8px;
+        }
+
+        .tpl-cover-executive {
+            font-family: Georgia, 'Times New Roman', Times, serif;
+        }
+
+        .tpl-cover-executive header {
+            text-align: center;
+            border-bottom: 1px solid #111827;
+            padding-bottom: 28px;
+        }
+
+        .tpl-cover-fresher header {
+            background: #eff6ff;
+            margin: -64px -64px 36px;
+            padding: 54px 64px 32px;
+        }
+
+        .tpl-cover-switch {
+            border-left: 16px solid #7c3aed;
+        }
+
+        .tpl-cover-minimal {
+            font-family: Georgia, 'Times New Roman', Times, serif;
+        }
+
+        .tpl-cover-minimal header {
+            border-bottom: 1px solid #d1d5db;
+            padding-bottom: 20px;
+        }
+
+        .tpl-cover-clean header {
+            border-top: 8px solid #111827;
+            padding-top: 26px;
+        }
+
+        .tpl-kicker {
+            font-weight: 800;
+            color: #0f766e;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .tpl-company {
+            font-weight: 800;
+            color: #0f766e;
+            margin: 8px 0;
+        }
 
         /* Print styles */
         @media print {
@@ -119,7 +197,11 @@
             .tpl-resume section,
             .tpl-cover section,
             .tpl-resume article,
-            .tpl-cover article {
+            .tpl-cover article,
+            .tpl-role,
+            .tpl-panel,
+            .tpl-badges,
+            .tpl-description {
                 break-inside: avoid-page;
                 page-break-inside: avoid;
             }

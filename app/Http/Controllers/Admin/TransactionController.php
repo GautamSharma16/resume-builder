@@ -50,7 +50,7 @@ class TransactionController extends Controller
                     $transaction->plan?->name ?? 'N/A',
                     number_format($transaction->amount_paise / 100, 2),
                     ucfirst($transaction->status),
-                    $transaction->created_at->format('Y-m-d H:i:s'),
+                    ($transaction->paid_at ?? $transaction->created_at)?->format('Y-m-d H:i:s') ?? 'N/A',
                     $transaction->razorpay_payment_id ?: $transaction->razorpay_payment_link_id ?: 'Pending'
                 ]);
             }
