@@ -182,7 +182,6 @@
         @media print {
             body { margin: 0; padding: 0; }
             .tpl-resume, .tpl-cover {
-                padding: 20px;
                 height: auto !important;
                 min-height: 0 !important;
                 max-height: none !important;

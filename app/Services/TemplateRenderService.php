@@ -689,9 +689,12 @@ HTML;
             return '';
         }
 
+        $body = preg_replace('/(Sincerely,)(?!\s*(?:\R|<br\b|<\/p>))\s*/i', "$1\n", $body) ?? $body;
+        $body = preg_replace('/(Sincerely,)(?:&nbsp;|\x{00a0})+/iu', "$1\n", $body) ?? $body;
+
         // If body already contains HTML (from rich editor), keep it.
         if (preg_match('/<[a-z][\s\S]*>/i', $body)) {
-            return $body;
+            return preg_replace('/(Sincerely,)\s*\R\s*/i', '$1<br>', $body) ?? $body;
         }
 
         // Convert plain text into paragraph blocks, preserving blank-line spacing.

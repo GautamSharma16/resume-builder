@@ -31,7 +31,7 @@ use Smalot\PdfParser\Parser as PdfParser;
 class PdfConversionService
 {
     // Override with absolute paths if binaries exist but aren't in PATH
-    private string $pdftohtmlBin   = 'pdftohtml';
+    private string $pdftohtmlBin = 'pdftohtml';
     private string $wkhtmltopdfBin = 'wkhtmltopdf';
     private ?string $nodeBin = null;
 
@@ -49,7 +49,8 @@ class PdfConversionService
                     return $this->improveHtmlWithAI($html);
                 }
                 return $html;
-            } catch (\Throwable) { /* fall through */ }
+            } catch (\Throwable) { /* fall through */
+            }
         }
 
         // 2. Pure PHP — works on all hosting
@@ -60,7 +61,8 @@ class PdfConversionService
                     return $this->improveHtmlWithAI($html);
                 }
                 return $html;
-            } catch (\Throwable) { /* fall through */ }
+            } catch (\Throwable) { /* fall through */
+            }
         }
 
         // 3. Raw byte extraction — last resort
@@ -76,11 +78,12 @@ class PdfConversionService
         $key = config('services.gemini.key');
         $model = config('services.gemini.model', 'gemini-1.5-flash');
 
-        if (!$key) return $html;
+        if (!$key)
+            return $html;
 
         // Strip tags but keep some structure for AI to understand
         $textContent = strip_tags($html, '<h1><h2><h3><p><li>');
-        
+
         $prompt = <<<PROMPT
 You are a master UI/UX designer. 
 Task: Convert the following resume text into a PIXEL-PERFECT, PREMIUM HTML/CSS template.
@@ -107,6 +110,7 @@ PROMPT;
 
         try {
             $response = \Illuminate\Support\Facades\Http::timeout(120)
+
                 ->withoutVerifying()
                 ->post(
                     "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($key),
@@ -129,7 +133,7 @@ PROMPT;
                 $aiHtml = \Illuminate\Support\Arr::get($response->json(), 'candidates.0.content.parts.0.text', '');
                 $aiHtml = preg_replace('/```(?:html)?/i', '', $aiHtml);
                 $aiHtml = str_replace('```', '', $aiHtml);
-                
+
                 // If it looks like a valid HTML doc, return it
                 if (str_contains($aiHtml, '<style>') && str_contains($aiHtml, '{{')) {
                     return trim($aiHtml);
@@ -154,14 +158,16 @@ PROMPT;
         if ($this->commandWorks($this->wkhtmltopdfBin)) {
             try {
                 return $this->viaWkhtmltopdf($html);
-            } catch (\Throwable) { /* fall through */ }
+            } catch (\Throwable) { /* fall through */
+            }
         }
 
         // 2. Puppeteer / Node.js
         if ($this->commandWorks('node') && $this->nodeModuleAvailable('puppeteer')) {
             try {
                 return $this->viaPuppeteer($html);
-            } catch (\Throwable) { /* fall through */ }
+            } catch (\Throwable) { /* fall through */
+            }
         }
 
         // 3. DomPDF — pure PHP, works everywhere
@@ -196,21 +202,26 @@ PROMPT;
 
     private function viaBinaryPdfToHtml(string $pdfPath): string
     {
-        $sep     = DIRECTORY_SEPARATOR;
-        $outDir  = sys_get_temp_dir() . $sep . uniqid('pdftohtml_', true);
+        $sep = DIRECTORY_SEPARATOR;
+        $outDir = sys_get_temp_dir() . $sep . uniqid('pdftohtml_', true);
         $outBase = $outDir . $sep . 'out';
         mkdir($outDir, 0755, true);
 
         $process = new Process([
-            $this->pdftohtmlBin, '-s', '-noframes', '-enc', 'UTF-8',
-            $pdfPath, $outBase,
+            $this->pdftohtmlBin,
+            '-s',
+            '-noframes',
+            '-enc',
+            'UTF-8',
+            $pdfPath,
+            $outBase,
         ]);
         $process->setTimeout(60);
         $process->run();
 
         $htmlFile = $outBase . 's.html'; // pdftohtml appends 's' for single-file mode
 
-        if (! file_exists($htmlFile)) {
+        if (!file_exists($htmlFile)) {
             $this->cleanup($outDir);
             throw new \RuntimeException('pdftohtml produced no output.');
         }
@@ -225,36 +236,37 @@ PROMPT;
     private function viaPdfParser(string $pdfPath): string
     {
         $parser = new PdfParser();
-        $pdf    = $parser->parseFile($pdfPath);
-        $pages  = $pdf->getPages();
+        $pdf = $parser->parseFile($pdfPath);
+        $pages = $pdf->getPages();
 
         $details = $pdf->getDetails();
-        $title   = $details['Title'] ?? basename($pdfPath, '.pdf');
+        $title = $details['Title'] ?? basename($pdfPath, '.pdf');
         $escaped = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
 
         $bodyHtml = '';
 
         foreach ($pages as $i => $page) {
-            $text       = $page->getText();
+            $text = $page->getText();
             $paragraphs = preg_split('/\n{2,}/', $text);
-            $pageHtml   = '';
+            $pageHtml = '';
 
             foreach ($paragraphs as $para) {
                 $para = trim($para);
-                if ($para === '') continue;
+                if ($para === '')
+                    continue;
 
-                $lines     = explode("\n", $para);
+                $lines = explode("\n", $para);
                 $firstLine = trim($lines[0]);
 
                 if (count($lines) === 1 && strlen($firstLine) < 70 && strlen($firstLine) > 2 && strtoupper($firstLine) === $firstLine) {
                     $pageHtml .= '<h2 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.25rem;">' . htmlspecialchars($firstLine, ENT_QUOTES, 'UTF-8') . '</h2>' . "\n";
                 } else {
-                    $content   = htmlspecialchars($para, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                    $content = htmlspecialchars($para, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
                     $pageHtml .= '<p style="margin-bottom: 0.75rem; color: #334155; line-height: 1.6;">' . nl2br($content) . '</p>' . "\n";
                 }
             }
 
-            $num       = $i + 1;
+            $num = $i + 1;
             $bodyHtml .= "<div class=\"pdf-page\" id=\"page-{$num}\" style=\"background: #ffffff; padding: 2.5rem; margin-bottom: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);\">{$pageHtml}</div>\n";
         }
 
@@ -295,7 +307,7 @@ HTML;
 
     private function viaRawExtraction(string $pdfPath): string
     {
-        $raw     = file_get_contents($pdfPath);
+        $raw = file_get_contents($pdfPath);
         $cleaned = preg_replace('/[^\x20-\x7E\n\r\t]/', ' ', $raw);
         $cleaned = preg_replace('/\s{4,}/', "\n\n", $cleaned);
         $escaped = htmlspecialchars(trim($cleaned), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -322,25 +334,35 @@ HTML;
 
     private function viaWkhtmltopdf(string $html): string
     {
-        $inFile  = tempnam(sys_get_temp_dir(), 'wk_in_')  . '.html';
+        $inFile = tempnam(sys_get_temp_dir(), 'wk_in_') . '.html';
         $outFile = tempnam(sys_get_temp_dir(), 'wk_out_') . '.pdf';
         file_put_contents($inFile, $html);
 
         $process = new Process([
             $this->wkhtmltopdfBin,
             '--enable-local-file-access',
-            '--encoding', 'UTF-8',
-            '--margin-top', '10mm', '--margin-bottom', '10mm',
-            '--margin-left', '10mm', '--margin-right', '10mm',
-            '--page-size', 'A4', '--quiet',
-            $inFile, $outFile,
+            '--encoding',
+            'UTF-8',
+            '--margin-top',
+            '10mm',
+            '--margin-bottom',
+            '10mm',
+            '--margin-left',
+            '10mm',
+            '--margin-right',
+            '10mm',
+            '--page-size',
+            'A4',
+            '--quiet',
+            $inFile,
+            $outFile,
         ]);
         $process->setTimeout(60);
         $process->run();
 
         @unlink($inFile);
 
-        if (! file_exists($outFile)) {
+        if (!file_exists($outFile)) {
             throw new \RuntimeException('wkhtmltopdf: ' . $process->getErrorOutput());
         }
 
@@ -349,19 +371,24 @@ HTML;
         return $pdf;
     }
 
- private function viaPuppeteer(string $html, string $nodeBin = 'node'): string
-{
-    $outFile  = tempnam(sys_get_temp_dir(), 'resume_') . '.pdf';
-    $htmlFile = tempnam(sys_get_temp_dir(), 'html_')   . '.html';
-    $jsFile   = tempnam(sys_get_temp_dir(), 'js_')     . '.cjs';
+    private function viaPuppeteer(string $html, string $nodeBin = 'node'): string
+    {
+        $outFile = tempnam(sys_get_temp_dir(), 'resume_') . '.pdf';
+        $htmlFile = tempnam(sys_get_temp_dir(), 'html_') . '.html';
+        $jsFile = tempnam(sys_get_temp_dir(), 'js_') . '.cjs';
 
-    $chromePath   = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
-    $puppeteerDir = str_replace('\\', '/', base_path('node_modules/puppeteer'));
+        $chromeCandidates = array_filter([
+            env('PUPPETEER_EXECUTABLE_PATH'),
+            'C:/Program Files/Google/Chrome/Application/chrome.exe',
+            'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+        ]);
+        $chromePath = collect($chromeCandidates)->first(fn($path) => $path && file_exists($path)) ?: '';
+        $puppeteerDir = str_replace('\\', '/', base_path('node_modules/puppeteer'));
 
-    $js = str_replace(
-        ['__PUPPETEER_DIR__', '__CHROME_PATH__'],
-        [$puppeteerDir, $chromePath],
-        <<<'JS'
+        $js = str_replace(
+            ['__PUPPETEER_DIR__', '__CHROME_PATH__'],
+            [$puppeteerDir, $chromePath],
+            <<<'JS'
 const puppeteer = require('__PUPPETEER_DIR__');
 const fs = require('fs');
 const os = require('os');
@@ -374,9 +401,8 @@ const path = require('path');
     const profileDir = path.join(os.tmpdir(), 'puppeteer-profile');
     if (!fs.existsSync(profileDir)) fs.mkdirSync(profileDir, { recursive: true });
 
-    const browser = await puppeteer.launch({
+    const launchOptions = {
         headless: true,
-        executablePath: '__CHROME_PATH__',
         userDataDir: profileDir,
         ignoreHTTPSErrors: true,
         args: [
@@ -385,11 +411,19 @@ const path = require('path');
             '--disable-dev-shm-usage',
             '--disable-gpu',
         ],
-    });
+    };
+const chromePath = '__CHROME_PATH__'.trim();
+
+if (chromePath.length > 0) {
+    launchOptions.executablePath = chromePath;
+}
+    const browser = await puppeteer.launch(launchOptions);
 
     const page = await browser.newPage();
     const html = fs.readFileSync(htmlPath, 'utf8');
+    await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
     await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.emulateMediaType('print');
     await page.pdf({
         path: outPath,
         format: 'A4',
@@ -403,40 +437,39 @@ const path = require('path');
     process.exit(1);
 });
 JS
-    );
-
-    file_put_contents($htmlFile, $html);
-    file_put_contents($jsFile, $js);
-    file_put_contents(base_path('debug-puppeteer.cjs'), $js);
-$process = new Process([$nodeBin, $jsFile, $htmlFile, $outFile]);
-$process->setWorkingDirectory(base_path());
-$process->setTimeout(120);
-$process->setEnv([
-    'PUPPETEER_EXECUTABLE_PATH' => 'C:/Program Files/Google/Chrome/Application/chrome.exe',
-    'PUPPETEER_SKIP_CHROMIUM_DOWNLOAD' => 'true',
-    'PATH' => getenv('PATH'),
-    'TEMP' => sys_get_temp_dir(),
-    'TMP'  => sys_get_temp_dir(),
-    'SystemRoot' => 'C:\\Windows',
-    'SystemDrive' => 'C:',
-]);
-$process->run();
-
-    @unlink($htmlFile);
-    @unlink($jsFile);
-
-    if (! $process->isSuccessful() || ! file_exists($outFile)) {
-        @unlink($outFile);
-        throw new \RuntimeException(
-            'Puppeteer PDF generation failed: ' .
-            trim($process->getErrorOutput() ?: $process->getOutput())
         );
-    }
 
-    $pdf = file_get_contents($outFile);
-    @unlink($outFile);
-    return $pdf;
-}
+        file_put_contents($htmlFile, $html);
+        file_put_contents($jsFile, $js);
+        $process = new Process([$nodeBin, $jsFile, $htmlFile, $outFile]);
+        $process->setWorkingDirectory(base_path());
+        $process->setTimeout(120);
+        $process->setEnv([
+            'PUPPETEER_EXECUTABLE_PATH' => $chromePath,
+            'PUPPETEER_SKIP_CHROMIUM_DOWNLOAD' => 'true',
+            'PATH' => getenv('PATH'),
+            'TEMP' => sys_get_temp_dir(),
+            'TMP' => sys_get_temp_dir(),
+            'SystemRoot' => 'C:\\Windows',
+            'SystemDrive' => 'C:',
+        ]);
+        $process->run();
+
+        @unlink($htmlFile);
+        @unlink($jsFile);
+
+        if (!$process->isSuccessful() || !file_exists($outFile)) {
+            @unlink($outFile);
+            throw new \RuntimeException(
+                'Puppeteer PDF generation failed: ' .
+                trim($process->getErrorOutput() ?: $process->getOutput())
+            );
+        }
+
+        $pdf = file_get_contents($outFile);
+        @unlink($outFile);
+        return $pdf;
+    }
 
     private function viaDompdf(string $html): string
     {
@@ -467,11 +500,11 @@ $process->run();
                     return $m[0];
                 }
                 $file = $basePath . DIRECTORY_SEPARATOR . basename($src);
-                if (! file_exists($file)) {
+                if (!file_exists($file)) {
                     return $m[0];
                 }
                 $mime = mime_content_type($file) ?: 'image/png';
-                $b64  = base64_encode(file_get_contents($file));
+                $b64 = base64_encode(file_get_contents($file));
                 return "<img{$m[1]}src=\"data:{$mime};base64,{$b64}\"{$m[3]}>";
             },
             $html
@@ -489,7 +522,7 @@ $process->run();
         if (str_contains($bin, '/') || str_contains($bin, '\\')) {
             return file_exists($bin);
         }
-        $finder  = PHP_OS_FAMILY === 'Windows' ? 'where' : 'which';
+        $finder = PHP_OS_FAMILY === 'Windows' ? 'where' : 'which';
         $process = new Process([$finder, $bin]);
         $process->run();
         return $process->isSuccessful();

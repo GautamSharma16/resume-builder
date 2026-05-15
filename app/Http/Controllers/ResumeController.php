@@ -29,10 +29,15 @@ class ResumeController extends Controller
             'downloadAmount' => config('services.razorpay.download_amount'),
             'downloadCurrency' => config('services.razorpay.currency'),
             'templates' => $templates,
-            'renderedTemplates' => $templates->mapWithKeys(fn (Template $template) => [
+            'renderedTemplates' => $templates->mapWithKeys(fn(Template $template) => [
                 $template->id => (string) $renderer->renderResume($template, null, false),
             ]),
         ]);
+    }
+
+    public function atsChecker()
+    {
+        return view('pages.ats-checker');
     }
 
     public function analyze(Request $request): JsonResponse
@@ -76,10 +81,7 @@ class ResumeController extends Controller
                     ]);
                 }
 
-                 return response()->json([
-                    'success' => false,
-                    'message' => Arr::get($analysis, 'message', 'AI analysis failed.')
-                ], 500);
+                $analysis = $this->localAtsAnalysis($resumeJson, $jobRole, $jobDescription);
             }
 
             $analysisRecord = ResumeAnalysis::create([
@@ -307,12 +309,12 @@ class ResumeController extends Controller
 
         $analysisRecord = $this->findAuthorizedAnalysis($request, (int) $validated['analysis_id']);
 
-        if (! $request->user()) {
+        if (!$request->user()) {
             return redirect()->guest(route('login'));
         }
 
         // Subscription check (Premium gating)
-        if (! $analysisRecord->is_paid && (! $request->user()->activeSubscription?->hasDownloadsRemaining())) {
+        if (!$analysisRecord->is_paid && (!$request->user()->activeSubscription?->hasDownloadsRemaining())) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'message' => 'Choose a plan to unlock downloads.',
@@ -323,7 +325,7 @@ class ResumeController extends Controller
             return redirect()->route('plans')->with('status', 'Choose a plan to unlock downloads.');
         }
 
-        if (! $analysisRecord->is_paid) {
+        if (!$analysisRecord->is_paid) {
             app(PlanActivationService::class)->consumeDownload($request->user());
             $analysisRecord->forceFill([
                 'is_paid' => true,
@@ -574,7 +576,8 @@ PROMPT;
         $prompt .= "\n" . json_encode($resume, JSON_UNESCAPED_SLASHES);
 
         try {
-            $response = Http::timeout(90)
+            $response = Http::request(90)
+
                 ->retry(2, 500)
                 ->post(
                     "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($key),
@@ -596,24 +599,24 @@ PROMPT;
             if (!$response->successful()) {
                 $err = $response->json();
                 $msg = Arr::get($err, 'error.message', 'API Error ' . $response->status());
-                
+
                 if ($response->status() === 429) {
                     return ['success' => false, 'message' => 'AI Rate limit exceeded. Please try again in a minute.'];
                 }
-                
+
                 return ['success' => false, 'message' => $msg];
             }
 
             $text = Arr::get($response->json(), 'candidates.0.content.parts.0.text', '');
-            
+
             if (!$text) {
                 return ['success' => false, 'message' => 'Empty response from AI.'];
             }
 
             $analysis = $this->decodeGeminiJson($text);
-            
+
             if (empty($analysis) || !isset($analysis['score'])) {
-                 return ['success' => false, 'message' => 'Could not parse AI response.'];
+                return ['success' => false, 'message' => 'Could not parse AI response.'];
             }
 
             $improvedResume = Arr::get($analysis, 'improved_resume');
@@ -638,9 +641,125 @@ PROMPT;
         }
     }
 
+    private function localAtsAnalysis(array $resume, string $jobRole = 'General', ?string $jobDescription = null): array
+    {
+        $resume = $this->normalizeResume($resume);
+        $textParts = [
+            $resume['summary'] ?? '',
+            implode(' ', $resume['skills'] ?? []),
+            collect($resume['experience'] ?? [])->pluck('points')->flatten()->join(' '),
+            collect($resume['projects'] ?? [])->map(fn($p) => trim(($p['name'] ?? '') . ' ' . ($p['tech'] ?? '') . ' ' . ($p['description'] ?? '')))->join(' '),
+            $jobDescription ?? '',
+        ];
+        $text = strtolower(implode(' ', $textParts));
+
+        $roleKeywordMap = [
+            'developer' => ['HTML', 'CSS', 'JavaScript', 'React', 'Node.js', 'API', 'Git', 'SQL', 'Testing', 'Responsive Design'],
+            'designer' => ['Figma', 'User Research', 'Wireframes', 'Prototyping', 'Design Systems', 'Accessibility'],
+            'marketing' => ['SEO', 'Analytics', 'Campaigns', 'Content Strategy', 'Conversion', 'CRM'],
+            'sales' => ['CRM', 'Pipeline', 'Prospecting', 'Negotiation', 'Revenue', 'Client Relationships'],
+            'data' => ['SQL', 'Python', 'Excel', 'Dashboard', 'Analytics', 'ETL', 'Visualization'],
+            'general' => ['Communication', 'Leadership', 'Problem Solving', 'Collaboration', 'Ownership'],
+        ];
+
+        $role = strtolower($jobRole ?: 'general');
+        $keywords = $roleKeywordMap['general'];
+        foreach ($roleKeywordMap as $needle => $items) {
+            if ($needle !== 'general' && str_contains($role, $needle)) {
+                $keywords = $items;
+                break;
+            }
+        }
+
+        if ($jobDescription) {
+            preg_match_all('/\b[A-Za-z][A-Za-z.+#-]{2,}\b/', $jobDescription, $matches);
+            $jdTerms = collect($matches[0] ?? [])
+                ->map(fn($term) => trim($term))
+                ->reject(fn($term) => in_array(strtolower($term), ['and', 'the', 'for', 'with', 'you', 'our', 'are', 'will', 'this', 'that', 'from', 'your', 'have', 'has'], true))
+                ->unique(fn($term) => strtolower($term))
+                ->take(12)
+                ->values()
+                ->all();
+            $keywords = array_values(array_unique(array_merge($jdTerms, $keywords)));
+        }
+
+        $missing = array_values(array_filter($keywords, fn($kw) => !str_contains($text, strtolower($kw))));
+        $strengths = [];
+        $weaknesses = [];
+        $suggestions = [];
+        $score = 20;
+
+        if (!empty($resume['email']) && !empty($resume['mobile'])) {
+            $score += 12;
+            $strengths[] = 'Contact information includes email and phone.';
+        } else {
+            $weaknesses[] = 'Add complete contact information with email and phone.';
+            $suggestions[] = 'Place email, phone, location, and relevant profile links in the header.';
+        }
+
+        $summaryWords = str_word_count(strip_tags((string) ($resume['summary'] ?? '')));
+        if ($summaryWords >= 35) {
+            $score += 14;
+            $strengths[] = 'Professional summary has enough detail for recruiter scanning.';
+        } else {
+            $weaknesses[] = 'Professional summary is short or missing.';
+            $suggestions[] = 'Write a 3-5 sentence summary with target role, core skills, domain, and business value.';
+        }
+
+        $skillsCount = count($resume['skills'] ?? []);
+        if ($skillsCount >= 6) {
+            $score += 14;
+            $strengths[] = 'Skills section contains multiple ATS-readable keywords.';
+        } else {
+            $weaknesses[] = 'Skills section needs more role-specific keywords.';
+            $suggestions[] = 'Add a dedicated skills section with tools, languages, frameworks, and methods from the job description.';
+        }
+
+        $experiencePoints = collect($resume['experience'] ?? [])->pluck('points')->flatten()->filter()->count();
+        if ($experiencePoints >= 4) {
+            $score += 16;
+            $strengths[] = 'Experience section includes bullet-style detail.';
+        } else {
+            $weaknesses[] = 'Experience section lacks enough responsibility or impact bullets.';
+            $suggestions[] = 'Add 3-5 bullets per role using action verbs, scope, tools, and measurable outcomes where true.';
+        }
+
+        if (count($resume['education'] ?? []) > 0) {
+            $score += 8;
+        } else {
+            $weaknesses[] = 'Education section is missing.';
+            $suggestions[] = 'Add degree, institution, field of study, and graduation year if available.';
+        }
+
+        if (count($resume['projects'] ?? []) > 0) {
+            $score += 8;
+            $strengths[] = 'Projects are present, which helps demonstrate practical work.';
+        } else {
+            $weaknesses[] = 'Projects section is missing.';
+            $suggestions[] = 'Add 1-3 relevant projects with tech stack, your role, and outcome.';
+        }
+
+        $matchedKeywords = count($keywords) - count($missing);
+        $score += min(18, $matchedKeywords * 3);
+
+        foreach (array_slice($missing, 0, 8) as $kw) {
+            $suggestions[] = "Consider adding '{$kw}' where it accurately reflects your experience.";
+        }
+
+        return [
+            'success' => true,
+            'score' => max(0, min(100, $score)),
+            'strengths' => array_values(array_unique($strengths ?: ['Resume content is readable and can be parsed for ATS analysis.'])),
+            'weaknesses' => array_values(array_unique($weaknesses)),
+            'missing_keywords' => array_slice($missing, 0, 10),
+            'suggestions' => array_values(array_unique($suggestions)),
+            'improved_resume' => $resume,
+        ];
+    }
+
     private function decodeGeminiJson(string $text): array
     {
-        if (! $text) {
+        if (!$text) {
             return $this->fallbackResponse();
         }
 
@@ -687,11 +806,12 @@ PROMPT;
 
     private function normalizeResume(array $resume): array
     {
-        $safeStr = function($val) {
-            if (is_array($val)) return json_encode($val);
+        $safeStr = function ($val) {
+            if (is_array($val))
+                return json_encode($val);
             return (string) $val;
         };
-        $safeSocial = fn ($val) => preg_match('/(linkedin\.com\/in\/(?:alex|you)|github\.com\/(?:alex|you))/i', (string) $val)
+        $safeSocial = fn($val) => preg_match('/(linkedin\.com\/in\/(?:alex|you)|github\.com\/(?:alex|you))/i', (string) $val)
             ? ''
             : $safeStr($val);
 
@@ -740,7 +860,8 @@ PROMPT;
                 }
                 return [
                     'name' => (string) ($item['name'] ?? ''),
-                    'tech' => (string) ($item['tech'] ?? ''),
+                    'tech' => (string) ($item['tech'] ?? $item['tech_stack'] ?? ''),
+                    'tech_stack' => (string) ($item['tech_stack'] ?? $item['tech'] ?? ''),
                     'description' => (string) ($item['description'] ?? ''),
                 ];
             }, $resume['projects'] ?? [])),

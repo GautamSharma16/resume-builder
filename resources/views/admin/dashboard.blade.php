@@ -91,7 +91,7 @@
             <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-2">Global Traffic</p>
             <h3 class="text-4xl font-black text-slate-900 mb-2" id="totalVisitors">{{ $totalVisitors ?? 0 }}</h3>
             <div class="flex items-center gap-1.5">
-                <span class="text-[11px] font-bold text-indigo-500">{{ $todayVisitors }}</span>
+                <span class="text-[11px] font-bold text-indigo-500" id="todayVisitors">{{ $todayVisitors }}</span>
                 <span class="text-[10px] text-slate-400">unique today</span>
             </div>
         </div>
@@ -179,9 +179,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             document.getElementById('totalUsers').textContent = data.totalUsers;
             document.getElementById('totalResumes').textContent = data.totalResumes;
-            document.getElementById('totalTemplates').textContent = data.totalTemplates;
             document.getElementById('totalPurchases').textContent = data.totalPurchases;
             document.getElementById('totalVisitors').textContent = data.totalVisitors;
+            document.getElementById('todayVisitors').textContent = data.todayVisitors;
         })
         .catch(error => console.error('Error fetching dashboard data:', error));
     }

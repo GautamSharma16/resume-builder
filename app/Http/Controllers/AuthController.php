@@ -78,7 +78,13 @@ class AuthController extends Controller
         }
 
         RateLimiter::clear($key);
-        Auth::login($user, $request->boolean('remember'));
+        $remember = $request->boolean('remember');
+        if ($remember && ! $user->getRememberToken()) {
+            $user->setRememberToken(Str::random(60));
+            $user->save();
+        }
+
+        Auth::login($user, $remember);
         $request->session()->regenerate();
         $this->attachPendingResume($request, $user);
 
@@ -283,6 +289,24 @@ class AuthController extends Controller
             'company' => route('company.dashboard'),
             default => route('dashboard'),
         };
+    }
+
+    private function postLoginRedirect(Request $request, User $user): string
+    {
+        $intended = (string) $request->session()->get('url.intended', '');
+        $plansUrl = route('plans');
+
+        if ($user->activeSubscription?->hasDownloadsRemaining() && $intended) {
+            $intendedPath = parse_url($intended, PHP_URL_PATH) ?: '';
+            $plansPath = parse_url($plansUrl, PHP_URL_PATH) ?: '/plans';
+
+            if ($intendedPath === $plansPath) {
+                $request->session()->forget('url.intended');
+                return $this->redirectPath($user);
+            }
+        }
+
+        return $this->redirectPath($user);
     }
 
     private function rememberIntendedRedirect(Request $request): void

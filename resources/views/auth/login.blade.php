@@ -204,6 +204,67 @@
     }
     .form-input:focus + .input-icon { color: var(--primary-container); }
 
+    .remember-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 1.5rem;
+        padding: 0 4px;
+    }
+    .remember-checkbox {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 22px;
+        height: 22px;
+        flex: 0 0 22px;
+        border-radius: 7px;
+        border: 1.5px solid var(--outline-variant);
+        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)), var(--surface-container);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+    .remember-checkbox::after {
+        content: "";
+        width: 6px;
+        height: 11px;
+        border: solid #fff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg) scale(0.6);
+        opacity: 0;
+        transition: opacity 0.16s ease, transform 0.16s ease;
+        margin-top: -2px;
+    }
+    .remember-checkbox:hover {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.14);
+    }
+    .remember-checkbox:focus-visible {
+        outline: none;
+        border-color: var(--primary-container);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.22);
+    }
+    .remember-checkbox:checked {
+        border-color: var(--primary-container);
+        background: linear-gradient(135deg, #3b82f6, var(--primary-container));
+        box-shadow: 0 10px 22px rgba(37, 99, 235, 0.24);
+    }
+    .remember-checkbox:checked::after {
+        opacity: 1;
+        transform: rotate(45deg) scale(1);
+    }
+    .remember-checkbox:active {
+        transform: scale(0.94);
+    }
+    .remember-label {
+        font-size: 14px;
+        color: var(--outline);
+        line-height: 1.35;
+        cursor: pointer;
+        user-select: none;
+    }
+
     .btn-submit {
         width: 100%;
         height: 56px;
@@ -381,9 +442,9 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-3" style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem; padding:0 4px;">
-                        <input type="checkbox" id="remember" style="width:18px; height:18px; border-radius:4px; border:1px solid var(--outline-variant); background:var(--surface-container);">
-                        <label for="remember" style="font-size:14px; color:var(--outline);">Keep me logged in</label>
+                    <div class="remember-row">
+                        <input type="checkbox" id="remember" name="remember" value="1" class="remember-checkbox" @checked(old('remember'))>
+                        <label for="remember" class="remember-label">Keep me logged in</label>
                     </div>
 
                     <button class="btn-submit" type="submit">
@@ -409,10 +470,24 @@
                         </div>
                     </div>
                     <div class="field-group">
+                        <label class="field-label" for="mobile">Mobile number</label>
+                        <div class="input-wrapper">
+                            <input class="form-input" id="mobile" name="mobile" type="tel" value="{{ old('mobile') }}" placeholder="+91 98765 43210" required>
+                            <span class="material-symbols-outlined input-icon">call</span>
+                        </div>
+                    </div>
+                    <div class="field-group">
                         <label class="field-label" for="password">Password</label>
                         <div class="input-wrapper">
                             <input class="form-input" id="password" name="password" type="password" placeholder="Min. 8 characters" required>
                             <span class="material-symbols-outlined input-icon">lock</span>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="password_confirmation">Confirm Password</label>
+                        <div class="input-wrapper">
+                            <input class="form-input" id="password_confirmation" name="password_confirmation" type="password" placeholder="Repeat password" required>
+                            <span class="material-symbols-outlined input-icon">lock_reset</span>
                         </div>
                     </div>
                     <button class="btn-submit" type="submit">Create Account</button>

@@ -12,6 +12,7 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\RazorpayWebhookController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\ArticleController as AdminArticleController;
+use App\Http\Controllers\Admin\LeadController as AdminLeadController;
 use App\Http\Controllers\Admin\PricingController;
 use App\Http\Controllers\Admin\TemplateController as AdminTemplateController;
 use App\Http\Controllers\AuthController;
@@ -48,6 +49,7 @@ Route::put('/password', [AuthController::class, 'updatePassword'])->name('passwo
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 Route::get('/improve-cv', [ResumeController::class, 'index'])->name('improve-cv');
+Route::get('/ats-checker', [ResumeController::class, 'atsChecker'])->name('ats-checker');
 Route::post('/analyze-resume', [ResumeController::class, 'analyze'])->name('resume.analyze');
 Route::post('/improve-resume', [ResumeController::class, 'improveAgain'])->name('resume.improve');
 Route::post('/grammar-fix-resume', [ResumeController::class, 'grammarFix'])->name('resume.grammar');
@@ -142,6 +144,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::patch('/plans/{plan}', [PricingController::class, 'update'])->name('plans.update')->middleware('permission:pricing');
             Route::get('/transactions', [App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('transactions')->middleware('permission:transactions');
             Route::get('/transactions/export', [App\Http\Controllers\Admin\TransactionController::class, 'exportCsv'])->name('transactions.export')->middleware('permission:transactions');
+            Route::resource('leads', AdminLeadController::class)->only(['index', 'show', 'destroy']);
         });
 
         // User Management (Admin only)

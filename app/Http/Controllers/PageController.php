@@ -11,6 +11,7 @@ class PageController extends Controller
 {
     public function home(TemplateRenderService $renderer)
     {
+        $rendered = [];
         $templates = Template::where('is_active', true)
             ->where('type', 'resume')
             ->orderBy('name')
@@ -30,6 +31,7 @@ class PageController extends Controller
 
     public function templates(TemplateRenderService $renderer)
     {
+        $rendered = [];
         $templates = Template::where('is_active', true)
             ->orderBy('category')
             ->orderBy('name')

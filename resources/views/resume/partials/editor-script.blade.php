@@ -16,6 +16,32 @@
         .replace(/&lt;(\/?)(strong|b|em|i|u)&gt;/gi, '<$1$2>')
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/__(.*?)__/g, '<u>$1</u>');
+    const notify = (message, type = 'info') => {
+        if (statusEl) {
+            statusEl.textContent = message;
+            statusEl.style.color = type === 'error' ? '#b91c1c' : '#2563eb';
+        }
+        let toast = document.getElementById('resume-maker-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'resume-maker-toast';
+            toast.style.cssText = 'position:fixed;right:24px;bottom:24px;z-index:10050;max-width:min(360px,calc(100vw - 32px));border-radius:16px;padding:13px 16px;font-weight:800;font-size:13px;box-shadow:0 18px 45px rgba(15,23,42,.18);transition:opacity .2s ease,transform .2s ease;opacity:0;transform:translateY(10px);';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.style.background = type === 'error' ? '#fef2f2' : '#eff6ff';
+        toast.style.color = type === 'error' ? '#b91c1c' : '#1d4ed8';
+        toast.style.border = type === 'error' ? '1px solid #fecaca' : '1px solid #bfdbfe';
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+        }, 2800);
+    };
     const toList = (v) => String(v).split(',').map(x => x.trim()).filter(Boolean);
     const validSocials = (items) => ensureArray(items)
         .map(String)
@@ -733,7 +759,7 @@
                     <div class="rp-entry-row">
                         <div class="rp-entry-field">
                             <label class="rp-entry-label">Project Title</label>
-                            <input class="rp-input" data-k="name" value="${esc(p?.name || p || '')}" placeholder="e.g. Open-source Markdown editor">
+                            <input class="rp-input" data-k="name" value="${esc(typeof p === 'string' ? p : (p?.name || ''))}" placeholder="e.g. Open-source Markdown editor">
                         </div>
                         <div class="rp-entry-field">
                             <label class="rp-entry-label">Tech Stack</label>
@@ -959,7 +985,7 @@
     $('cv-image-input')?.addEventListener('change', e => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > 2 * 1024 * 1024) { alert('Image too large. Max 2MB.'); return; }
+        if (file.size > 2 * 1024 * 1024) { notify('Image too large. Max 2MB.', 'error'); return; }
         const reader = new FileReader();
         reader.onload = (rev) => { state.profile_image = rev.target.result; renderEditor(); renderTemplatePreview(); };
         reader.readAsDataURL(file);
@@ -1127,7 +1153,7 @@
                 return;
             }
         } catch (err) {
-            alert(err.response?.data?.message || 'Save failed.');
+            notify(err.response?.data?.message || 'Save failed.', 'error');
             saveBtnEl.textContent = 'Save & Download';
             saveBtnEl.style.opacity = '1';
         }
@@ -1366,6 +1392,38 @@
 /* Sheet renders at full natural height; JS translateY handles paging */
 .resume-sheet-preview {
     overflow: visible !important;
+}
+
+.rp-viewport,
+.resume-preview-shell,
+.resume-preview-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.resume-maker-preview,
+.resume-preview-stage,
+.resume-sheet-preview,
+.resume-sheet-preview * {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+@media (max-width: 1024px) {
+    .rp-page { padding: 1rem 0.75rem 4.5rem !important; }
+    .rp-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
+    .rp-preview-panel { position: static !important; top: auto !important; }
+    .rp-viewport { height: auto !important; max-height: 78vh; padding-bottom: 0.75rem; justify-content: flex-start !important; }
+    .rp-input-grid, .rp-entry-row { grid-template-columns: 1fr !important; }
+    .rp-card-body { padding: 1rem !important; }
+    .rp-card-head { padding: 1rem !important; }
+}
+
+@media (max-width: 640px) {
+    .rp-hero, .rp-preview-toolbar { align-items: stretch !important; }
+    .rp-dl-group, .rp-preview-toolbar { flex-wrap: wrap; gap: 0.5rem !important; }
+    .rp-btn, .rp-dl-btn { min-height: 42px; }
+    .resume-preview-stage { margin-left: 0 !important; margin-right: 0 !important; }
 }
 
 /* Page navigation strip */

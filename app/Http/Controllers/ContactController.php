@@ -22,10 +22,14 @@ class ContactController extends Controller
         $to = config('mail.from.address');
 
         if ($to) {
-            Mail::raw(
-                "Name: {$message->name}\nEmail: {$message->email}\nMobile: {$message->mobile}\n\n{$message->message}",
-                fn ($mail) => $mail->to($to)->subject($message->subject ?: 'New contact message')
-            );
+            try {
+                Mail::raw(
+                    "Name: {$message->name}\nEmail: {$message->email}\nMobile: {$message->mobile}\n\n{$message->message}",
+                    fn ($mail) => $mail->to($to)->subject($message->subject ?: 'New contact message')
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return back()->with('status', 'Your message has been sent.');
