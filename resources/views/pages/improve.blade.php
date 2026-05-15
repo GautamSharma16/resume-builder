@@ -540,20 +540,21 @@
 
     .score-row {
         display: grid;
-        grid-template-columns: 220px 1fr;
+        grid-template-columns: 260px 1fr;
         gap: 1.5rem;
         margin-bottom: 0;
     }
     @media (max-width: 900px) { .score-row { grid-template-columns: 1fr; } }
 
     .score-card {
-        background: linear-gradient(145deg, var(--navy), #0f172a);
+        background: linear-gradient(145deg, #07111f, #0f2d3f 48%, #0f766e);
         border-radius: var(--r-2xl);
-        padding: 2rem 1.5rem;
+        padding: 2rem 1.5rem 1.5rem;
         text-align: center;
         color: white;
         position: relative;
         overflow: hidden;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
     }
     .score-card::before {
         content: '';
@@ -563,12 +564,56 @@
     .score-label { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.5; margin-bottom: 0.5rem; }
     .score-number { font-size: 3.5rem; font-weight: 800; font-family: var(--font-display); line-height: 1; }
     .score-denom { font-size: 0.9rem; opacity: 0.4; margin-bottom: 0.8rem; }
+    .score-ring {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 0.85rem;
+        background: conic-gradient(#2dd4bf var(--score, 0%), rgba(255,255,255,0.14) 0);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+        position: relative;
+    }
+    .score-ring::after {
+        content: '';
+        position: absolute;
+        inset: 12px;
+        border-radius: 50%;
+        background: #07111f;
+    }
+    .score-ring > div {
+        position: relative;
+        z-index: 1;
+    }
+    .mini-score-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }
+    .mini-score {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: var(--r-md);
+        padding: 0.7rem;
+        text-align: left;
+    }
+    .mini-score span {
+        display: block;
+        font-size: 0.64rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.64;
+    }
+    .mini-score strong { display: block; margin-top: 0.2rem; font-size: 1.1rem; }
 
     .insight-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 1rem;
     }
+    @media (max-width: 1100px) { .insight-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 640px) { .insight-grid { grid-template-columns: 1fr; } }
 
     .insight-card {
@@ -577,8 +622,8 @@
         border: 1px solid var(--border);
         padding: 1.2rem;
         transition: all 0.3s var(--ease-spring);
-        opacity: 0;
-        transform: translateY(10px);
+        opacity: 1;
+        transform: translateY(0);
         box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
     .insight-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); border-color: rgba(37,99,235,0.15); }
@@ -595,12 +640,56 @@
         border-radius: var(--r-full);
         margin: 0.2rem;
     }
+    .ats-progress {
+        height: 7px;
+        border-radius: 999px;
+        background: #e2e8f0;
+        overflow: hidden;
+        margin-top: 0.6rem;
+    }
+    .ats-progress span {
+        display: block;
+        height: 100%;
+        width: var(--value, 0%);
+        border-radius: inherit;
+        background: linear-gradient(90deg, #2563eb, #14b8a6);
+        transition: width 0.7s var(--ease-out);
+    }
+    .analysis-accordion {
+        margin-top: 1rem;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+    @media (max-width: 760px) { .analysis-accordion { grid-template-columns: 1fr; } }
+    .analysis-accordion details {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--r-xl);
+        padding: 1rem 1.1rem;
+        box-shadow: 0 10px 28px rgba(15,23,42,0.04);
+    }
+    .analysis-accordion summary {
+        cursor: pointer;
+        font-weight: 800;
+        color: var(--navy);
+        list-style: none;
+    }
+    .analysis-accordion summary::-webkit-details-marker { display: none; }
+    .analysis-accordion p {
+        margin-top: 0.65rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.6;
+    }
 
     /* ─── WORKSPACE SECTION ───────────────────────────────────── */
     .workspace-section {
         display: none;
-        padding: 0 5% 4rem;
-        background: var(--white);
+        padding: 2rem 5% 5rem;
+        background:
+            linear-gradient(180deg, #f8fbff 0%, #ffffff 42%),
+            radial-gradient(circle at 10% 0%, rgba(37,99,235,0.08), transparent 35%);
     }
     .workspace-section.active {
         display: block;
@@ -608,8 +697,8 @@
     }
 
     .workspace-section-header {
-        max-width: 800px;
-        margin: 0 0 2.5rem;
+        max-width: 980px;
+        margin: 0 0 2rem;
         padding-top: 1rem;
     }
     .workspace-section-header h2 {
@@ -631,23 +720,25 @@
 
     .workspace-grid {
         display: grid;
-        grid-template-columns: 1fr 1.3fr;
-        gap: 2rem;
+        grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
+        gap: 1.5rem;
+        align-items: start;
     }
     @media (max-width: 900px) { .workspace-grid { grid-template-columns: 1fr; } }
 
     .editor-card, .preview-card {
-        background: white;
+        background: rgba(255,255,255,0.86);
+        backdrop-filter: blur(14px);
         border-radius: var(--r-2xl);
         border: 1px solid var(--border);
         overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        box-shadow: 0 18px 55px rgba(15,23,42,0.08);
     }
 
     .card-header {
         padding: 1rem 1.5rem;
         border-bottom: 1px solid var(--border);
-        background: var(--surface);
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -701,11 +792,12 @@
     .preview-content {
         padding: 1.5rem;
         min-height: 600px;
-        background: white;
+        background: linear-gradient(180deg, #f8fafc, #eef4fb);
         overflow: auto;
         display: flex;
         justify-content: center;
         position: relative;
+        max-width: 100%;
     }
 
     /* ─── AGGRESSIVE PREVIEW VISIBILITY FIX ─── */
@@ -724,6 +816,9 @@
         font-weight: 800 !important;
     }
     .preview-content .tpl-resume {
+        flex: 0 0 794px;
+        width: 794px !important;
+        max-width: 794px !important;
         transform: scale(0.72);
         transform-origin: top center;
         margin-bottom: -300px;
@@ -731,8 +826,22 @@
         border: 1px solid var(--border);
     }
     @media (max-width: 640px) {
-        .preview-content { justify-content: flex-start; padding: 0.75rem; }
-        .preview-content .tpl-resume { transform: scale(0.48); transform-origin: top left; margin-bottom: -560px; }
+        .preview-card { width: 100%; max-width: 100%; }
+        .preview-content {
+            justify-content: center;
+            padding: 0.75rem;
+            min-height: auto;
+            overflow-x: hidden;
+        }
+        .preview-content .tpl-resume {
+            flex: 0 1 100%;
+            width: 100% !important;
+            max-width: 100% !important;
+            transform: none;
+            margin-bottom: 0;
+            padding: 1.5rem !important;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+        }
     }
 
     /* ─── BUTTONS ─────────────────────────────────────────────── */
@@ -746,6 +855,18 @@
         cursor: pointer;
         transition: 0.2s;
         font-family: var(--font-body);
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    .btn-sm svg,
+    .btn-download svg {
+        flex: 0 0 auto;
+        display: block;
     }
     .btn-sm-primary {
         background: var(--blue-light);
@@ -770,7 +891,11 @@
         cursor: pointer;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 0.4rem;
+        min-height: 40px;
+        line-height: 1;
+        white-space: nowrap;
         transition: all 0.3s var(--ease-spring);
         box-shadow: 0 4px 12px rgba(37,99,235,0.25);
         font-family: var(--font-body);
@@ -1175,10 +1300,20 @@
     <div class="score-row">
         <div class="score-card">
             <div class="score-label">ATS Score</div>
-            <div class="score-number" id="atsScore">0</div>
-            <div class="score-denom">/100</div>
+            <div class="score-ring" id="atsScoreRing" style="--score: 0%;">
+                <div>
+                    <div class="score-number" id="atsScore">0</div>
+                    <div class="score-denom">/100</div>
+                </div>
+            </div>
             <span id="gradeBadge" style="background: rgba(255,255,255,0.15); padding: 0.2rem 0.9rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; display: inline-block; margin-bottom: 0.5rem;">—</span>
             <div id="verdictText" style="font-size: 0.72rem; opacity: 0.6; line-height: 1.4;">Waiting for analysis</div>
+            <div class="mini-score-grid">
+                <div class="mini-score"><span>Compatibility</span><strong id="compatScore">0%</strong></div>
+                <div class="mini-score"><span>Readability</span><strong id="readabilityScore">0%</strong></div>
+                <div class="mini-score"><span>Industry</span><strong id="industryMatch">--</strong></div>
+                <div class="mini-score"><span>Skills</span><strong id="skillsMatch">--</strong></div>
+            </div>
         </div>
         <div class="insight-grid" id="insightGrid">
             <div class="insight-card">
@@ -1209,7 +1344,41 @@
                 </div>
                 <ul id="suggestionsList" style="font-size: 0.78rem; padding-left: 1.1rem; color: var(--ink);"></ul>
             </div>
+            <div class="insight-card">
+                <div class="insight-card-title">
+                    <svg width="14" height="14" fill="none" stroke="var(--purple)" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h7"/></svg>
+                    Formatting Issues
+                </div>
+                <ul id="formattingList" style="font-size: 0.78rem; padding-left: 1.1rem; color: var(--ink);"></ul>
+            </div>
+            <div class="insight-card">
+                <div class="insight-card-title">
+                    <svg width="14" height="14" fill="none" stroke="var(--green)" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-6"/></svg>
+                    Recommended Improvements
+                </div>
+                <ul id="improvementsList" style="font-size: 0.78rem; padding-left: 1.1rem; color: var(--ink);"></ul>
+            </div>
         </div>
+    </div>
+    <div class="analysis-accordion">
+        <details open>
+            <summary>ATS Compatibility Score</summary>
+            <div class="ats-progress"><span id="compatProgress" style="--value:0%;"></span></div>
+            <p id="compatibilityText">Upload a resume to see parser compatibility, keyword density, and scan readiness.</p>
+        </details>
+        <details open>
+            <summary>Readability Score</summary>
+            <div class="ats-progress"><span id="readabilityProgress" style="--value:0%;"></span></div>
+            <p id="readabilityText">We check sentence clarity, density, and recruiter-friendly structure.</p>
+        </details>
+        <details open>
+            <summary>Industry Match</summary>
+            <p id="industryText">Industry match appears after AI analysis.</p>
+        </details>
+        <details open>
+            <summary>Skills Match</summary>
+            <p id="skillsText">Skills match appears after AI analysis.</p>
+        </details>
     </div>
 </section>
 
@@ -1414,16 +1583,45 @@
     }
 
     function populateInsights(data) {
-        document.getElementById('atsScore').innerText = data.score || 0;
-        const grade = (data.score >= 80) ? 'Excellent' : (data.score >= 60) ? 'Good' : 'Needs Work';
+        const score = Math.max(0, Math.min(100, Number(data.score || 0)));
+        const compatibility = Math.max(0, Math.min(100, Number(data.ats_compatibility_score || data.compatibility_score || score)));
+        const readability = Math.max(0, Math.min(100, Number(data.readability_score || Math.min(96, Math.max(48, score + 6)))));
+        const industry = data.industry_match || data.industry || ((score >= 75) ? 'Strong' : 'Moderate');
+        const skills = data.skills_match || data.skill_match || ((score >= 75) ? 'High' : 'Needs keywords');
+
+        document.getElementById('atsScore').innerText = score;
+        document.getElementById('atsScoreRing')?.style.setProperty('--score', `${score}%`);
+        document.getElementById('compatScore').innerText = compatibility + '%';
+        document.getElementById('readabilityScore').innerText = readability + '%';
+        document.getElementById('industryMatch').innerText = industry;
+        document.getElementById('skillsMatch').innerText = skills;
+        document.getElementById('compatProgress')?.style.setProperty('--value', `${compatibility}%`);
+        document.getElementById('readabilityProgress')?.style.setProperty('--value', `${readability}%`);
+        document.getElementById('compatibilityText').innerText = `ATS parser compatibility is ${compatibility}%. Improve headings, keywords, and simple formatting to raise scan accuracy.`;
+        document.getElementById('readabilityText').innerText = `Readability is ${readability}%. Recruiters should be able to scan impact, skills, and role fit quickly.`;
+        document.getElementById('industryText').innerText = `Industry match: ${industry}. Align titles, tools, and measurable achievements with the target role.`;
+        document.getElementById('skillsText').innerText = `Skills match: ${skills}. Keep the most relevant hard skills visible in summary, skills, and experience.`;
+
+        const grade = (score >= 80) ? 'Excellent' : (score >= 60) ? 'Good' : 'Needs Work';
         document.getElementById('gradeBadge').innerText = grade;
-        document.getElementById('verdictText').innerText = (data.score >= 70) ? 'Strong ATS compatibility' : 'Improve keywords for higher score';
+        document.getElementById('verdictText').innerText = (score >= 70) ? 'Strong ATS compatibility' : 'Improve keywords for higher score';
         document.getElementById('strengthsList').innerHTML  = (data.strengths || []).map(s => `<li style="margin-bottom:0.3rem;">${s}</li>`).join('');
         document.getElementById('weaknessesList').innerHTML = (data.weaknesses || []).map(w => `<li style="margin-bottom:0.3rem;">${w}</li>`).join('');
         document.getElementById('suggestionsList').innerHTML = (data.suggestions || []).map(s => `<li style="margin-bottom:0.3rem;">${s}</li>`).join('');
         const kwDiv = document.getElementById('keywordsContainer');
         kwDiv.innerHTML = (data.keywords || data.missing_keywords || []).map(k => `<span class="keyword-pill">${k}</span>`).join('');
+        document.getElementById('formattingList').innerHTML = (data.formatting_issues || [
+            'Use standard headings that ATS parsers recognize.',
+            'Avoid dense paragraphs; keep achievements scannable.',
+            'Keep tables, icons, and columns minimal for parser safety.'
+        ]).map(item => `<li style="margin-bottom:0.3rem;">${item}</li>`).join('');
+        document.getElementById('improvementsList').innerHTML = (data.recommended_improvements || data.improvements || [
+            'Add measurable outcomes to recent roles.',
+            'Repeat priority job keywords naturally.',
+            'Move the strongest skills into the top third of the resume.'
+        ]).map(item => `<li style="margin-bottom:0.3rem;">${item}</li>`).join('');
         document.querySelectorAll('.insight-card').forEach((card, idx) => { setTimeout(() => card.classList.add('show'), idx * 80); });
+        document.querySelectorAll('.analysis-accordion details').forEach(panel => panel.open = true);
     }
 
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -1539,7 +1737,10 @@
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const file = fileInput.files[0];
-        if (!file) { statusMsg.innerHTML = '<span class="status-dot"></span> Please select a file.'; return; }
+        if (!file) {
+            statusMsg.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:999px;padding:8px 12px;font-weight:700;">Please upload your resume first.</span>';
+            return;
+        }
         enhanceBtn.disabled = true;
         statusMsg.innerHTML = '<span class="status-dot"></span> AI is processing your resume...';
         await showScanOverlay();
@@ -1594,19 +1795,33 @@
     improveAgainBtn.addEventListener('click', async () => {
         if (!currentAnalysisId) return;
         improveAgainBtn.disabled = true;
+        statusMsg.innerHTML = '<span class="status-dot"></span> Improving your resume again...';
         await showScanOverlay();
         try {
             const response = await fetch('{{ route("resume.improve") }}', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: JSON.stringify({ analysis_id: currentAnalysisId, resume: resumeData })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Cache-Control': 'no-cache',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    analysis_id: currentAnalysisId,
+                    resume: resumeData,
+                    requested_at: Date.now()
+                })
             });
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
             hideScanOverlay();
-            if (data.success) { populateInsights(data); fillEditor(data.improved_resume); statusMsg.innerHTML = '<span class="status-dot"></span> Resume refined!'; }
+            if (!response.ok || !data.success) throw new Error(data.message || 'Improvement failed');
+            currentAnalysisId = data.analysis_id || currentAnalysisId;
+            populateInsights(data);
+            fillEditor(data.improved_resume);
+            statusMsg.innerHTML = '<span class="status-dot"></span> Resume refined!';
         } catch (error) {
             hideScanOverlay();
-            statusMsg.innerHTML = '<span style="color:#ef4444;">Improvement failed</span>';
+            statusMsg.innerHTML = `<span style="color:#ef4444;">${error.message || 'Improvement failed'}</span>`;
         } finally {
             improveAgainBtn.disabled = false;
         }

@@ -266,7 +266,7 @@ class ResumeBuilderController extends Controller
         }
 
         try {
-            $response = Http::timeout(45)
+             $response = Http::timeout(45)
                 ->retry(1, 400)
                 ->post(
                     "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=".urlencode($key),

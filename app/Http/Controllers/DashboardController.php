@@ -11,6 +11,7 @@ use App\Models\Template;
 use App\Models\User;
 use App\Models\VisitorLog;
 use App\Services\TemplateRenderService;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -130,8 +131,8 @@ class DashboardController extends Controller
         $visits = VisitorLog::query()
             ->select('path')
             ->selectRaw('COUNT(*) as visits_count')
-            ->selectRaw('COUNT(DISTINCT COALESCE(session_id, ip_address)) as unique_visitors_count')
-            ->selectRaw('MAX(created_at) as last_visited_at')
+            ->selectRaw($this->uniqueVisitorSql().' as unique_visitors_count')
+            ->selectRaw('MAX(updated_at) as last_visited_at')
             ->groupBy('path')
             ->orderByDesc('visits_count')
             ->paginate(15);
@@ -155,13 +156,24 @@ class DashboardController extends Controller
     {
         return [
             'totalVisitors' => (int) VisitorLog::query()
-                ->selectRaw('COUNT(DISTINCT COALESCE(session_id, ip_address)) as visitor_count')
+                ->selectRaw($this->uniqueVisitorSql().' as visitor_count')
                 ->value('visitor_count'),
             'totalVisits' => VisitorLog::count(),
             'todayVisits' => VisitorLog::whereDate('created_at', today())->count(),
             'todayVisitors' => (int) VisitorLog::whereDate('created_at', today())
-                ->selectRaw('COUNT(DISTINCT COALESCE(session_id, ip_address)) as visitor_count')
+                ->selectRaw($this->uniqueVisitorSql().' as visitor_count')
                 ->value('visitor_count'),
         ];
+    }
+
+    private function uniqueVisitorSql(): string
+    {
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            return "COUNT(DISTINCT COALESCE(session_id, ip_address || '|' || COALESCE(user_agent, '')))";
+        }
+
+        return "COUNT(DISTINCT COALESCE(session_id, CONCAT(ip_address, '|', COALESCE(user_agent, ''))))";
     }
 }

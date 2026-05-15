@@ -34,7 +34,7 @@
     /* Background Orbs */
     .orb { position: absolute; border-radius: 50%; pointer-events: none; filter: blur(80px); opacity: 0.4; z-index: 0; }
     .orb-1 { width: 500px; height: 500px; background: rgba(37, 99, 235, 0.15); top: -100px; right: -100px; }
-    .orb-2 { width: 400px; height: 400px; background: rgba(139, 92, 246, 0.12); bottom: 100px; left: -100px; }
+    .orb-2 { width: 400px; height: 400px; background: rgba(20, 184, 166, 0.1); bottom: 100px; left: -100px; }
 
     .noise {
         position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.015;
@@ -106,12 +106,14 @@
     .legal-main {
         max-width: 1300px;
         margin: 0 auto;
-        padding: 0 5% 120px;
+        padding: 0 5% 60px;
         display: grid;
         grid-template-columns: 280px 1fr;
         gap: 60px;
         position: relative;
         z-index: 2;
+        height: calc(100vh - 130px);
+        min-height: 620px;
     }
 
     /* Sticky Sidebar Navigation */
@@ -172,7 +174,15 @@
         display: flex;
         flex-direction: column;
         gap: 40px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scroll-behavior: smooth;
+        padding-right: 10px;
+        scroll-padding-top: 8px;
     }
+    .legal-content-wrap::-webkit-scrollbar { width: 8px; }
+    .legal-content-wrap::-webkit-scrollbar-track { background: #eef2ff; border-radius: 999px; }
+    .legal-content-wrap::-webkit-scrollbar-thumb { background: #93c5fd; border-radius: 999px; }
 
     .content-section {
         background: var(--white);
@@ -262,8 +272,9 @@
     }
 
     @media (max-width: 1024px) {
-        .legal-main { grid-template-columns: 1fr; }
+        .legal-main { grid-template-columns: 1fr; height: auto; min-height: 0; }
         .legal-sidebar { display: none; }
+        .legal-content-wrap { overflow: visible; padding-right: 0; }
         .legal-hero { grid-template-columns: 1fr; text-align: center; padding-top: 60px; }
         .hero-text p { margin: 0 auto; }
         .content-section { padding: 30px; }
@@ -400,22 +411,30 @@
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
             const target = document.querySelector(this.getAttribute('href'));
-            window.scrollTo({
-                top: target.offsetTop - 120,
-                behavior: 'smooth'
-            });
+            const content = document.querySelector('.legal-content-wrap');
+            if (target && content && window.matchMedia('(min-width: 1025px)').matches) {
+                content.scrollTo({ top: target.offsetTop - content.offsetTop, behavior: 'smooth' });
+            } else if (target) {
+                window.scrollTo({ top: target.offsetTop - 120, behavior: 'smooth' });
+            }
         });
     });
 
     // Active TOC link on scroll
-    window.addEventListener('scroll', () => {
+    const legalScrollRoot = document.querySelector('.legal-content-wrap');
+    const updatePrivacyToc = () => {
         let current = '';
         const sections = document.querySelectorAll('.content-section');
         const navLinks = document.querySelectorAll('.toc-item a');
 
         sections.forEach(section => {
-            const sectionTop = section.offsetTop;
-            if (pageYOffset >= sectionTop - 150) {
+            const sectionTop = window.matchMedia('(min-width: 1025px)').matches
+                ? section.offsetTop - legalScrollRoot.offsetTop
+                : section.offsetTop;
+            const scrollTop = window.matchMedia('(min-width: 1025px)').matches
+                ? legalScrollRoot.scrollTop
+                : pageYOffset;
+            if (scrollTop >= sectionTop - 120) {
                 current = section.getAttribute('id');
             }
         });
@@ -426,7 +445,9 @@
                 link.classList.add('active');
             }
         });
-    });
+    };
+    window.addEventListener('scroll', updatePrivacyToc);
+    legalScrollRoot?.addEventListener('scroll', updatePrivacyToc);
 </script>
 
 @endsection

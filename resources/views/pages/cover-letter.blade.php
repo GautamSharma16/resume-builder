@@ -181,6 +181,7 @@
         margin: 0 auto;
         padding: 4rem 2rem;
         position: relative;
+        overflow-x: hidden;
     }
 
     .pick-header {
@@ -210,7 +211,7 @@
     }
 
     .template-thumb {
-        height: 380px;
+        height: 330px;
         background: var(--surface-2);
         overflow: hidden;
         position: relative;
@@ -222,10 +223,10 @@
     .template-scaler {
         width: 794px;
         min-height: 1123px;
-        transform: scale(0.35);
+        transform: scale(0.30);
         transform-origin: top center;
         pointer-events: none;
-        margin-bottom: -730px;
+        margin-bottom: -785px;
     }
     .template-scaler > div {
         background: white;
@@ -283,14 +284,14 @@
         display: grid;
         grid-template-columns: 1fr;
         gap: 2rem;
-        padding: 2rem;
-        max-width: 1400px;
+        padding: 1.5rem;
+        max-width: 1480px;
         margin: 0 auto;
         width: 100%;
         overflow-x: hidden;
     }
     @media (min-width: 1024px) {
-        .builder-main { grid-template-columns: 400px 1fr; }
+        .builder-main { grid-template-columns: minmax(340px, 420px) minmax(0, 1fr); }
     }
 
     /* Sidebar Cards (same style as homepage feature cards) */
@@ -501,20 +502,22 @@
     }
 
     .preview-canvas {
-        background: #f8fafc; /* Clean, minimal gray background like Image 2 */
-        border-radius: 0;
-        padding: 2.5rem 0.5rem;
+        background: linear-gradient(180deg, #f8fafc, #eef4fb);
+        border-radius: var(--r-xl);
+        padding: 1.75rem 1rem;
         overflow-x: hidden;
         overflow-y: auto;
         display: flex;
         justify-content: center;
         align-items: flex-start;
-        min-height: calc(100vh - 120px);
+        min-height: calc(100vh - 150px);
         width: 100%;
         position: relative;
     }
     .preview-a4 {
-        width: 794px;
+        width: 794px !important;
+        max-width: none !important;
+        flex: 0 0 794px;
         min-height: 1123px;
         background: white;
         box-shadow: 0 10px 40px rgba(0,0,0,0.08);
@@ -522,7 +525,8 @@
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         font-family: 'EB Garamond', serif;
         color: var(--navy-deep);
-        margin-bottom: 80px;
+        margin-bottom: 32px;
+        overflow: hidden;
     }
 
     /* Loading Overlay (same scan loader as Enhance CV) */
@@ -766,9 +770,15 @@
 
     /* Responsive */
     @media (max-width: 1024px) {
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
         .builder-main {
             grid-template-columns: 1fr;
-            padding: 1rem 0.5rem;
+            padding: 0.75rem;
+            width: 100vw;
+            max-width: 100%;
         }
         .field-grid {
             grid-template-columns: 1fr;
@@ -798,9 +808,13 @@
             z-index: 20;
         }
         .preview-canvas {
-            padding: 0.5rem 0; 
+            padding: 0.75rem;
             background: #fff;
-            min-height: 100vh;
+            min-height: calc(100vh - 132px);
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
         .preview-a4 {
             box-shadow: none;
@@ -863,11 +877,17 @@
     }
 
     @media (max-width: 768px) {
-        #step-pick { padding: 2rem 1rem; }
-        .template-grid { gap: 1rem; }
-        .builder-main { padding: 1rem; gap: 1rem; }
+        #step-pick { padding: 1.75rem 0.75rem 6rem; width: 100%; max-width: 100%; }
+        .pick-header { margin-bottom: 1.75rem; }
+        .template-grid { grid-template-columns: 1fr; gap: 1rem; width: 100%; }
+        .template-card { border-radius: 18px; }
+        .template-thumb { height: 290px; }
+        .template-scaler { transform: scale(0.255); margin-bottom: -840px; }
+        .template-footer { padding: 1rem; gap: 0.75rem; }
+        .template-name { font-size: 1rem; }
+        .builder-main { padding: 0.75rem; gap: 1rem; }
         .toolbar-card { flex-direction: column; align-items: stretch; }
-        .preview-canvas { padding: 1rem; }
+        .preview-canvas { padding: 0.75rem; }
         .btn-toolbar { justify-content: center; }
         .modal-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
         .modal-thumb { height: 190px; }
@@ -890,6 +910,15 @@
     #cl-content {
         width: 100%;
         overflow-wrap: break-word;
+    }
+    .tpl-cover p { margin: 0 0 16px; }
+    .tpl-cover main p:last-child { margin-bottom: 0; }
+    .preview-canvas { max-width: 100%; overflow-x: hidden; }
+    .preview-a4, #cl-content, #cl-content * { overflow-wrap: anywhere; word-break: break-word; }
+    @media (max-width: 1024px) {
+        .builder-preview { min-width: 0; }
+        .builder-preview, .builder-sidebar, .toolbar-card, .input-card { max-width: 100%; }
+        .preview-canvas { align-items: flex-start; justify-content: center; }
     }
 </style>
 
@@ -1178,13 +1207,14 @@
         'use strict';
 
         const selectedTemplateIdFromUrl = @json($selectedTemplateId ?? null);
+        const editingCoverLetter = @json($editingCoverLetter ?? null);
         const downloadRequiresPlan = @json(auth()->check() && ! auth()->user()->activeSubscription?->hasDownloadsRemaining());
         const isAuthenticated = @json(auth()->check());
         const tplHtml = @json($templates->mapWithKeys(fn($t) => [$t->id => $t->html]));
         const tplNames = @json($templates->mapWithKeys(fn($t) => [$t->id => $t->name]));
         
         let state = {
-            id: null,
+            id: editingCoverLetter?.id || null,
             templateId: null,
             name: @json($prefill['name']),
             email: @json($prefill['email']),
@@ -1203,6 +1233,28 @@
         const $ = id => document.getElementById(id);
         const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         const nl2br = v => esc(v).replace(/\n/g, '<br>');
+        function notify(message, type = 'info') {
+            let toast = document.getElementById('cl-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'cl-toast';
+                toast.style.cssText = 'position:fixed;right:24px;bottom:24px;z-index:10050;max-width:min(360px,calc(100vw - 32px));border-radius:16px;padding:13px 16px;font-weight:800;font-size:13px;box-shadow:0 18px 45px rgba(15,23,42,.18);transition:opacity .2s ease,transform .2s ease;opacity:0;transform:translateY(10px);';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.style.background = type === 'error' ? '#fef2f2' : '#eff6ff';
+            toast.style.color = type === 'error' ? '#b91c1c' : '#1d4ed8';
+            toast.style.border = type === 'error' ? '1px solid #fecaca' : '1px solid #bfdbfe';
+            requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateY(0)';
+            });
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+            }, 2800);
+        }
         const coverScanStages = [
             { label: 'Reading job details...', step: 0, pct: 25 },
             { label: 'Matching your skills to the role...', step: 1, pct: 62 },
@@ -1258,20 +1310,28 @@
             nextStage();
         }
 
-        function render() {
-            if (!state.templateId) return;
-            let html = tplHtml[state.templateId] || '';
-            const normalizeBodyHtml = (input) => {
-                const raw = String(input || '').trim();
+        const enforceSignatureBreak = (input) => String(input || '')
+            .replace(/(Sincerely,)(?!\s*(?:\n|<br\b|<\/p>))\s*/gi, '$1\n')
+            .replace(/(Sincerely,)(?:&nbsp;|\u00a0)+/gi, '$1\n');
+
+        const normalizeBodyHtml = (input) => {
+                const normalizedInput = enforceSignatureBreak(input);
+                const raw = String(normalizedInput || '').trim();
                 if (!raw) return '';
-                if (/<[a-z][\s\S]*>/i.test(raw)) return raw;
+                if (/<[a-z][\s\S]*>/i.test(raw)) return raw.replace(/(Sincerely,)\s*\n\s*/gi, '$1<br>');
                 return raw
                     .split(/\n{2,}/)
                     .map(p => p.trim())
                     .filter(Boolean)
                     .map(p => `<p>${nl2br(p)}</p>`)
                     .join('');
-            };
+        };
+        const bodyToEditorHtml = (input) => normalizeBodyHtml(input);
+
+        function render() {
+            if (!state.templateId) return;
+            let html = tplHtml[state.templateId] || '';
+            state.body = enforceSignatureBreak(state.body);
             const bodyHtml = normalizeBodyHtml(state.body);
             const tokens = {
                 name: esc(state.name),
@@ -1328,28 +1388,49 @@
         }
 
         function scaleWithWidth(containerW, a4, isMobile) {
-            const padding = isMobile ? 0 : 60; // Zero padding for edge-to-edge on mobile
-            const availW = containerW - padding;
+            const canvas = $('preview-canvas');
+            const canvasStyles = canvas ? window.getComputedStyle(canvas) : null;
+            const horizontalPadding = canvasStyles
+                ? parseFloat(canvasStyles.paddingLeft) + parseFloat(canvasStyles.paddingRight)
+                : 0;
+            const padding = isMobile ? horizontalPadding : Math.max(horizontalPadding, 72);
+            const availW = Math.max(0, containerW - padding);
             const baseWidth = 794;
             
             let scale = availW / baseWidth;
             
             if (!isMobile) {
-                scale = Math.min(scale, 1);
-                if (scale > 0.85) scale = 0.85;
+                scale = Math.min(scale, 0.92);
+                if (scale > 0.88) scale = 0.88;
             } else {
-                scale = (containerW / baseWidth); // Perfectly fill width
+                scale = Math.min(1, containerW / baseWidth);
             }
 
             a4.style.transform = `scale(${scale})`;
             a4.style.transformOrigin = 'top center';
-            // Important: adjust the height of the container to match scaled height
-            a4.style.marginBottom = `-${1123 * (1 - scale)}px`;
+            a4.style.setProperty('width', `${baseWidth}px`, 'important');
+            a4.style.setProperty('max-width', 'none', 'important');
+            a4.style.minHeight = '1123px';
+            a4.style.height = '';
+
+            const rawHeight = Math.max(1123, a4.scrollHeight);
+            a4.style.marginBottom = `-${rawHeight * (1 - scale)}px`;
         }
 
         // Deep-link support: /cover-letter?template_id=123
         document.addEventListener('DOMContentLoaded', () => {
-            if (selectedTemplateIdFromUrl) {
+            if (editingCoverLetter) {
+                Object.assign(state, editingCoverLetter.data || {});
+                state.id = editingCoverLetter.id;
+                state.templateId = String(editingCoverLetter.template_id || state.template_id || state.templateId || selectedTemplateIdFromUrl || '');
+                state.body = enforceSignatureBreak(state.body);
+                const name = tplNames[state.templateId] || '';
+                if (name && $('active-tmpl-name')) $('active-tmpl-name').textContent = name;
+                syncStateToFields();
+                setActiveModalTemplate(state.templateId);
+                switchStep('build');
+                render();
+            } else if (selectedTemplateIdFromUrl) {
                 state.templateId = String(selectedTemplateIdFromUrl);
                 const name = tplNames[state.templateId] || '';
                 if (name && $('active-tmpl-name')) $('active-tmpl-name').textContent = name;
@@ -1417,7 +1498,7 @@
             $('cl-skills').value = state.skills;
             $('cl-description').value = state.job_description;
             if (quill) {
-                quill.root.innerHTML = state.body;
+                quill.root.innerHTML = bodyToEditorHtml(state.body);
             } else {
                 $('cl-body').value = state.body;
             }
@@ -1453,12 +1534,12 @@
             });
 
             quill.on('text-change', () => {
-                state.body = quill.root.innerHTML;
+                state.body = enforceSignatureBreak(quill.root.innerHTML);
                 render();
             });
 
             // Initial content
-            quill.root.innerHTML = state.body;
+            quill.root.innerHTML = bodyToEditorHtml(state.body);
         }
 
         // Mobile Toggles
@@ -1518,7 +1599,7 @@
 
         async function triggerGeneration(isFirst) {
             if (!state.templateId) {
-                alert('Please select a template first.');
+                notify('Please select a template first.', 'error');
                 switchStep('pick');
                 return;
             }
@@ -1569,10 +1650,10 @@
                     switchStep('build');
                     render();
                 } else {
-                    alert(data.message || 'Generation failed.');
+                    notify(data.message || 'Generation failed.', 'error');
                 }
             } catch (err) {
-                alert('Connection error.');
+                notify('Connection error.', 'error');
             } finally {
                 hideCoverScanOverlay();
             }
@@ -1599,15 +1680,15 @@
                     if (isNew && data.cover_letter_id) {
                         state.id = data.cover_letter_id;
                     }
-                    alert('Saved successfully!');
+                    notify('Saved successfully.');
                 } else {
-                    alert('Save failed.');
+                    notify('Save failed.', 'error');
                 }
-            } catch (err) { alert('Save failed.'); }
+            } catch (err) { notify('Save failed.', 'error'); }
         });
 
         $('download-btn').addEventListener('click', () => {
-            if (!state.id) { alert('Please generate the letter first.'); return; }
+            if (!state.id) { notify('Please generate the letter first.', 'error'); return; }
             if (isAuthenticated && downloadRequiresPlan) { window.openPlanDownloadModal?.(); return; }
 
             const doDownload = async (format) => {

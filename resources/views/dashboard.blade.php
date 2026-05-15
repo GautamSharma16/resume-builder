@@ -337,7 +337,6 @@
     .doc-overlay {
         position: absolute; inset: 0;
         background: rgba(11,18,33,0.55);
-        backdrop-filter: blur(4px);
         display: flex; flex-direction: column;
         align-items: center; justify-content: center;
         gap: 10px;
@@ -360,6 +359,9 @@
 
     .doc-meta-row {
         padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
     }
     .doc-title {
         font-size: 0.88rem; font-weight: 700; color: var(--navy);
@@ -370,37 +372,51 @@
     .doc-rename-btn {
         font-size: 0.7rem; color: var(--blue); font-weight: 700;
         background: none; border: none; cursor: pointer; padding: 0;
+        width: fit-content;
         transition: color 0.2s;
     }
     .doc-rename-btn:hover { color: var(--blue-dark); }
     .doc-rename-form {
         display: none;
-        margin-top: 6px;
-        gap: 6px;
+        margin-top: 4px;
+        gap: 7px;
         align-items: center;
+        width: 100%;
     }
-    .doc-rename-form.active { display: flex; }
+    .doc-rename-form.active { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; }
     .doc-rename-input {
         flex: 1;
         min-width: 0;
         border: 1px solid rgba(37,99,235,0.22);
-        border-radius: 8px;
-        padding: 6px 8px;
+        border-radius: 10px;
+        padding: 7px 9px;
         font-size: 12px;
+        font-weight: 700;
         color: var(--navy);
         background: #fff;
         outline: none;
+        box-shadow: 0 6px 16px rgba(15,23,42,0.05);
     }
     .doc-rename-save, .doc-rename-cancel {
         border: 0;
-        border-radius: 8px;
-        padding: 6px 9px;
+        border-radius: 10px;
+        min-height: 32px;
+        padding: 0 10px;
         font-size: 11px;
         font-weight: 700;
         cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
     .doc-rename-save { background: var(--blue); color: #fff; }
     .doc-rename-cancel { background: #eef2ff; color: var(--muted); }
+    .doc-card.is-renaming .doc-title,
+    .doc-card.is-renaming .doc-date { display: none; }
+    @media (max-width: 520px) {
+        .doc-rename-form.active { grid-template-columns: 1fr 1fr; }
+        .doc-rename-input { grid-column: 1 / -1; }
+    }
 
     /* Empty state */
     .empty-state {
@@ -599,25 +615,6 @@
                 <p class="sub">Your career tools are ready for action.</p>
             </div>
 
-            <div class="score-pill">
-                <div class="score-ring">
-                    <svg viewBox="0 0 58 58" width="58" height="58">
-                        <defs>
-                            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stop-color="#2563eb"/>
-                                <stop offset="100%" stop-color="#8b5cf6"/>
-                            </linearGradient>
-                        </defs>
-                        <circle class="ring-track" cx="29" cy="29" r="26"/>
-                        <circle class="ring-fill" cx="29" cy="29" r="26"/>
-                    </svg>
-                    <div class="ring-val">85</div>
-                </div>
-                <div class="score-info">
-                    <div class="score-label">Resume Strength</div>
-                    <div class="score-status">Great Performance ✦</div>
-                </div>
-            </div>
         </div>
 
         {{-- QUICK ACTIONS --}}
@@ -919,6 +916,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const input = form?.querySelector('.doc-rename-input');
             if (!row || !form || !input) return;
             form.classList.add('active');
+            row.closest('.doc-card')?.classList.add('is-renaming');
             btn.style.display = 'none';
             input.focus();
             input.select();
@@ -932,10 +930,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const renameBtn = row?.querySelector('.js-rename-resume, .js-rename-letter');
             if (!form || !renameBtn) return;
             form.classList.remove('active');
+            row?.closest('.doc-card')?.classList.remove('is-renaming');
             renameBtn.style.display = '';
+        });
+    });
+
+    document.querySelectorAll('.doc-rename-input').forEach(input => {
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                input.closest('.js-rename-form')?.querySelector('.js-rename-cancel')?.click();
+            }
         });
     });
 });
 </script>
 </x-app-layout>
-

@@ -12,23 +12,22 @@
             <a href="{{ route('admin.dashboard') }}" class="mt-4 inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800 sm:mt-0">Back to dashboard</a>
         </div>
 
-        <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                <p class="text-sm font-medium text-gray-600">Total visits</p>
-                <p class="mt-3 text-3xl font-bold text-gray-900">{{ number_format($totalVisits ?? 0) }}</p>
+        <div class="mt-8 grid gap-4 md:grid-cols-2">
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Total Visitors</p>
+                <p class="mt-4 text-4xl font-black text-gray-950">{{ number_format($totalVisitors ?? 0) }}</p>
+                <p class="mt-3 text-sm leading-6 text-gray-500">Overall unique visitors, counted once per visitor identity across all tracked pages.</p>
             </div>
-            <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                <p class="text-sm font-medium text-gray-600">Unique visitors</p>
-                <p class="mt-3 text-3xl font-bold text-gray-900">{{ number_format($totalVisitors ?? 0) }}</p>
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Today Visitors</p>
+                <p class="mt-4 text-4xl font-black text-gray-950">{{ number_format($todayVisitors ?? 0) }}</p>
+                <p class="mt-3 text-sm leading-6 text-gray-500">Unique visitors seen today only. Refreshes, quick repeats, assets and API calls are ignored.</p>
             </div>
-            <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                <p class="text-sm font-medium text-gray-600">Today visits</p>
-                <p class="mt-3 text-3xl font-bold text-gray-900">{{ number_format($todayVisits ?? 0) }}</p>
-            </div>
-            <div class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                <p class="text-sm font-medium text-gray-600">Today visitors</p>
-                <p class="mt-3 text-3xl font-bold text-gray-900">{{ number_format($todayVisitors ?? 0) }}</p>
-            </div>
+        </div>
+
+        <div class="mt-5 rounded-2xl border border-blue-100 bg-blue-50/70 p-5 text-sm leading-6 text-slate-600">
+            <span class="font-semibold text-slate-900">How visitor counting works:</span>
+            Cvbliss uses a persistent visitor cookie when available, with IP and browser/device details as fallback context. A visitor is counted once for a page per day, so refreshes and repeated same-session requests update the existing log instead of inflating totals.
         </div>
 
         <div class="mt-8 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">

@@ -1,4 +1,4 @@
-const puppeteer = require('D:/resume-builder/node_modules/puppeteer');
+const puppeteer = require('C:/xampp/htdocs/resume-build/node_modules/puppeteer');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');

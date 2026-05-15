@@ -21,6 +21,9 @@
         Transactions
     </a>
     @endif
+    <a href="{{ route('admin.leads.index') }}" class="group flex items-center px-4 py-3 rounded-xl font-medium transition-all duration-200 @if(request()->routeIs('admin.leads.*')) bg-blue-600 text-white shadow-lg shadow-blue-200 @else text-slate-600 hover:bg-slate-50 hover:text-blue-600 @endif">
+        Leads
+    </a>
     @if(Auth::user()->hasPermission('pricing'))
     <a href="{{ route('admin.payments') }}" class="group flex items-center px-4 py-3 rounded-xl font-medium transition-all duration-200 @if(request()->routeIs('admin.payments')) bg-blue-600 text-white shadow-lg shadow-blue-200 @else text-slate-600 hover:bg-slate-50 hover:text-blue-600 @endif">
        

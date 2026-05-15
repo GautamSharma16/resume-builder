@@ -8,6 +8,7 @@ use App\Models\Template;
 use App\Services\PlanActivationService;
 use App\Services\PdfConversionService;
 use App\Services\TemplateRenderService;
+use App\Support\GeminiHttp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Arr;
@@ -23,25 +24,38 @@ class CoverLetterController extends Controller
         $selectedTemplateId = $selectedTemplateId && $templates->contains('id', (int) $selectedTemplateId)
             ? (int) $selectedTemplateId
             : null;
-        
+        $editingLetter = null;
+
         $user = auth()->user();
         $prefill = $sample;
 
         if ($user) {
+            if ($request->filled('edit')) {
+                $editingLetter = CoverLetter::where('id', $request->integer('edit'))
+                    ->where('user_id', $user->id)
+                    ->firstOrFail();
+
+                $prefill = array_merge($sample, $editingLetter->data ?? []);
+                $selectedTemplateId = $editingLetter->template_id
+                    ?: (int) Arr::get($prefill, 'template_id')
+                    ?: (int) Arr::get($prefill, 'templateId')
+                    ?: $selectedTemplateId;
+            }
+
             $latestResume = \App\Models\Resume::where('user_id', $user->id)->latest()->first();
-            if ($latestResume && !empty($latestResume->data)) {
+            if (!$editingLetter && $latestResume && !empty($latestResume->data)) {
                 $rd = $latestResume->data;
                 $prefill = [
-                    'name'            => $this->firstFilled(Arr::get($rd, 'name'), $sample['name']),
-                    'email'           => $this->firstFilled(Arr::get($rd, 'email'), $sample['email']),
-                    'mobile'          => $this->firstFilled(Arr::get($rd, 'mobile'), Arr::get($rd, 'contact'), $sample['mobile']),
-                    'location'        => $this->firstFilled(Arr::get($rd, 'location'), Arr::get($rd, 'address'), $sample['location']),
-                    'company'         => $sample['company'],
-                    'company_name'    => $sample['company_name'],
-                    'job_role'        => $this->firstFilled(Arr::get($rd, 'job_title'), $sample['job_role']),
-                    'skills'          => $this->firstFilled(Arr::get($rd, 'skills'), $sample['skills']),
+                    'name' => $this->firstFilled(Arr::get($rd, 'name'), $sample['name']),
+                    'email' => $this->firstFilled(Arr::get($rd, 'email'), $sample['email']),
+                    'mobile' => $this->firstFilled(Arr::get($rd, 'mobile'), Arr::get($rd, 'contact'), $sample['mobile']),
+                    'location' => $this->firstFilled(Arr::get($rd, 'location'), Arr::get($rd, 'address'), $sample['location']),
+                    'company' => $sample['company'],
+                    'company_name' => $sample['company_name'],
+                    'job_role' => $this->firstFilled(Arr::get($rd, 'job_title'), $sample['job_role']),
+                    'skills' => $this->firstFilled(Arr::get($rd, 'skills'), $sample['skills']),
                     'job_description' => $sample['job_description'],
-                    'body'            => $sample['body'],
+                    'body' => $sample['body'],
                 ];
             }
         }
@@ -49,11 +63,16 @@ class CoverLetterController extends Controller
         return view('pages.cover-letter', [
             'resumes' => Resume::where('user_id', auth()->id())->latest()->get(),
             'templates' => $templates,
-            'renderedTemplates' => $templates->mapWithKeys(fn (Template $template) => [
+            'renderedTemplates' => $templates->mapWithKeys(fn(Template $template) => [
                 $template->id => (string) $renderer->renderCoverLetter($template, $sample),
             ]),
             'prefill' => $prefill,
             'selectedTemplateId' => $selectedTemplateId,
+            'editingCoverLetter' => $editingLetter ? [
+                'id' => $editingLetter->id,
+                'template_id' => $editingLetter->template_id,
+                'data' => $editingLetter->data ?? [],
+            ] : null,
         ]);
     }
 
@@ -111,7 +130,7 @@ class CoverLetterController extends Controller
                 // If regenerating without a new file, but the previous one had a resume, we should ideally have stored the text
                 // For now, if we don't have the text, the AI will use the other pre-filled fields.
             }
-            
+
             $result = $this->generateWithGemini($name, $jobRole, $company, $validated['job_description'] ?? '', $resumeContext, $validated['skills'] ?? '');
 
             $usedFallback = false;
@@ -128,6 +147,7 @@ class CoverLetterController extends Controller
             } else {
                 $body = Arr::get($result, 'body');
             }
+            $body = $this->normalizeSignatureBreak((string) $body);
 
             if ($coverLetter) {
                 $coverLetter->update([
@@ -187,12 +207,12 @@ class CoverLetterController extends Controller
     private function extractResumeContact(string $text): array
     {
         $lines = collect(preg_split('/\R+/', $text))
-            ->map(fn ($line) => trim($line))
+            ->map(fn($line) => trim($line))
             ->filter()
             ->values();
 
         $name = $lines
-            ->first(fn ($line) => ! str_contains($line, '@') && ! preg_match('/\+?\d[\d\s().-]{7,}/', $line) && ! preg_match('/\b(resume|curriculum vitae|cv)\b/i', $line)) ?: '';
+            ->first(fn($line) => !str_contains($line, '@') && !preg_match('/\+?\d[\d\s().-]{7,}/', $line) && !preg_match('/\b(resume|curriculum vitae|cv)\b/i', $line)) ?: '';
         $email = '';
         $mobile = '';
         $location = '';
@@ -209,7 +229,8 @@ class CoverLetterController extends Controller
 
         $locationLine = $lines->first(function ($line) use ($locationKeywords) {
             $line = trim($line);
-            if ($line === '') return false;
+            if ($line === '')
+                return false;
 
             // Skip lines that look like email, mobile, or links
             if (str_contains($line, '@') || preg_match('/\+?\d[\d\s().-]{7,}/', $line) || preg_match('/https?:\/\//i', $line)) {
@@ -218,7 +239,7 @@ class CoverLetterController extends Controller
 
             // Exclude common tech/skill keywords that often appear in comma-separated lists
             $skillKeywords = '\b(?:React|JavaScript|HTML|CSS|PHP|Laravel|Python|Java|SQL|Node|Express|Git|AWS|Cloud|Agile|Scrum|Developer|Engineer|Consultant|Frontend|Backend|Fullstack|UI|UX|Designer|Manager|Lead|Senior|Junior)\b';
-            if (preg_match('/'.$skillKeywords.'/i', $line)) {
+            if (preg_match('/' . $skillKeywords . '/i', $line)) {
                 return false;
             }
 
@@ -228,7 +249,7 @@ class CoverLetterController extends Controller
             }
 
             // Keyword based matches (must contain a known city/country)
-            if (preg_match('/'.$locationKeywords.'/i', $line)) {
+            if (preg_match('/' . $locationKeywords . '/i', $line)) {
                 return true;
             }
 
@@ -274,8 +295,8 @@ class CoverLetterController extends Controller
 
         return match ($extension) {
             'pdf' => class_exists(\Smalot\PdfParser\Parser::class)
-                ? (new \Smalot\PdfParser\Parser())->parseFile($path)->getText()
-                : '',
+            ? (new \Smalot\PdfParser\Parser())->parseFile($path)->getText()
+            : '',
             'docx' => $this->extractTextFromDocx($path),
             'doc' => $this->extractTextFromDoc($path),
             default => '',
@@ -328,7 +349,7 @@ class CoverLetterController extends Controller
             'template_id' => $validated['template_id'] ?? null,
             'job_role' => Arr::get($validated['letter'], 'job_role'),
             'company' => Arr::get($validated['letter'], 'company'),
-            'data' => $validated['letter'],
+            'data' => $this->normalizeLetterPayload($validated['letter']),
         ]);
 
         return response()->json(['success' => true, 'cover_letter_id' => $letter->id]);
@@ -342,7 +363,7 @@ class CoverLetterController extends Controller
             'template_id' => ['nullable', 'exists:templates,id'],
         ]);
 
-        $letterData = $validated['letter'];
+        $letterData = $this->normalizeLetterPayload($validated['letter']);
         $templateId = $validated['template_id']
             ?? Arr::get($letterData, 'template_id')
             ?? Arr::get($letterData, 'templateId')
@@ -385,15 +406,15 @@ class CoverLetterController extends Controller
     {
         $this->authorizeLetter($coverLetter);
 
-        if (! $request->user()) {
+        if (!$request->user()) {
             return redirect()->guest(route('login'));
         }
 
-        if (! $coverLetter->is_paid && ! $request->user()->activeSubscription?->hasDownloadsRemaining()) {
+        if (!$coverLetter->is_paid && !$request->user()->activeSubscription?->hasDownloadsRemaining()) {
             return redirect()->route('plans')->with('status', 'Choose a plan to unlock downloads.');
         }
 
-        if (! $coverLetter->is_paid) {
+        if (!$coverLetter->is_paid) {
             app(PlanActivationService::class)->consumeDownload($request->user());
             $coverLetter->forceFill(['is_paid' => true])->save();
         }
@@ -401,7 +422,7 @@ class CoverLetterController extends Controller
         $html = $coverLetter->template
             ? view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderCoverLetter($coverLetter->template, $coverLetter->data)])->render()
             : view('cover-letter.pdf', ['letter' => $coverLetter->data])->render();
-        $filename = 'cover-letter-'.$coverLetter->id;
+        $filename = 'cover-letter-' . $coverLetter->id;
 
         if ($format === 'doc') {
             return response($html, 200, ['Content-Type' => 'application/msword', 'Content-Disposition' => "attachment; filename={$filename}.doc"]);
@@ -424,23 +445,23 @@ class CoverLetterController extends Controller
         $key = config('services.gemini.key');
         $model = config('services.gemini.model', 'gemini-flash-latest');
 
-        if (! $key) {
+        if (!$key) {
             return [
                 'success' => false,
                 'message' => 'Gemini API key not configured.',
-                'body' => "Dear Hiring Manager,\n\nI am excited to apply for the {$role} role".($company ? " at {$company}" : '').". My background in {$skills} aligns well with the requirements, and I would welcome the opportunity to contribute measurable value.\n\nSincerely,\n{$name}"
+                'body' => "Dear Hiring Manager,\n\nI am excited to apply for the {$role} role" . ($company ? " at {$company}" : '') . ". My background in {$skills} aligns well with the requirements, and I would welcome the opportunity to contribute measurable value.\n\nSincerely,\n{$name}"
             ];
         }
-        
-        $prompt = "Write a concise professional cover letter. Return only JSON: {\"body\":\"...\"}.\nName: {$name}\nRole: {$role}\nCompany: {$company}\nSkills: {$skills}\nJob Description: {$description}\nResume JSON: ".json_encode($resume);
-        
+
+        $prompt = "Write a concise professional cover letter. Return only JSON: {\"body\":\"...\"}.\nName: {$name}\nRole: {$role}\nCompany: {$company}\nSkills: {$skills}\nJob Description: {$description}\nResume JSON: " . json_encode($resume);
+
         try {
             $response = Http::timeout(60)
                 ->retry(2, 500)
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=".urlencode($key), [
-                'contents' => [['parts' => [['text' => $prompt]]]],
-                'generationConfig' => ['temperature' => 0.35, 'maxOutputTokens' => 1500],
-            ]);
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($key), [
+                    'contents' => [['parts' => [['text' => $prompt]]]],
+                    'generationConfig' => ['temperature' => 0.35, 'maxOutputTokens' => 1500],
+                ]);
 
             if (!$response->successful()) {
                 if ($response->status() === 429) {
@@ -453,7 +474,7 @@ class CoverLetterController extends Controller
             }
 
             $text = Arr::get($response->json(), 'candidates.0.content.parts.0.text', '');
-            
+
             if (!$text) {
                 return ['success' => false, 'message' => 'Empty response from AI.'];
             }
@@ -466,7 +487,7 @@ class CoverLetterController extends Controller
 
             $body = $json['body'];
             if (is_array($body)) {
-                $body = implode("\n\n", array_map(function($val) {
+                $body = implode("\n\n", array_map(function ($val) {
                     return is_array($val) ? json_encode($val) : (string) $val;
                 }, $body));
             }
@@ -513,9 +534,26 @@ class CoverLetterController extends Controller
         return "{$salutation}\n\n{$paragraph1}\n\n{$paragraph2}\n\n{$paragraph3}\n\nSincerely,\n{$closingName}";
     }
 
+    private function normalizeLetterPayload(array $letter): array
+    {
+        if (array_key_exists('body', $letter)) {
+            $letter['body'] = $this->normalizeSignatureBreak((string) $letter['body']);
+        }
+
+        return $letter;
+    }
+
+    private function normalizeSignatureBreak(string $body): string
+    {
+        $body = preg_replace('/(Sincerely,)(?!\s*(?:\R|<br\b|<\/p>))\s*/i', "$1\n", $body) ?? $body;
+        $body = preg_replace('/(Sincerely,)(?:&nbsp;|\x{00a0})+/iu', "$1\n", $body) ?? $body;
+
+        return $body;
+    }
+
     private function decodeGeminiJson(string $text): array
     {
-        if (! $text) {
+        if (!$text) {
             return [];
         }
 

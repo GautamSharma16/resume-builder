@@ -4,6 +4,28 @@
 @php
     $requiresPlanForDownload = auth()->check() && ! auth()->user()->activeSubscription?->hasDownloadsRemaining();
 @endphp
+<style>
+    .resume-list-card { transition: transform 260ms ease, box-shadow 260ms ease, border-color 260ms ease; }
+    .resume-list-card:hover { transform: translateY(-6px); }
+    .resume-title-edit { display: none; grid-template-columns: minmax(0, 1fr) auto auto; gap: 0.5rem; align-items: center; }
+    .resume-title-edit.is-active { display: grid; }
+    .resume-title-input {
+        min-width: 0; height: 2.5rem; border-radius: 0.9rem; border: 1px solid rgba(15, 23, 42, 0.12);
+        background: rgba(255, 255, 255, 0.92); padding: 0 0.85rem; font-size: 0.95rem; font-weight: 700;
+        color: #0f172a; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06); outline: none;
+        transition: border-color 200ms ease, box-shadow 200ms ease;
+    }
+    .resume-title-input:focus { border-color: rgba(37, 99, 235, 0.55); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12), 0 10px 28px rgba(15, 23, 42, 0.08); }
+    .resume-edit-action {
+        height: 2.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 0.9rem;
+        padding: 0 0.85rem; font-size: 0.78rem; font-weight: 800; transition: transform 180ms ease;
+    }
+    .resume-edit-action:hover { transform: translateY(-1px); }
+    @media (max-width: 480px) {
+        .resume-title-edit { grid-template-columns: 1fr 1fr; }
+        .resume-title-input { grid-column: 1 / -1; }
+    }
+</style>
 <div class="min-h-screen bg-slate-50 relative pb-20">
     <!-- Premium background elements -->
     <div class="absolute inset-0 z-0 overflow-hidden pointer-events-none">
@@ -27,7 +49,7 @@
         <!-- Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             @forelse($resumes as $resume)
-                <div class="group bg-white/70 backdrop-blur-xl border border-white/60 rounded-3xl shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-300 overflow-hidden flex flex-col">
+                <div class="resume-list-card group bg-white/70 backdrop-blur-xl border border-white/60 rounded-3xl shadow-sm hover:shadow-xl hover:border-blue-100 overflow-hidden flex flex-col">
                     <!-- Preview Area -->
                     <div class="relative w-full overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100/50 flex justify-center pt-8 border-b border-slate-100/80 transition-colors group-hover:from-blue-50/50 group-hover:to-slate-50" style="height: 340px;">
                         @if(!empty($previews[$resume->id]))
@@ -42,8 +64,10 @@
                         @endif
                         
                         <!-- Overlay actions on hover -->
-                        <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 backdrop-blur-[2px]">
-                           
+                        <div class="absolute inset-0 bg-slate-900/35 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+                            <a href="{{ route('resume.preview', $resume) }}" class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white text-slate-900 hover:scale-110 transition-transform shadow-lg" title="Preview Full Screen">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            </a>
                             <a href="{{ route('resume.edit', $resume) }}" class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white hover:scale-110 transition-transform shadow-lg shadow-blue-600/30" title="Edit Resume">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                             </a>
@@ -52,8 +76,17 @@
 
                     <!-- Card Body -->
                     <div class="p-6 flex flex-col flex-grow relative bg-white/40">
-                        <div class="flex justify-between items-start mb-1">
-                            <h3 class="text-xl font-bold text-slate-900 truncate pr-4" style="font-family: 'Instrument Sans', sans-serif;">{{ $resume->title }}</h3>
+                        <div class="flex justify-between items-start gap-3 mb-1">
+                            <div class="min-w-0 flex-1">
+                                <h3 class="js-title-display text-xl font-bold text-slate-900 truncate pr-4" style="font-family: 'Instrument Sans', sans-serif;">{{ $resume->title }}</h3>
+                                <form method="POST" action="{{ route('resume.rename', $resume) }}" class="resume-title-edit js-inline-rename-form">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="text" name="title" class="resume-title-input js-inline-title-input" value="{{ $resume->title }}" maxlength="160" required>
+                                    <button type="submit" class="resume-edit-action bg-blue-600 text-white shadow-sm shadow-blue-600/20">Save</button>
+                                    <button type="button" class="resume-edit-action js-inline-rename-cancel border border-slate-200 bg-white text-slate-600">Cancel</button>
+                                </form>
+                            </div>
                             <div class="flex-shrink-0 bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
                                 {{ $resume->template->name ?? 'Standard' }}
                             </div>
@@ -83,7 +116,7 @@
                                 </div>
                             </div>
                             
-                            <button type="button" class="js-rename-resume w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm" data-id="{{ $resume->id }}" data-title="{{ $resume->title }}">
+                            <button type="button" class="js-rename-resume w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm">
                                 <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                 Rename
                             </button>
@@ -104,32 +137,49 @@
             @endforelse
         </div>
 
-        <!-- Hidden Forms -->
-        <form id="resume-rename-form" method="POST" class="hidden">
-            @csrf
-            @method('PATCH')
-            <input type="hidden" name="title" id="resume-rename-title">
-        </form>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('resume-rename-form');
-    const titleInput = document.getElementById('resume-rename-title');
-    if (!form || !titleInput) return;
-
     document.querySelectorAll('.js-rename-resume').forEach((btn) => {
         btn.addEventListener('click', () => {
-            const current = btn.dataset.title || '';
-            const next = window.prompt('Rename resume:', current);
-            if (next === null) return;
-            const trimmed = next.trim();
-            if (!trimmed) return;
+            const card = btn.closest('.resume-list-card');
+            const title = card?.querySelector('.js-title-display');
+            const form = card?.querySelector('.js-inline-rename-form');
+            const input = card?.querySelector('.js-inline-title-input');
+            if (!card || !title || !form || !input) return;
+            title.classList.add('hidden');
+            form.classList.add('is-active');
+            btn.classList.add('hidden');
+            requestAnimationFrame(() => {
+                input.focus();
+                input.select();
+            });
+        });
+    });
 
-            form.action = `/resume/${btn.dataset.id}/rename`;
-            titleInput.value = trimmed;
-            form.submit();
+    document.querySelectorAll('.js-inline-rename-cancel').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const card = btn.closest('.resume-list-card');
+            const title = card?.querySelector('.js-title-display');
+            const form = card?.querySelector('.js-inline-rename-form');
+            const input = card?.querySelector('.js-inline-title-input');
+            const rename = card?.querySelector('.js-rename-resume');
+            if (!card || !title || !form || !input || !rename) return;
+            input.value = title.textContent.trim();
+            title.classList.remove('hidden');
+            form.classList.remove('is-active');
+            rename.classList.remove('hidden');
+        });
+    });
+
+    document.querySelectorAll('.js-inline-title-input').forEach((input) => {
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                input.closest('.resume-list-card')?.querySelector('.js-inline-rename-cancel')?.click();
+            }
         });
     });
 });
