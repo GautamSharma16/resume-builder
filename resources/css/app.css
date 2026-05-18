@@ -16,7 +16,7 @@
     }
 
     .resume-preview-stage {
-        min-width: 794px;
+        min-width: 0;
         display: flex;
         justify-content: center;
 

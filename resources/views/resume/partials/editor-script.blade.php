@@ -489,9 +489,9 @@
         const preview  = $('cv-preview');
         if (!viewport || !preview) return;
 
-        const isMobile       = window.innerWidth <= 1024;
         const containerWidth = viewport.clientWidth || viewport.offsetWidth;
         if (containerWidth === 0) { setTimeout(updatePreviewScale, 150); return; }
+        const isCompactPreview = containerWidth <= 900;
 
         /* Loading spinner state — show at natural size */
         if (preview.querySelector('.resume-preview--loading')) {
@@ -503,20 +503,19 @@
         const stage = preview.querySelector('.resume-preview-stage');
         const sheet = preview.querySelector('.resume-sheet-preview');
 
-        /* Scale: fit A4_W into available container width */
-        let scale;
-        if (isMobile) {
-            const gutter = 16;
-            scale = Math.min(1, Math.max(0.28, (containerWidth - gutter) / A4_W));
-        } else {
-            const padding = 48;
-            scale = Math.max(0.62, Math.min(0.96, (containerWidth - padding) / A4_W));
-        }
+        /* Scale only when the A4 page cannot fit in the actual scroll viewport. */
+        const viewportStyles = window.getComputedStyle(viewport);
+        const horizontalPadding =
+            (parseFloat(viewportStyles.paddingLeft) || 0) +
+            (parseFloat(viewportStyles.paddingRight) || 0);
+        const safeGutter = isCompactPreview ? 8 : 12;
+        const availableWidth = Math.max(280, containerWidth - horizontalPadding - safeGutter);
+        const scale = Math.min(1, Math.max(0.28, availableWidth / A4_W));
 
         /* Fallback when no .resume-sheet-preview exists */
         if (!sheet) {
             preview.style.transformOrigin = 'top left';
-            preview.style.width           = A4_W + 'px';
+            preview.style.width           = Math.ceil(A4_W * scale) + 'px';
             preview.style.transform       = `scale(${scale})`;
             preview.style.margin          = '0 auto';
             preview.style.overflow        = 'hidden';
@@ -546,6 +545,7 @@
 
         /* ── Style inner sheet ── */
         sheet.style.width           = A4_W + 'px';
+        sheet.style.maxWidth        = 'none';
         sheet.style.minHeight       = rawH + 'px';
         sheet.style.boxSizing       = 'border-box';
         sheet.style.transformOrigin = 'top left';
@@ -556,28 +556,35 @@
         /* ── Style stage — clips to exactly one A4 page ── */
         if (stage) {
             stage.style.width      = scaledW + 'px';
+            stage.style.minWidth   = '0';
             stage.style.height     = scaledH + 'px';
             stage.style.overflow   = 'hidden';           /* KEY clip */
             stage.style.position   = 'relative';
-            stage.style.margin     = isMobile ? '0' : '0 auto';
-            stage.style.maxWidth   = isMobile ? '100%' : 'none';
+            stage.style.margin     = '0';
+            stage.style.maxWidth   = 'none';
             stage.style.flexShrink = '0';
+            stage.style.boxSizing  = 'border-box';
+            stage.style.display    = 'block';
         }
 
         /* ── Style outer preview container — locked to one page height ── */
         preview.style.transform      = 'none';
-        preview.style.width          = '100%';
-        preview.style.maxWidth       = '100%';
+        preview.style.width          = scaledW + 'px';
+        preview.style.maxWidth       = 'none';
         preview.style.height         = scaledH + 'px';
         preview.style.minHeight      = scaledH + 'px';
-        preview.style.margin         = '0';
+        preview.style.margin         = '0 auto';
         preview.style.overflow       = 'hidden';
         preview.style.display        = 'flex';
-        preview.style.justifyContent = isMobile ? 'flex-start' : 'center';
+        preview.style.justifyContent = 'center';
         preview.style.alignItems     = 'flex-start';
         preview.style.boxSizing      = 'border-box';
 
         updatePreviewPageControls(previewPage, previewTotalPages);
+
+        if (isCompactPreview) {
+            viewport.scrollLeft = 0;
+        }
     }
 
     function updatePreviewPageControls(currentPage, totalPages) {
@@ -648,6 +655,7 @@
             bindTemplateCard(card, id);
             templateGrid.appendChild(card);
         });
+        requestAnimationFrame(updateTemplateThumbScales);
     }
 
     /* ── Editor render ── */
@@ -1227,6 +1235,17 @@
     const changeTemplateBtn = $('change-template-btn');
     const closePopupBtn     = $('close-template-popup');
 
+    function updateTemplateThumbScales() {
+        if (!templateGrid) return;
+        templateGrid.querySelectorAll('.rp-tpl-thumb').forEach(thumb => {
+            const width = thumb.clientWidth || thumb.offsetWidth || 0;
+            if (!width) return;
+            const scale = Math.min(0.58, Math.max(0.22, (width - 2) / A4_W));
+            thumb.style.setProperty('--tpl-thumb-scale', scale.toFixed(4));
+            thumb.style.setProperty('--tpl-thumb-height', Math.ceil(A4_H * scale) + 'px');
+        });
+    }
+
     function buildTemplateCard(id, template, isSelected) {
         const card = document.createElement('div');
         card.className = 'rp-tpl-card' + (isSelected ? ' selected' : '');
@@ -1276,6 +1295,8 @@
             templateGrid.appendChild(card);
         });
         templatePopup.classList.add('open', 'visible');
+        requestAnimationFrame(updateTemplateThumbScales);
+        setTimeout(updateTemplateThumbScales, 120);
     }
 
     function bindTemplateCard(card, id) {
@@ -1292,6 +1313,10 @@
     closePopupBtn?.addEventListener('click',     () => templatePopup?.classList.remove('open', 'visible'));
     $('close-template-btn')?.addEventListener('click', () => templatePopup?.classList.remove('open', 'visible'));
     templatePopup?.addEventListener('click', e => { if (e.target === templatePopup) templatePopup.classList.remove('open', 'visible'); });
+    window.addEventListener('resize', updateTemplateThumbScales);
+    if ('ResizeObserver' in window && templateGrid) {
+        new ResizeObserver(updateTemplateThumbScales).observe(templateGrid);
+    }
 
     /* ── Download ── */
     $('download-pdf')?.addEventListener('click', () => {
