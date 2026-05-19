@@ -119,7 +119,7 @@ class UserController extends Controller
             'pricing' => 'Manage Pricing Plans',
             'templates' => 'Manage Templates',
             'articles' => 'Manage Articles',
-            'team' => 'Manage Team Members',
+            'team' => 'View General Enquiries',
         ];
     }
 

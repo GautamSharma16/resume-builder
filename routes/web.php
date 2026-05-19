@@ -85,6 +85,7 @@ Route::get('/resume/edit/{resume}', [ResumeBuilderController::class, 'edit'])->n
 Route::patch('/resume/{resume}', [ResumeBuilderController::class, 'update'])->name('resume.update');
 Route::patch('/resume/{resume}/rename', [ResumeBuilderController::class, 'rename'])->name('resume.rename');
 Route::get('/resume/{resume}/preview', [ResumeBuilderController::class, 'preview'])->name('resume.preview');
+Route::get('/resume/{resume}/preview/document', [ResumeBuilderController::class, 'previewDocument'])->name('resume.preview.document');
 Route::get('/resume/{resume}/download/{format?}', [ResumeBuilderController::class, 'download'])->name('resume.download');
 
 
@@ -144,12 +145,16 @@ Route::middleware(['auth', 'admin'])->group(function () {
             Route::patch('/plans/{plan}', [PricingController::class, 'update'])->name('plans.update')->middleware('permission:pricing');
             Route::get('/transactions', [App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('transactions')->middleware('permission:transactions');
             Route::get('/transactions/export', [App\Http\Controllers\Admin\TransactionController::class, 'exportCsv'])->name('transactions.export')->middleware('permission:transactions');
-            Route::resource('leads', AdminLeadController::class)->only(['index', 'show', 'destroy']);
         });
 
-        // User Management (Admin only)
-        Route::middleware('permission:team')->group(function () {
+        // User Management (Admin role only)
+        Route::middleware('admin')->group(function () {
             Route::resource('users', App\Http\Controllers\Admin\UserController::class)->except(['show']);
+        });
+
+        // Shared Enquiries (Team permission)
+        Route::middleware('permission:team')->group(function () {
+            Route::resource('leads', AdminLeadController::class)->only(['index', 'show', 'destroy']);
         });
     });
 });
