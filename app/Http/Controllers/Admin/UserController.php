@@ -23,6 +23,8 @@ class UserController extends Controller
     {
         $roles = [
             'admin' => 'Administrator',
+            'team' => 'Team',
+            'sales' => 'Sales',
             'seo' => 'SEO Manager',
             'company' => 'Company Staff',
             'developer' => 'Developer',
@@ -40,7 +42,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:admin,seo,company,developer,article_writer'],
+            'role' => ['required', 'in:admin,team,sales,seo,company,developer,article_writer'],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string'],
         ]);
@@ -67,6 +69,8 @@ class UserController extends Controller
 
         $roles = [
             'admin' => 'Administrator',
+            'team' => 'Team',
+            'sales' => 'Sales',
             'seo' => 'SEO Manager',
             'company' => 'Company Staff',
             'developer' => 'Developer',
@@ -87,7 +91,7 @@ class UserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'role' => ['required', 'in:admin,seo,company,developer,article_writer'],
+            'role' => ['required', 'in:admin,team,sales,seo,company,developer,article_writer'],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string'],
         ]);

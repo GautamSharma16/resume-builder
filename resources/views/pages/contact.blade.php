@@ -48,8 +48,11 @@
                 </div>
             </div>
 
-            <form method="POST" action="{{ route('contact.store') }}" class="contact-card" novalidate>
+            <form method="POST" action="{{ route('contact.store') }}" class="contact-card">
                 @csrf
+                <div style="display:none;">
+                    <input type="text" name="website" tabindex="-1" autocomplete="off">
+                </div>
                 @if(session('status'))
                     <div class="contact-alert ok">{{ session('status') }}</div>
                 @endif
@@ -67,11 +70,11 @@
                     </div>
                     <div class="field">
                         <label for="mobile">Phone</label>
-                        <input id="mobile" name="mobile" type="tel" value="{{ old('mobile') }}" maxlength="30">
+                        <input id="mobile" name="mobile" type="tel" value="{{ old('mobile') }}" maxlength="10" pattern="[0-9]{10}" inputmode="numeric" required>
                     </div>
                     <div class="field">
                         <label for="subject">Subject</label>
-                        <input id="subject" name="subject" value="{{ old('subject') }}" maxlength="190">
+                        <input id="subject" name="subject" value="{{ old('subject') }}" maxlength="190" required>
                     </div>
                     <div class="field full">
                         <label for="message">Message</label>

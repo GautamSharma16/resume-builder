@@ -93,6 +93,8 @@
                                     @php
                                         $roleLabels = [
                                             'admin' => 'Admin',
+                                            'team' => 'Team',
+                                            'sales' => 'Sales',
                                             'developer' => 'Developer',
                                             'dev' => 'Developer',
                                             'seo' => 'SEO Manager',

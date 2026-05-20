@@ -10,11 +10,15 @@ class ContactController extends Controller
 {
     public function store(Request $request)
     {
+        if ($request->filled('website')) {
+            abort(403, 'Bot detected');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:160'],
             'email' => ['required', 'email', 'max:190'],
-            'mobile' => ['nullable', 'string', 'max:30'],
-            'subject' => ['nullable', 'string', 'max:190'],
+            'mobile' => ['required', 'digits:10'],
+            'subject' => ['required', 'string', 'max:190'],
             'message' => ['required', 'string', 'max:5000'],
         ]);
 
