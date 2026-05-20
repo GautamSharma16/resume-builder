@@ -38,6 +38,6 @@ class LeadController extends Controller
     {
         $lead->delete();
 
-        return redirect()->route('admin.leads.index')->with('status', 'Lead deleted.');
+        return redirect()->route('admin.leads.index')->with('status', 'General enquiry deleted.');
     }
 }

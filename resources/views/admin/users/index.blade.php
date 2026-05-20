@@ -9,10 +9,15 @@
             <h1 class="text-2xl font-bold text-gray-900">Team Management</h1>
             <p class="text-sm text-gray-500">Manage administrators, SEO managers, developers, and writers</p>
         </div>
-        <a href="{{ route('admin.users.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-            Add Team Member
-        </a>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('admin.leads.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-100 transition">
+                General Enquiries
+            </a>
+            <a href="{{ route('admin.users.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                Add Team Member
+            </a>
+        </div>
     </div>
 
     @if(session('status'))

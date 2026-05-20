@@ -195,14 +195,20 @@ class ResumeBuilderController extends Controller
     public function preview(Resume $resume)
     {
         $this->authorizeResume($resume);
+        return view('resume.preview', ['resume' => $resume]);
+    }
 
-        $renderedTemplate = null;
-        if ($resume->template) {
-            $rendered = app(TemplateRenderService::class)->renderResume($resume->template, $resume->data);
-            $renderedTemplate = view('templates.rendered-document', ['html' => $rendered])->render();
-        }
+    public function previewDocument(Resume $resume)
+    {
+        $this->authorizeResume($resume);
 
-        return view('resume.preview', ['resume' => $resume, 'renderedTemplate' => $renderedTemplate]);
+        $html = $resume->template
+            ? view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderResume($resume->template, $resume->data)])->render()
+            : view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderResume(new \App\Models\Template(), $resume->data)])->render();
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+        ]);
     }
 
     public function download(Request $request, Resume $resume, PdfConversionService $pdfConversionService, string $format = 'pdf')

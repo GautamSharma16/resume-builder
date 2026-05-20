@@ -3,7 +3,16 @@
 @endphp
 
 <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center">
+    <div class="flex items-center gap-3">
+        <button
+            type="button"
+            class="md:hidden inline-flex items-center justify-center rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            @click="sidebarOpen = true"
+            aria-label="Open admin menu">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+        </button>
         @if($isAdminArea)
             <h2 class="text-xl font-semibold text-gray-900">Admin Panel</h2>
         @else
@@ -19,7 +28,7 @@
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
                 </svg>
-                <span class="font-medium">{{ Auth::user()->name }}</span>
+                <span class="hidden sm:inline font-medium">{{ Auth::user()->name }}</span>
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
                 </svg>

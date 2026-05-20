@@ -21,9 +21,6 @@
         Transactions
     </a>
     @endif
-    <a href="{{ route('admin.leads.index') }}" class="group flex items-center px-4 py-3 rounded-xl font-medium transition-all duration-200 @if(request()->routeIs('admin.leads.*')) bg-blue-600 text-white shadow-lg shadow-blue-200 @else text-slate-600 hover:bg-slate-50 hover:text-blue-600 @endif">
-        Leads
-    </a>
     @if(Auth::user()->hasPermission('pricing'))
     <a href="{{ route('admin.payments') }}" class="group flex items-center px-4 py-3 rounded-xl font-medium transition-all duration-200 @if(request()->routeIs('admin.payments')) bg-blue-600 text-white shadow-lg shadow-blue-200 @else text-slate-600 hover:bg-slate-50 hover:text-blue-600 @endif">
        
@@ -51,13 +48,20 @@
     @endif
     @endif
 
-    @if(Auth::user()->hasPermission('team'))
+    @if(Auth::user()->hasPermission('team') || Auth::user()->role === 'admin')
     <div class="pt-6 pb-2">
         <p class="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Administration</p>
     </div>
+    @if(Auth::user()->role === 'admin')
     <a href="{{ route('admin.users.index') }}" class="group flex items-center px-4 py-3 rounded-xl font-medium transition-all duration-200 @if(request()->routeIs('admin.users.*')) bg-blue-600 text-white shadow-lg shadow-blue-200 @else text-slate-600 hover:bg-slate-50 hover:text-blue-600 @endif">
         
         Team Management
     </a>
+    @endif
+    @if(Auth::user()->hasPermission('team') || Auth::user()->role === 'admin')
+    <a href="{{ route('admin.leads.index') }}" class="group flex items-center px-4 py-3 rounded-xl font-medium transition-all duration-200 @if(request()->routeIs('admin.leads.*')) bg-blue-600 text-white shadow-lg shadow-blue-200 @else text-slate-600 hover:bg-slate-50 hover:text-blue-600 @endif">
+        General Enquiries
+    </a>
+    @endif
     @endif
 </nav>
