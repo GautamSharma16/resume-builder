@@ -11,12 +11,16 @@ class GoogleAuthController extends Controller
 {
     public function redirect()
     {
-        return Socialite::driver('google')->stateless()->redirect();
+        return Socialite::driver('google')
+            ->stateless()
+            ->redirect();
     }
 
     public function callback()
     {
-        $googleUser = Socialite::driver('google')->stateless()->user();
+        $googleUser = Socialite::driver('google')
+            ->stateless()
+            ->user();
 
         $user = User::where('email', $googleUser->getEmail())->first();
 
@@ -28,10 +32,13 @@ class GoogleAuthController extends Controller
             ])->save();
         } else {
             $user = User::create([
-                'name' => $googleUser->getName() ?: $googleUser->getNickname() ?: 'Google User',
+                'name' => $googleUser->getName()
+                    ?: $googleUser->getNickname()
+                    ?: 'Google User',
+
                 'email' => $googleUser->getEmail(),
                 'mobile' => null,
-                'password' => Str::password(32),
+                'password' => Str::random(32),
                 'role' => 'user',
                 'google_id' => $googleUser->getId(),
                 'provider' => 'google',
@@ -40,6 +47,7 @@ class GoogleAuthController extends Controller
         }
 
         Auth::login($user);
+
         request()->session()->regenerate();
 
         return redirect()->route('dashboard');
