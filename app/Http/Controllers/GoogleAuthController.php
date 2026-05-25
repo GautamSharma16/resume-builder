@@ -14,30 +14,36 @@ class GoogleAuthController extends Controller
         return Socialite::driver('google')->redirect();
     }
 
-    public function callback()
-    {
-        $googleUser = Socialite::driver('google')->user();
+   public function callback()
+{
+    $googleUser = Socialite::driver('google')->stateless()->user();
 
-        $user = User::where('email', $googleUser->getEmail())->first();
+    $user = User::where('email', $googleUser->getEmail())->first();
 
-        if ($user) {
-            $user->forceFill([
-                'google_id' => $user->google_id ?: $googleUser->getId(),
-                'provider' => 'google',
-                'email_verified_at' => $user->email_verified_at ?: now(),
-            ])->save();
-        } else {
-            $user = User::create([
-                'name' => $googleUser->getName() ?: $googleUser->getNickname() ?: 'Google User',
-                'email' => $googleUser->getEmail(),
-                'mobile' => null,
-                'password' => Str::password(32),
-                'role' => 'user',
-                'google_id' => $googleUser->getId(),
-                'provider' => 'google',
-                'email_verified_at' => now(),
-            ]);
-        }
+    if ($user) {
+        $user->forceFill([
+            'google_id' => $user->google_id ?: $googleUser->getId(),
+            'provider' => 'google',
+            'email_verified_at' => $user->email_verified_at ?: now(),
+        ])->save();
+    } else {
+        $user = User::create([
+            'name' => $googleUser->getName() ?: $googleUser->getNickname() ?: 'Google User',
+            'email' => $googleUser->getEmail(),
+            'mobile' => null,
+            'password' => Str::password(32),
+            'role' => 'user',
+            'google_id' => $googleUser->getId(),
+            'provider' => 'google',
+            'email_verified_at' => now(),
+        ]);
+    }
+
+    Auth::login($user);
+    request()->session()->regenerate();
+
+    return redirect()->intended(route('dashboard'));
+}
 
         Auth::login($user);
         request()->session()->regenerate();
