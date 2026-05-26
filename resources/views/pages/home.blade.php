@@ -653,11 +653,47 @@
 
     /* ─── TEMPLATES ──────────────────────────────────────────── */
     .templates-section {
-        padding: 2rem 4%;
+        padding: 3.5rem 4%;
         background: var(--white);
         overflow: hidden;
         position: relative;
         width: 100%;
+    }
+    .templates-section::before,
+    .templates-section::after {
+        content: "";
+        position: absolute;
+        pointer-events: none;
+        border-radius: 999px;
+        filter: blur(4px);
+        opacity: 0.72;
+        z-index: 0;
+    }
+    .templates-section::before {
+        width: 280px;
+        height: 280px;
+        top: 30px;
+        right: 7%;
+        background: rgba(37, 99, 235, 0.12);
+    }
+    .templates-section::after {
+        width: 220px;
+        height: 220px;
+        left: 4%;
+        bottom: 34px;
+        background: rgba(20, 184, 166, 0.10);
+    }
+    .templates-section--resume {
+        background:
+            radial-gradient(circle at 86% 16%, rgba(59, 130, 246, 0.16), transparent 32%),
+            linear-gradient(180deg, #f8fbff 0%, #eef6ff 52%, #ffffff 100%);
+    }
+    .templates-section--cover {
+        padding-top: 4rem;
+        background:
+            radial-gradient(circle at 10% 18%, rgba(245, 158, 11, 0.14), transparent 30%),
+            radial-gradient(circle at 86% 82%, rgba(20, 184, 166, 0.14), transparent 34%),
+            linear-gradient(180deg, #fffaf0 0%, #f0fdfa 58%, #ffffff 100%);
     }
     .templates-header {
         display: flex;
@@ -666,6 +702,8 @@
         margin-bottom: 3rem;
         flex-wrap: wrap;
         gap: 1rem;
+        position: relative;
+        z-index: 2;
     }
     .templates-header a {
         color: var(--blue);
@@ -1253,6 +1291,15 @@
         line-height: 1.08;
         overflow-wrap: anywhere;
     }
+    .templates-section .section-label {
+        background: rgba(255, 255, 255, 0.74);
+        border: 1px solid rgba(37, 99, 235, 0.10);
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+        backdrop-filter: blur(12px);
+    }
+    .templates-section--cover .section-label {
+        border-color: rgba(20, 184, 166, 0.16);
+    }
 
     .ts-stage {
         position: relative;
@@ -1261,6 +1308,7 @@
         padding: 12px 0 24px;
         display: block !important;
         width: 100%;
+        z-index: 1;
     }
     .ts-track {
         display: flex;
@@ -1293,11 +1341,14 @@
         overflow: hidden;
         border: 1px solid var(--border);
         background: #fff;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        box-shadow: 0 16px 42px rgba(15, 23, 42, 0.10);
         flex-shrink: 0;
         position: relative;
         cursor: pointer;
         contain: layout paint;
+    }
+    .templates-section--cover .ts-card {
+        box-shadow: 0 18px 48px rgba(15, 118, 110, 0.12);
     }
     .ts-resume-inner {
         background: #f8fafc;
@@ -1547,7 +1598,7 @@
 </section>
 
 {{-- TEMPLATES --}}
-<section class="templates-section">
+<section class="templates-section templates-section--resume">
     <div class="templates-header">
         <div>
             <div class="section-label">Professional Templates</div>
@@ -1558,7 +1609,7 @@
     <div class="ts-stage ts-stage--resume" id="ts-stage"></div>
 </section>
 
-<section class="templates-section" style="padding-top:1rem;">
+<section class="templates-section templates-section--cover">
     <div class="templates-header">
         <div>
             <div class="section-label">Cover Letter Templates</div>

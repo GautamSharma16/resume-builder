@@ -1204,6 +1204,7 @@
         const editingCoverLetter = @json($editingCoverLetter ?? null);
         const downloadRequiresPlan = @json(auth()->check() && ! auth()->user()->activeSubscription?->hasDownloadsRemaining());
         const isAuthenticated = @json(auth()->check());
+        const plansUrl = @json(route('plans'));
         const tplHtml = @json($templates->mapWithKeys(fn($t) => [$t->id => $t->html]));
         const tplNames = @json($templates->mapWithKeys(fn($t) => [$t->id => $t->name]));
 
@@ -1703,7 +1704,7 @@
 
         $('download-btn').addEventListener('click', () => {
             if (!state.id) { notify('Please generate the letter first.', 'error'); return; }
-            if (isAuthenticated && downloadRequiresPlan) { window.openPlanDownloadModal?.(); return; }
+            if (isAuthenticated && downloadRequiresPlan) { window.location.href = plansUrl; return; }
 
             const doDownload = async (format) => {
                 const saved = await saveCoverLetter(format);
