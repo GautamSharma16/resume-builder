@@ -1256,25 +1256,29 @@
 
     .ts-stage {
         position: relative;
-        min-height: 430px !important;
-        overflow: hidden;
-        padding: 12px 0 20px;
+        min-height: 0 !important;
+        overflow: visible;
+        padding: 8px 0 20px;
         display: block !important;
+        width: 100%;
     }
     .ts-track {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        width: max-content;
-        animation: tsMarqueeLeft 38s linear infinite;
-        will-change: transform;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+        align-items: start;
+        justify-items: center;
+        gap: clamp(16px, 2vw, 28px);
+        width: 100%;
     }
-    .ts-stage--resume .ts-track { animation-name: tsMarqueeRight; }
-    .ts-stage--cover .ts-track { animation-name: tsMarqueeLeft; }
-    .ts-stage:hover .ts-track { animation-play-state: paused; }
+    .ts-stage--resume .ts-track,
+    .ts-stage--cover .ts-track,
+    .ts-stage:hover .ts-track {
+        animation: none;
+    }
     .ts-card {
-        width: 300px !important;
-        height: 415px !important;
+        width: min(100%, 300px) !important;
+        height: auto !important;
+        aspect-ratio: 210 / 297;
         opacity: 1 !important;
         transform: none !important;
         z-index: 1 !important;
@@ -1286,20 +1290,37 @@
         flex-shrink: 0;
         position: relative;
         cursor: pointer;
+        contain: layout paint;
     }
     .ts-resume-inner {
         background: #f8fafc;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
+        position: absolute;
+        inset: 0;
         overflow: hidden;
     }
     .ts-resume-inner > * {
         width: 794px !important;
         min-width: 794px !important;
-        height: 1123px !important;
-        transform-origin: top left !important;
-        transform: scale(0.38) !important;
+        min-height: 1123px !important;
+        position: absolute !important;
+        top: 0;
+        left: 50%;
+        transform-origin: top center !important;
+        pointer-events: none;
+        will-change: transform;
+    }
+    .ts-resume-inner:not(.is-real) > * {
+        inset: 0;
+        left: 0;
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 100% !important;
+        transform: none !important;
+        position: absolute !important;
+    }
+    .ts-resume-inner .tpl-resume,
+    .ts-resume-inner .tpl-cover {
+        box-shadow: none !important;
         pointer-events: none;
     }
     .ts-stage .ts-card .ts-hover-overlay {
@@ -1312,18 +1333,34 @@
     .ts-stage .ts-card:not(.center) .ts-hover-overlay { display: flex !important; }
     .ts-stage .ts-card:hover .ts-hover-overlay { opacity: 1; }
     .ts-dots, .ts-nav { display: none !important; }
-    @keyframes tsMarqueeLeft {
-        from { transform: translateX(0); }
-        to { transform: translateX(-50%); }
-    }
-    @keyframes tsMarqueeRight {
-        from { transform: translateX(-50%); }
-        to { transform: translateX(0); }
-    }
     @media (max-width: 768px) {
-        .ts-stage { min-height: 390px !important; }
-        .ts-card { width: 250px !important; height: 345px !important; }
-        .ts-resume-inner > * { transform: scale(0.30) !important; }
+        .templates-section {
+            padding-inline: 1rem;
+        }
+        .templates-header {
+            margin-bottom: 1.5rem;
+        }
+        .ts-stage {
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 14px;
+            margin-inline: -1rem;
+        }
+        .ts-stage::-webkit-scrollbar {
+            display: none;
+        }
+        .ts-track {
+            display: flex;
+            gap: 14px;
+            width: max-content;
+            padding-inline: 1rem;
+        }
+        .ts-card {
+            width: min(76vw, 270px) !important;
+            scroll-snap-align: center;
+        }
         .templates-section .section-heading { font-size: clamp(1.8rem, 8vw, 2.5rem); }
         .ts-use-btn { padding: 9px 16px; font-size: 12px; }
     }
@@ -1596,7 +1633,7 @@ const coverLetterTemplates = [
     @forelse($professionalCoverTemplates ?? [] as $tpl)
     {
         name: @json($tpl->name),
-        url: "{{ route('cover-letter') }}",
+        url: "{{ route('cover-letter', ['template_id' => $tpl->id]) }}",
         html: @json($renderedCover[$tpl->id] ?? null),
         isReal: true
     },
@@ -1670,11 +1707,10 @@ function buildMarquee(stageId, items) {
         return card;
     };
 
-    const loopItems = [...items, ...items];
-    loopItems.forEach((item) => track.appendChild(renderCard(item)));
+    items.forEach((item) => track.appendChild(renderCard(item)));
     stage.innerHTML = '';
     stage.appendChild(track);
-    fitTemplatePreview(stage);
+    requestAnimationFrame(() => fitTemplatePreview(stage));
 }
 
 function fitTemplatePreview(stage) {
@@ -1683,18 +1719,22 @@ function fitTemplatePreview(stage) {
         if (!doc) return;
         const cardW = card.clientWidth;
         const cardH = card.clientHeight;
-        const scale = Math.min(cardW / 794, cardH / 1123) * 0.98;
-        doc.style.transform = `scale(${scale})`;
+        const scale = Math.min(cardW / 794, cardH / 1123) * 0.995;
+        doc.style.transform = `translateX(-50%) scale(${scale})`;
     });
 }
 
 buildMarquee('ts-stage', templates);
 buildMarquee('cl-stage', coverTemplates);
+let previewResizeFrame = null;
 window.addEventListener('resize', () => {
+    if (previewResizeFrame) cancelAnimationFrame(previewResizeFrame);
+    previewResizeFrame = requestAnimationFrame(() => {
     const resumeStage = document.getElementById('ts-stage');
     const coverStage = document.getElementById('cl-stage');
     if (resumeStage) fitTemplatePreview(resumeStage);
     if (coverStage) fitTemplatePreview(coverStage);
+    });
 });
 
 

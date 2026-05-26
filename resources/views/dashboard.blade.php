@@ -880,6 +880,20 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const pendingDownload = @json($pendingDownload ?? ['hasPending' => false]);
+
+    if (pendingDownload.hasPending) {
+        if (pendingDownload.canDownload && pendingDownload.downloadUrl) {
+            setTimeout(() => {
+                window.location.href = pendingDownload.downloadUrl;
+            }, 650);
+        } else if (pendingDownload.shouldRedirectToPlans && pendingDownload.plansUrl) {
+            setTimeout(() => {
+                window.location.href = pendingDownload.plansUrl;
+            }, 900);
+        }
+    }
+
     // Animate score ring
     const fill = document.querySelector('.ring-fill');
     if (fill) {

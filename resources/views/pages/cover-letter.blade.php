@@ -211,22 +211,21 @@
     }
 
     .template-thumb {
-        height: 330px;
+        aspect-ratio: 210 / 297;
+        height: auto;
         background: var(--surface-2);
         overflow: hidden;
         position: relative;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
     }
 
     .template-scaler {
+        position: absolute;
+        top: 0;
+        left: 50%;
         width: 794px;
         min-height: 1123px;
-        transform: scale(0.30);
         transform-origin: top center;
         pointer-events: none;
-        margin-bottom: -785px;
     }
     .template-scaler > div {
         background: white;
@@ -738,16 +737,17 @@
         box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.12), 0 14px 30px rgba(15, 23, 42, 0.12);
     }
     .modal-thumb {
-        height: 282px;
+        aspect-ratio: 210 / 297;
+        height: auto;
         background: var(--surface);
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
+        position: relative;
         overflow: hidden;
         border-bottom: 1px solid #e5e7eb;
     }
     .modal-scaler {
-        transform: scale(0.252);
+        position: absolute;
+        top: 0;
+        left: 50%;
         transform-origin: top center;
         width: 794px;
         pointer-events: none;
@@ -881,8 +881,6 @@
         .pick-header { margin-bottom: 1.75rem; }
         .template-grid { grid-template-columns: 1fr; gap: 1rem; width: 100%; }
         .template-card { border-radius: 18px; }
-        .template-thumb { height: 290px; }
-        .template-scaler { transform: scale(0.255); margin-bottom: -840px; }
         .template-footer { padding: 1rem; gap: 0.75rem; }
         .template-name { font-size: 1rem; }
         .builder-main { padding: 0.75rem; gap: 1rem; }
@@ -890,8 +888,6 @@
         .preview-canvas { padding: 0.75rem; }
         .btn-toolbar { justify-content: center; }
         .modal-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-        .modal-thumb { height: 190px; }
-        .modal-scaler { transform: scale(0.24); }
         .modal-tmpl-footer { font-size: 0.95rem; min-height: 40px; }
     }
 
@@ -902,8 +898,6 @@
         .modal { padding: 0.75rem; }
         .modal-content { max-height: 92vh; border-radius: 16px; }
         .modal-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); padding: 1rem; gap: 0.85rem; }
-        .modal-thumb { height: 160px; }
-        .modal-scaler { transform: scale(0.2); }
         .modal-tmpl-footer { font-size: 0.82rem; min-height: 36px; }
         .preview-canvas { padding: 0.5rem; }
     }
@@ -1212,6 +1206,15 @@
         const isAuthenticated = @json(auth()->check());
         const tplHtml = @json($templates->mapWithKeys(fn($t) => [$t->id => $t->html]));
         const tplNames = @json($templates->mapWithKeys(fn($t) => [$t->id => $t->name]));
+
+        function scaleTemplatePickers() {
+            document.querySelectorAll('.template-thumb, .modal-thumb').forEach((thumb) => {
+                const scaler = thumb.querySelector('.template-scaler, .modal-scaler');
+                if (!scaler) return;
+                const scale = Math.min(thumb.clientWidth / 794, thumb.clientHeight / 1123) * 0.995;
+                scaler.style.transform = `translateX(-50%) scale(${scale})`;
+            });
+        }
         
         let state = {
             id: editingCoverLetter?.id || null,
@@ -1660,7 +1663,7 @@
         }
 
         // Save & Download
-        $('save-letter').addEventListener('click', async () => {
+        async function saveCoverLetter(downloadFormat = null) {
             try {
                 const isNew = !state.id;
                 const url = isNew ? '/cover-letter' : `/cover-letter/${state.id}`;
@@ -1671,7 +1674,8 @@
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                     body: JSON.stringify({ 
                         letter: state,
-                        template_id: state.templateId
+                        template_id: state.templateId,
+                        download_format: downloadFormat || undefined
                     })
                 });
 
@@ -1680,11 +1684,21 @@
                     if (isNew && data.cover_letter_id) {
                         state.id = data.cover_letter_id;
                     }
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                        return false;
+                    }
                     notify('Saved successfully.');
+                    return true;
                 } else {
                     notify('Save failed.', 'error');
+                    return false;
                 }
-            } catch (err) { notify('Save failed.', 'error'); }
+            } catch (err) { notify('Save failed.', 'error'); return false; }
+        }
+
+        $('save-letter').addEventListener('click', () => {
+            saveCoverLetter();
         });
 
         $('download-btn').addEventListener('click', () => {
@@ -1692,16 +1706,8 @@
             if (isAuthenticated && downloadRequiresPlan) { window.openPlanDownloadModal?.(); return; }
 
             const doDownload = async (format) => {
-                try {
-                    await fetch(`/cover-letter/${state.id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                        body: JSON.stringify({
-                            letter: state,
-                            template_id: state.templateId
-                        })
-                    });
-                } catch (_) {}
+                const saved = await saveCoverLetter(format);
+                if (!saved) return;
 
                 window.location.href = `/cover-letter/${state.id}/download/${format}`;
             };
@@ -1713,7 +1719,14 @@
             }
         });
 
-        window.addEventListener('resize', scalePreview);
+        window.addEventListener('resize', () => {
+            scalePreview();
+            scaleTemplatePickers();
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            scaleTemplatePickers();
+            setTimeout(scaleTemplatePickers, 100);
+        });
     })();
 </script>
 

@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'company' => \App\Http\Middleware\EnsureCompanyRole::class,
             'role' => \App\Http\Middleware\EnsureRole::class,
             'subscription' => \App\Http\Middleware\EnsureActiveSubscription::class,
+            'download.access' => \App\Http\Middleware\EnsureDownloadAccess::class,
             'permission' => \App\Http\Middleware\PermissionMiddleware::class,
         ]);
     })

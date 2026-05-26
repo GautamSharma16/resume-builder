@@ -7,7 +7,7 @@
             <div>
                 <p class="text-sm font-semibold uppercase tracking-[0.24em] text-blue-600">Analytics</p>
                 <h1 class="mt-3 text-3xl font-bold text-gray-900">Website Visits</h1>
-                <p class="mt-2 text-sm text-gray-600">Live page traffic grouped from visitor logs.</p>
+                <p class="mt-2 text-sm text-gray-600">Unique page traffic grouped from visitor logs.</p>
             </div>
             <a href="{{ route('admin.dashboard') }}" class="mt-4 inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-800 sm:mt-0">Back to dashboard</a>
         </div>
@@ -27,7 +27,7 @@
 
         <div class="mt-5 rounded-2xl border border-blue-100 bg-blue-50/70 p-5 text-sm leading-6 text-slate-600">
             <span class="font-semibold text-slate-900">How visitor counting works:</span>
-            Cvbliss uses a persistent visitor cookie when available, with IP and browser/device details as fallback context. A visitor is counted once for a page per day, so refreshes and repeated same-session requests update the existing log instead of inflating totals.
+            Cvbliss stores a persistent visitor cookie and a hashed visitor identity. A visitor creates only one row per page, so refreshes, repeated same-session visits, assets, API calls, and admin pages update the last visit timestamp instead of inflating totals.
         </div>
 
         <div class="mt-8 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -36,7 +36,7 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Page</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Visits</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Tracked Page Rows</th>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Unique Visitors</th>
                             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Last Visit</th>
                         </tr>

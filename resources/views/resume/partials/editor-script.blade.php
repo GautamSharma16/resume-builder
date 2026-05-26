@@ -1141,9 +1141,10 @@
             const url      = app.dataset.updateUrl || app.dataset.storeUrl;
             const method   = app.dataset.updateUrl ? 'patch' : 'post';
             const templateId = templateIdEl?.value || null;
+            const downloadFormat = window.pendingDownloadFormat || 'pdf';
             const payload  = app.dataset.updateUrl
                 ? { resume: state, template_id: templateId }
-                : { source, template_id: templateId, resume: state };
+                : { source, template_id: templateId, resume: state, download_format: downloadFormat };
             const res = await axios[method](url, payload);
             if (res.data.redirect) { window.location.href = res.data.redirect; return; }
             if (res.data.resume?.id) savedResumeId = res.data.resume.id;
@@ -1155,7 +1156,7 @@
                 return;
             }
             if (savedResumeId) {
-                const fmt = window.pendingDownloadFormat || 'pdf';
+                const fmt = downloadFormat;
                 window.pendingDownloadFormat = null;
                 window.location.href = `/resume/${savedResumeId}/download/${fmt}`;
                 return;

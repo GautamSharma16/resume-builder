@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Plan;
 use App\Models\Payment;
 use App\Models\Purchase;
+use App\Services\PendingDownloadService;
 use App\Services\PlanActivationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

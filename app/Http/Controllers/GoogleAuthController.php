@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\PendingDownloadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -47,9 +48,15 @@ class GoogleAuthController extends Controller
             ]);
         }
 
+        $guestSessionId = $request->session()->getId();
         Auth::login($user);
 
         request()->session()->regenerate();
+        app(PendingDownloadService::class)->attachPendingDocuments($request, $user, $guestSessionId);
+
+        if (app(PendingDownloadService::class)->hasPending($request)) {
+            return redirect()->route('dashboard');
+        }
 
         $intended = (string) $request->session()->get('url.intended', '');
         $plansPath = parse_url(route('plans'), PHP_URL_PATH) ?: '/plans';

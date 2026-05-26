@@ -10,11 +10,12 @@ use App\Models\ResumeAnalysis;
 use App\Models\Template;
 use App\Models\User;
 use App\Models\VisitorLog;
+use App\Services\PendingDownloadService;
 use App\Services\TemplateRenderService;
 
 class DashboardController extends Controller
 {
-    public function index(TemplateRenderService $renderer)
+    public function index(TemplateRenderService $renderer, PendingDownloadService $pendingDownloads)
     {
         $user = auth()->user();
         
@@ -75,6 +76,7 @@ class DashboardController extends Controller
             'recentBlogs' => $recentBlogs,
             'totalResumes' => \App\Models\Resume::where('user_id', $user->id)->count(),
             'totalCoverLetters' => \App\Models\CoverLetter::where('user_id', $user->id)->count(),
+            'pendingDownload' => $pendingDownloads->dashboardPayload(request(), $user),
         ]);
     }
 
@@ -131,9 +133,9 @@ class DashboardController extends Controller
             ->select('path')
             ->selectRaw('COUNT(*) as visits_count')
             ->selectRaw($this->uniqueVisitorSql().' as unique_visitors_count')
-            ->selectRaw('MAX(updated_at) as last_visited_at')
+            ->selectRaw('MAX(COALESCE(last_visited_at, updated_at)) as last_visited_at')
             ->groupBy('path')
-            ->orderByDesc('visits_count')
+            ->orderByDesc('unique_visitors_count')
             ->paginate(15);
 
         return view('admin.visits', array_merge($this->visitorStats(), [
@@ -158,8 +160,8 @@ class DashboardController extends Controller
                 ->selectRaw($this->uniqueVisitorSql().' as visitor_count')
                 ->value('visitor_count'),
             'totalVisits' => VisitorLog::count(),
-            'todayVisits' => VisitorLog::whereDate('created_at', today())->count(),
-            'todayVisitors' => (int) VisitorLog::whereDate('created_at', today())
+            'todayVisits' => VisitorLog::whereDate('last_visited_at', today())->count(),
+            'todayVisitors' => (int) VisitorLog::whereDate('last_visited_at', today())
                 ->selectRaw($this->uniqueVisitorSql().' as visitor_count')
                 ->value('visitor_count'),
         ];
@@ -167,6 +169,6 @@ class DashboardController extends Controller
 
     private function uniqueVisitorSql(): string
     {
-        return 'COUNT(DISTINCT ip_address)';
+        return 'COUNT(DISTINCT COALESCE(visitor_hash, ip_address))';
     }
 }

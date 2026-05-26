@@ -8,6 +8,21 @@
     .cl-card:hover {
         transform: translateY(-6px);
     }
+    .cl-preview-card {
+        aspect-ratio: 210 / 297;
+        height: auto !important;
+        max-height: 360px;
+        contain: layout paint;
+    }
+    .cl-preview-frame {
+        position: absolute;
+        top: 1rem;
+        left: 50%;
+        width: 794px;
+        min-height: 1123px;
+        transform-origin: top center;
+        pointer-events: none;
+    }
     .cl-title-edit {
         display: none;
         grid-template-columns: minmax(0, 1fr) auto auto;
@@ -81,9 +96,9 @@
             @forelse($letters as $letter)
                 <div class="cl-card group bg-white/70 backdrop-blur-xl border border-white/60 rounded-3xl shadow-sm hover:shadow-xl hover:border-slate-200 overflow-hidden flex flex-col">
                     <!-- Preview Area -->
-                    <div class="relative w-full overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100/50 flex justify-center pt-8 border-b border-slate-100/80 transition-colors group-hover:from-emerald-50/30 group-hover:to-slate-50" style="height: 340px;">
+                    <div class="cl-preview-card relative w-full overflow-hidden bg-gradient-to-b from-slate-50 to-slate-100/50 flex justify-center pt-8 border-b border-slate-100/80 transition-colors group-hover:from-emerald-50/30 group-hover:to-slate-50">
                         @if(!empty($previews[$letter->id]))
-                            <div class="absolute top-6 left-1/2 -translate-x-1/2 w-[794px] h-[1123px] origin-top scale-[0.32] pointer-events-none rounded-md overflow-hidden bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] transition-shadow duration-300 ring-1 ring-slate-900/5">
+                            <div class="cl-preview-frame rounded-md overflow-hidden bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)] group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)] transition-shadow duration-300 ring-1 ring-slate-900/5">
                                 {!! $previews[$letter->id] !!}
                             </div>
                         @else
@@ -161,6 +176,19 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    function scaleCoverLetterCards() {
+        document.querySelectorAll('.cl-preview-card').forEach((card) => {
+            const frame = card.querySelector('.cl-preview-frame');
+            if (!frame) return;
+            const scale = Math.min((card.clientWidth - 32) / 794, (card.clientHeight - 16) / 1123) * 0.995;
+            frame.style.transform = `translateX(-50%) scale(${Math.max(scale, 0.1)})`;
+        });
+    }
+
+    scaleCoverLetterCards();
+    setTimeout(scaleCoverLetterCards, 100);
+    window.addEventListener('resize', scaleCoverLetterCards);
+
     document.querySelectorAll('.js-rename-letter').forEach((btn) => {
         btn.addEventListener('click', () => {
             const card = btn.closest('.cl-card');

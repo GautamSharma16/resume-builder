@@ -6,6 +6,7 @@ use App\Models\CoverLetter;
 use App\Models\Resume;
 use App\Models\Template;
 use App\Services\PlanActivationService;
+use App\Services\PendingDownloadService;
 use App\Services\PdfConversionService;
 use App\Services\TemplateRenderService;
 use App\Support\GeminiHttp;
@@ -341,6 +342,7 @@ class CoverLetterController extends Controller
         $validated = $request->validate([
             'letter' => ['required', 'array'],
             'template_id' => ['nullable', 'exists:templates,id'],
+            'download_format' => ['nullable', 'in:pdf,doc,ppt'],
         ]);
 
         $letter = CoverLetter::create([
@@ -352,7 +354,17 @@ class CoverLetterController extends Controller
             'data' => $this->normalizeLetterPayload($validated['letter']),
         ]);
 
-        return response()->json(['success' => true, 'cover_letter_id' => $letter->id]);
+        $redirect = null;
+        if (! $request->user()) {
+            $downloadUrl = app(PendingDownloadService::class)->rememberCoverLetter(
+                $request,
+                $letter,
+                $validated['download_format'] ?? 'pdf'
+            );
+            $redirect = route('login', ['redirect' => $downloadUrl]);
+        }
+
+        return response()->json(['success' => true, 'cover_letter_id' => $letter->id, 'redirect' => $redirect]);
     }
 
     public function save(Request $request, CoverLetter $coverLetter)
@@ -406,18 +418,12 @@ class CoverLetterController extends Controller
     {
         $this->authorizeLetter($coverLetter);
 
-        if (!$request->user()) {
-            return redirect()->guest(route('login'));
-        }
-
-        if (!$coverLetter->is_paid && !$request->user()->activeSubscription?->hasDownloadsRemaining()) {
-            return redirect()->route('plans')->with('status', 'Choose a plan to unlock downloads.');
-        }
-
         if (!$coverLetter->is_paid) {
             app(PlanActivationService::class)->consumeDownload($request->user());
             $coverLetter->forceFill(['is_paid' => true])->save();
         }
+
+        app(PendingDownloadService::class)->clear($request);
 
         $html = $coverLetter->template
             ? view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderCoverLetter($coverLetter->template, $coverLetter->data)])->render()
@@ -585,6 +591,10 @@ class CoverLetterController extends Controller
     private function authorizeLetter(CoverLetter $coverLetter): void
     {
         if ($coverLetter->user_id && $coverLetter->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if (! $coverLetter->user_id && $coverLetter->session_id !== request()->session()->getId()) {
             abort(403);
         }
     }

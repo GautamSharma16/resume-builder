@@ -63,7 +63,7 @@ Route::post('/cover-letter', [CoverLetterController::class, 'store'])->name('cov
 Route::post('/cover-letter/generate', [CoverLetterController::class, 'generate'])->name('cover-letter.generate');
 Route::patch('/cover-letter/{coverLetter}', [CoverLetterController::class, 'save'])->name('cover-letter.save');
 Route::patch('/cover-letter/{coverLetter}/rename', [CoverLetterController::class, 'rename'])->name('cover-letter.rename');
-Route::get('/cover-letter/{coverLetter}/download/{format?}', [CoverLetterController::class, 'download'])->name('cover-letter.download');
+Route::get('/cover-letter/{coverLetter}/download/{format?}', [CoverLetterController::class, 'download'])->name('cover-letter.download')->middleware('download.access');
 Route::get('/templates', [PageController::class, 'templates'])->name('templates');
 Route::get('/interview', [PageController::class, 'interview'])->name('interview');
 Route::get('/interview/{slug}', [PageController::class, 'blogShow'])->name('blog.show');
@@ -86,7 +86,7 @@ Route::patch('/resume/{resume}', [ResumeBuilderController::class, 'update'])->na
 Route::patch('/resume/{resume}/rename', [ResumeBuilderController::class, 'rename'])->name('resume.rename');
 Route::get('/resume/{resume}/preview', [ResumeBuilderController::class, 'preview'])->name('resume.preview');
 Route::get('/resume/{resume}/preview/document', [ResumeBuilderController::class, 'previewDocument'])->name('resume.preview.document');
-Route::get('/resume/{resume}/download/{format?}', [ResumeBuilderController::class, 'download'])->name('resume.download');
+Route::get('/resume/{resume}/download/{format?}', [ResumeBuilderController::class, 'download'])->name('resume.download')->middleware('download.access');
 
 
 /*

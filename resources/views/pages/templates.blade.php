@@ -141,6 +141,63 @@
     .qv-close:hover { transform: scale(1.1) rotate(90deg); color: var(--blue); }
     .qv-use-btn { background: var(--blue); color: white; padding: 10px 24px; border-radius: 999px; font-weight: 700; font-size: 14px; text-decoration: none; transition: all 0.2s; box-shadow: 0 4px 12px rgba(37,99,235,0.25); }
     .qv-use-btn:hover { background: var(--blue-dark); transform: translateY(-2px); }
+
+    .template-grid-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 340px));
+        justify-content: center;
+        gap: clamp(1.25rem, 3vw, 3rem);
+        width: 100%;
+    }
+
+    .template-card-shell {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .template-card-preview {
+        aspect-ratio: 210 / 297;
+        height: auto !important;
+        contain: layout paint;
+    }
+
+    .template-card-preview-frame {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: 794px;
+        min-height: 1123px;
+        transform-origin: top center;
+        pointer-events: none;
+    }
+
+    @media (max-width: 640px) {
+        .section-heading {
+            font-size: clamp(2.25rem, 14vw, 3.25rem);
+        }
+
+        .qv-overlay {
+            padding: 16px;
+            align-items: flex-start;
+            overflow: auto;
+        }
+
+        .qv-toolbar {
+            left: 16px;
+            right: 16px;
+            bottom: 16px;
+            transform: none;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            border-radius: 18px;
+        }
+
+        .qv-close {
+            top: 16px;
+            right: 16px;
+        }
+    }
 </style>
 
 <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8" x-data="{ 
@@ -216,13 +273,13 @@
                 x-transition:enter-end="opacity-100 translate-y-0"
                 x-cloak
             >
-                <div class="flex flex-wrap justify-center gap-12">
+                <div class="template-grid-list">
                     @php
                         $filteredTemplates = $templates->where('type', 'resume');
                         if($category !== 'all') $filteredTemplates = $filteredTemplates->where('category', $category);
                     @endphp
                     @forelse($filteredTemplates as $template)
-                        <div class="group flex flex-col relative animate-fadeUp w-[340px]" style="animation-delay: {{ $loop->index * 0.05 }}s;">
+                        <div class="template-card-shell group flex flex-col relative animate-fadeUp" style="animation-delay: {{ $loop->index * 0.05 }}s;">
                             {{-- POPULAR BADGE --}}
                             @if($loop->first)
                             <div class="absolute -top-2 -right-2 z-10 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg">
@@ -231,9 +288,8 @@
                             @endif
 
                             {{-- PREVIEW THUMBNAIL --}}
-                            <div class="relative cursor-pointer group/preview overflow-hidden rounded-2xl border-2 border-black bg-white w-full" style="height: 481px;">
-                                <div class="pointer-events-none absolute top-0 left-0 transition-all duration-700 group-hover/preview:scale-[1.05]"
-                                     style="width: 794px; transform: scale(0.4282); transform-origin: top left;">
+                            <div class="template-card-preview relative cursor-pointer group/preview overflow-hidden rounded-2xl border border-slate-200 bg-white w-full shadow-sm">
+                                <div class="template-card-preview-frame transition-all duration-700 group-hover/preview:scale-[1.03]">
                                     <div class="bg-white" style="width: 794px; min-height: 1123px;">
                                         {!! $rendered[$template->id] ?? '<div class="p-8 text-gray-400">Preview not available</div>' !!}
                                     </div>
@@ -314,6 +370,15 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentTemplateId = null;
     let selectedColor = '';
 
+    function scaleTemplateCards() {
+        document.querySelectorAll('.template-card-preview').forEach((card) => {
+            const frame = card.querySelector('.template-card-preview-frame');
+            if (!frame) return;
+            const scale = Math.min(card.clientWidth / 794, card.clientHeight / 1123) * 0.995;
+            frame.style.transform = `translateX(-50%) scale(${scale})`;
+        });
+    }
+
     function updateZoom() {
         const scale = Math.min((window.innerHeight - 150) / 1123, (window.innerWidth - 80) / 794, 1);
         if (modalBody) {
@@ -382,6 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
     modal?.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
     window.addEventListener('resize', updateZoom);
+    window.addEventListener('resize', scaleTemplateCards);
 
     colorPicker?.addEventListener('click', (e) => {
         const btn = e.target.closest('.template-preview-color');
@@ -390,6 +456,9 @@ document.addEventListener('DOMContentLoaded', function() {
             renderModalPreview();
         }
     });
+
+    scaleTemplateCards();
+    setTimeout(scaleTemplateCards, 100);
 });
 </script>
 @endsection

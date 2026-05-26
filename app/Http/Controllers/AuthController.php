@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Mail\OtpMail;
-use App\Models\Resume;
 use App\Models\User;
+use App\Services\PendingDownloadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -84,9 +84,10 @@ class AuthController extends Controller
             $user->save();
         }
 
+        $guestSessionId = $request->session()->getId();
         Auth::login($user, $remember);
         $request->session()->regenerate();
-        $this->attachPendingResume($request, $user);
+        app(PendingDownloadService::class)->attachPendingDocuments($request, $user, $guestSessionId);
 
         return redirect()->intended($this->postLoginRedirect($request, $user));
     }
@@ -154,9 +155,10 @@ class AuthController extends Controller
         $user->clearOtp();
         $request->session()->forget('otp_user_id');
 
+        $guestSessionId = $request->session()->getId();
         Auth::login($user);
         $request->session()->regenerate();
-        $this->attachPendingResume($request, $user);
+        app(PendingDownloadService::class)->attachPendingDocuments($request, $user, $guestSessionId);
 
         return redirect()->intended($this->postLoginRedirect($request, $user));
     }
@@ -266,22 +268,6 @@ class AuthController extends Controller
         Mail::to($user->email)->send(new OtpMail($otp, $user->name));
     }
 
-    private function attachPendingResume(Request $request, User $user): void
-    {
-        $resumeId = $request->session()->pull('pending_resume_id');
-
-        if (! $resumeId) {
-            return;
-        }
-
-        Resume::whereKey($resumeId)
-            ->whereNull('user_id')
-            ->update([
-                'user_id' => $user->id,
-                'session_id' => null,
-            ]);
-    }
-
     private function redirectPath(User $user): string
     {
         return match ($user->role) {
@@ -293,6 +279,11 @@ class AuthController extends Controller
 
     private function postLoginRedirect(Request $request, User $user): string
     {
+        if (app(PendingDownloadService::class)->hasPending($request) && $user->hasRole('user')) {
+            $request->session()->forget('url.intended');
+            return route('dashboard');
+        }
+
         $intended = (string) $request->session()->get('url.intended', '');
         $plansUrl = route('plans');
 

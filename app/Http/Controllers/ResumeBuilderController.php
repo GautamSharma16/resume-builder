@@ -6,6 +6,7 @@ use App\Models\Resume;
 use App\Models\ResumeAnalysis;
 use App\Models\Template;
 use App\Services\PlanActivationService;
+use App\Services\PendingDownloadService;
 use App\Services\PdfConversionService;
 use App\Services\TemplateRenderService;
 use Illuminate\Http\Request;
@@ -78,6 +79,7 @@ class ResumeBuilderController extends Controller
             'template_id' => ['nullable', 'exists:templates,id'],
             'source' => ['required', 'in:manual,upload'],
             'resume' => ['required', 'array'],
+            'download_format' => ['nullable', 'in:pdf,doc,ppt'],
         ]);
 
         $normalizedResume = $this->normalizeResume($validated['resume']);
@@ -90,13 +92,19 @@ class ResumeBuilderController extends Controller
             'data' => $normalizedResume,
         ]);
 
+        $redirect = null;
         if (! $request->user()) {
-            $request->session()->put('pending_resume_id', $resume->id);
+            $downloadUrl = app(PendingDownloadService::class)->rememberResume(
+                $request,
+                $resume,
+                $validated['download_format'] ?? 'pdf'
+            );
+            $redirect = route('login', ['redirect' => $downloadUrl]);
         }
 
         return response()->json([
             'resume' => ['id' => $resume->id],
-            'redirect' => $request->user() ? null : route('login').'?redirect='.urlencode(route('plans'))
+            'redirect' => $redirect,
         ]);
     }
 
@@ -215,18 +223,12 @@ class ResumeBuilderController extends Controller
     {
         $this->authorizeResume($resume);
 
-        if (! $request->user()) {
-            return redirect()->route('login');
-        }
-
-        if (! $resume->is_paid && ! $request->user()->activeSubscription?->hasDownloadsRemaining()) {
-            return redirect()->route('plans')->with('status', 'Choose a plan to unlock downloads.');
-        }
-
         if (! $resume->is_paid) {
             app(PlanActivationService::class)->consumeDownload($request->user());
             $resume->forceFill(['is_paid' => true])->save();
         }
+
+        app(PendingDownloadService::class)->clear($request);
 
         $html = $resume->template
             ? view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderResume($resume->template, $resume->data)])->render()
@@ -258,6 +260,10 @@ class ResumeBuilderController extends Controller
     private function authorizeResume(Resume $resume): void
     {
         if ($resume->user_id && $resume->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        if (! $resume->user_id && $resume->session_id !== request()->session()->getId()) {
             abort(403);
         }
     }
