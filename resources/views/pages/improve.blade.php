@@ -146,7 +146,7 @@
         padding: 0.3rem 1rem 0.3rem 0.8rem;
         border-radius: var(--r-full);
     }
-    .section-label::before {
+    /* .section-label::before {
         content: '';
         display: block;
         width: 8px;
@@ -154,7 +154,7 @@
         background: var(--blue);
         border-radius: 50%;
         animation: pulse-ring 2s infinite;
-    }
+    } */
 
     /* ─── HERO SECTION ───────────────────────────────────────── */
     .enhance-hero {
@@ -720,11 +720,14 @@
 
     .workspace-grid {
         display: grid;
-        grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
-        gap: 1.5rem;
+        grid-template-columns: minmax(360px, 520px) minmax(0, 1fr);
+        gap: clamp(1rem, 2vw, 2rem);
         align-items: start;
     }
-    @media (max-width: 900px) { .workspace-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 1180px) {
+        .workspace-grid { grid-template-columns: minmax(320px, 460px) minmax(0, 1fr); }
+    }
+    @media (max-width: 980px) { .workspace-grid { grid-template-columns: 1fr; } }
 
     .editor-card, .preview-card {
         background: rgba(255,255,255,0.86);
@@ -747,16 +750,20 @@
     }
     .card-header h3 { font-family: var(--font-display); color: var(--navy); font-size: 1.1rem; font-weight: 400; }
 
-    .selected-template-card { padding: 1.2rem; }
+    .selected-template-card {
+        padding: clamp(0.75rem, 1.4vw, 1rem);
+        min-width: 0;
+    }
     .selected-template-preview {
-        height: 260px;
-        background: #ffffff;
+        width: 100%;
+        aspect-ratio: 210 / 297;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
         border: 1px solid var(--border);
         border-radius: var(--r-lg);
         overflow: hidden;
-        display: flex;
-        justify-content: center;
         position: relative;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.75);
+        contain: layout paint;
     }
 
     /* Force visibility in small preview */
@@ -768,10 +775,33 @@
         visibility: visible !important;
     }
     .selected-template-preview .tpl-thumb-scaler {
+        position: absolute;
+        inset: clamp(0.45rem, 1.1vw, 0.85rem);
+        width: auto;
+        height: auto;
+        overflow: hidden;
+        background: #ffffff;
+        border-radius: 14px;
+        box-shadow: 0 14px 35px rgba(15,23,42,0.08);
+        pointer-events: none;
+    }
+    .selected-template-preview #selectedTemplateThumb {
+        position: absolute;
+        top: 0;
+        left: 50%;
         width: 794px;
-        transform: scale(0.22);
+        min-height: 1123px;
+        transform: translateX(-50%) scale(var(--template-preview-scale, 0.42));
         transform-origin: top center;
         pointer-events: none;
+    }
+    .selected-template-preview #selectedTemplateThumb > .tpl-resume {
+        width: 794px !important;
+        max-width: 794px !important;
+        min-height: 1123px;
+        margin: 0 !important;
+        border: 0 !important;
+        box-shadow: none !important;
     }
     .selected-template-meta {
         display: flex;
@@ -779,7 +809,9 @@
         justify-content: space-between;
         gap: 1rem;
         margin-top: 1rem;
+        min-width: 0;
     }
+    .selected-template-meta > div { min-width: 0; }
     .selected-template-name { font-size: 0.9rem; font-weight: 800; color: var(--navy); }
 
     .card-footer {
@@ -826,6 +858,21 @@
         border: 1px solid var(--border);
     }
     @media (max-width: 640px) {
+        .workspace-section-header { margin-bottom: 1.25rem; }
+        .card-header {
+            padding: 0.9rem 1rem;
+            align-items: flex-start;
+        }
+        .selected-template-card { padding: 0.7rem; }
+        .selected-template-preview .tpl-thumb-scaler { inset: 0.4rem; border-radius: 12px; }
+        .selected-template-meta {
+            align-items: stretch;
+            flex-direction: column;
+            gap: 0.85rem;
+            margin-top: 0.85rem;
+        }
+        .selected-template-meta .btn-sm { width: 100%; }
+        .card-footer { padding: 0.9rem 1rem; }
         .preview-card { width: 100%; max-width: 100%; }
         .preview-content {
             justify-content: center;
@@ -1626,6 +1673,29 @@
 
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
     const ensureArray = v => Array.isArray(v) ? v : [];
+    const TEMPLATE_PAGE_WIDTH = 794;
+    const TEMPLATE_PAGE_HEIGHT = 1123;
+
+    function scaleSelectedTemplateThumb() {
+        const frame = document.querySelector('.selected-template-preview .tpl-thumb-scaler');
+        const thumb = document.getElementById('selectedTemplateThumb');
+        if (!frame || !thumb) return;
+
+        const width = frame.clientWidth;
+        const height = frame.clientHeight;
+        if (!width || !height) return;
+
+        const scale = Math.max(
+            0.08,
+            Math.min(width / TEMPLATE_PAGE_WIDTH, height / TEMPLATE_PAGE_HEIGHT)
+        );
+
+        thumb.style.setProperty('--template-preview-scale', scale.toFixed(4));
+    }
+
+    function scheduleSelectedTemplateScale() {
+        window.requestAnimationFrame(scaleSelectedTemplateThumb);
+    }
 
     function renderSkillsForTemplate(data) {
         return ensureArray(data.skills).map(s => `<span class="tpl-badge">${esc(s)}</span>`).join('');
@@ -1713,7 +1783,10 @@
         const selectedThumb    = document.getElementById('selectedTemplateThumb');
         if (selectedName) selectedName.textContent = template.name || 'Selected template';
         if (selectedCategory) selectedCategory.textContent = `${template.category || 'Resume'} resume template`;
-        if (selectedThumb) selectedThumb.innerHTML = html;
+        if (selectedThumb) {
+            selectedThumb.innerHTML = html;
+            scheduleSelectedTemplateScale();
+        }
     }
 
     function fillEditor(data) {
@@ -1893,6 +1966,14 @@
 
     // Initial setup
     buildTemplateGrid();
+    scheduleSelectedTemplateScale();
+    window.addEventListener('resize', scheduleSelectedTemplateScale, { passive: true });
+    if ('ResizeObserver' in window) {
+        const previewFrame = document.querySelector('.selected-template-preview');
+        if (previewFrame) {
+            new ResizeObserver(scheduleSelectedTemplateScale).observe(previewFrame);
+        }
+    }
 })();
 </script>
 

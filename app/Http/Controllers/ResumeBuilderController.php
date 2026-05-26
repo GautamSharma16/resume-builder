@@ -374,8 +374,10 @@ class ResumeBuilderController extends Controller
                 $this->normalizeArray($resume['social_links'] ?? []),
                 fn ($link) => ! preg_match('/(linkedin\.com\/in\/(?:alex|you)|github\.com\/(?:alex|you))/i', $link)
             )),
-            'certifications' => $this->normalizeArray($resume['certifications'] ?? []),
-            'achievements' => $this->normalizeArray($resume['achievements'] ?? []),
+            'certifications' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
+            'certificates' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
+            'languages' => $this->normalizeLanguages($resume['languages'] ?? []),
+            'achievements' => $this->normalizeNamedItems($resume['achievements'] ?? []),
             'profile_image' => $this->toText($resume['profile_image'] ?? ''),
         ]);
 
@@ -408,6 +410,58 @@ class ResumeBuilderController extends Controller
 
             return $this->toText($item);
         }, $items), fn ($item) => $item !== null && $item !== ''));
+    }
+
+    private function normalizeNamedItems(array|string|null $items): array
+    {
+        if ($items === null) {
+            return [];
+        }
+
+        $items = is_array($items) ? $items : explode(',', $items);
+
+        return array_values(array_filter(array_map(function ($item) {
+            if (is_array($item)) {
+                $name = $this->toText($item['name'] ?? '');
+                $description = $this->toText($item['description'] ?? $item['details'] ?? '');
+
+                if ($name === '' && $description === '') {
+                    return null;
+                }
+
+                return compact('name', 'description');
+            }
+
+            $name = $this->toText($item);
+
+            return $name === '' ? null : ['name' => $name, 'description' => ''];
+        }, $items)));
+    }
+
+    private function normalizeLanguages(array|string|null $items): array
+    {
+        if ($items === null) {
+            return [];
+        }
+
+        $items = is_array($items) ? $items : explode(',', $items);
+
+        return array_values(array_filter(array_map(function ($item) {
+            if (is_array($item)) {
+                $name = $this->toText($item['name'] ?? $item['language'] ?? '');
+                $level = $this->toText($item['level'] ?? $item['proficiency'] ?? '');
+
+                if ($name === '' && $level === '') {
+                    return null;
+                }
+
+                return compact('name', 'level');
+            }
+
+            $name = $this->toText($item);
+
+            return $name === '' ? null : ['name' => $name, 'level' => ''];
+        }, $items)));
     }
 
     private function normalizeNestedItems(array|string|null $items): array

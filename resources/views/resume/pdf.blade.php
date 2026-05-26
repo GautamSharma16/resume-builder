@@ -141,5 +141,38 @@
             @endforeach
         </ul>
     @endif
+
+    @if(count($resume['certifications'] ?? $resume['certificates'] ?? []))
+        <h2>Certifications</h2>
+        <ul>
+            @foreach(($resume['certifications'] ?? $resume['certificates'] ?? []) as $certification)
+                @if(is_array($certification))
+                    <li>
+                        @if($text($certification['name'] ?? '') !== '')
+                            <strong>{{ $text($certification['name'] ?? '') }}</strong>
+                        @endif
+                        @if($text($certification['description'] ?? '') !== '')
+                            <span class="project-description">{{ $text($certification['description'] ?? '') }}</span>
+                        @endif
+                    </li>
+                @else
+                    <li>{{ $text($certification) }}</li>
+                @endif
+            @endforeach
+        </ul>
+    @endif
+
+    @if(count($resume['languages'] ?? []))
+        <h2>Languages</h2>
+        <ul>
+            @foreach(($resume['languages'] ?? []) as $language)
+                @if(is_array($language))
+                    <li>{{ $text($language['name'] ?? $language['language'] ?? '') }}@if($text($language['level'] ?? $language['proficiency'] ?? '') !== '') - {{ $text($language['level'] ?? $language['proficiency'] ?? '') }}@endif</li>
+                @else
+                    <li>{{ $text($language) }}</li>
+                @endif
+            @endforeach
+        </ul>
+    @endif
 </body>
 </html>

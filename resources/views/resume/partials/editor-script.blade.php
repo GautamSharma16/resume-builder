@@ -65,7 +65,7 @@
     const A4_H = 1123;
 
     /* ── State ── */
-    const defaults = { name:'', last_name:'', job_title:'', designation:'', email:'', mobile:'', location:'', linkedin:'', portfolio:'', link:'', github:'', social_links:[], contact:'', address:'', summary:'', skills:[], experience:[], education:[], projects:[], certifications:[], achievements:[], primary_color: '', primary_color_customized: false, profile_image: '' };
+    const defaults = { name:'', last_name:'', job_title:'', designation:'', email:'', mobile:'', location:'', linkedin:'', portfolio:'', link:'', github:'', social_links:[], contact:'', address:'', summary:'', skills:[], experience:[], education:[], projects:[], certifications:[], languages:[], achievements:[], primary_color: '', primary_color_customized: false, profile_image: '' };
     const state = Object.assign({}, defaults, readJson('resume-initial-json', {}));
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -162,8 +162,11 @@
                     description: toText(p?.description ?? p?.highlights ?? p?.points ?? ''),
                 }
         ),
-        certifications: ensureArray(r.certifications).map(c =>
+        certifications: ensureArray(r.certifications ?? r.certificates).map(c =>
             typeof c === 'string' ? { name: c, description: '' } : { name: String(c?.name ?? ''), description: String(c?.description ?? '') }
+        ),
+        languages: ensureArray(r.languages).map(l =>
+            typeof l === 'string' ? { name: l, level: '' } : { name: String(l?.name ?? l?.language ?? ''), level: String(l?.level ?? l?.proficiency ?? '') }
         ),
         achievements: ensureArray(r.achievements).map(a =>
             typeof a === 'string' ? { name: a, description: '' } : { name: String(a?.name ?? ''), description: String(a?.description ?? '') }
@@ -180,6 +183,7 @@
         if (!state.education.length)  state.education.push({ degree:'', stream:'', institution:'', year:'' });
         if (!state.projects.length)   state.projects.push({ name:'', tech_stack:'', link:'', description:'' });
         if (!state.certifications.length) state.certifications.push({ name:'', description:'' });
+        if (!state.languages.length) state.languages.push({ name:'', level:'' });
         if (!state.achievements.length)   state.achievements.push({ name:'', description:'' });
     };
     ensureDefaults();
@@ -225,6 +229,11 @@
                 const meta = [i.institution, i.year].map(v => String(v || '').trim()).filter(Boolean).join(', ');
                 return `<li>${title ? `<strong>${esc(title)}</strong>` : ''}${meta ? `<span class="tpl-description">${esc(meta)}</span>` : ''}</li>`;
             }
+            if ('level' in i || 'proficiency' in i || 'language' in i) {
+                const name = String(i.name || i.language || '').trim();
+                const level = String(i.level || i.proficiency || '').trim();
+                return `<li>${name ? `<strong>${esc(name)}</strong>` : ''}${level ? `<span class="tpl-description">${esc(level)}</span>` : ''}</li>`;
+            }
             const name = esc(i?.name || '');
             const tech = esc(i?.tech_stack || i?.tech || '');
             const link = esc(i?.link || i?.url || '');
@@ -255,7 +264,7 @@
         return output;
     }
     function hasResumePlaceholders(html) {
-        const tokens = ['name', 'last_name', 'job_title', 'designation', 'email', 'mobile', 'location', 'contact', 'address', 'summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'achievements', 'social_links', 'linkedin', 'portfolio', 'link', 'profile_image', 'profile_image_url', 'profile_image_tag', 'photo'];
+        const tokens = ['name', 'last_name', 'job_title', 'designation', 'email', 'mobile', 'location', 'contact', 'address', 'summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'certificates', 'languages', 'achievements', 'social_links', 'linkedin', 'portfolio', 'link', 'profile_image', 'profile_image_url', 'profile_image_tag', 'photo'];
         return new RegExp('\\{\\{\\s*(' + tokens.join('|') + ')\\s*\\}\\}', 'i').test(html)
             || new RegExp('\\[\\[\\s*(' + tokens.join('|') + ')\\s*\\]\\]', 'i').test(html)
             || /\{\{#if\s+[a-z0-9_.]+\s*\}\}/i.test(html)
@@ -280,6 +289,7 @@
                 <section><h2>Experience</h2>@{{experience}}</section>
                 <section><h2>Projects</h2>@{{projects}}</section>
                 <section><h2>Certifications</h2>@{{certifications}}</section>
+                <section><h2>Languages</h2>@{{languages}}</section>
                 <section><h2>Achievements</h2>@{{achievements}}</section>
                 <section><h2>Education</h2>@{{education}}</section>
             </div>`;
@@ -339,6 +349,8 @@
             education:    state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ? renderList(state.education) : '',
             projects:     state.projects.some(p => p?.name || typeof p === 'string') ? renderList(state.projects) : '',
             certifications: state.certifications.some(c => c?.name || typeof c === 'string') ? renderList(state.certifications) : '',
+            certificates: state.certifications.some(c => c?.name || typeof c === 'string') ? renderList(state.certifications) : '',
+            languages: state.languages.some(l => l?.name || typeof l === 'string') ? renderList(state.languages) : '',
             achievements: state.achievements.some(a => a?.name || typeof a === 'string') ? renderList(state.achievements) : '',
             profile_image: state.profile_image || '',
             profile_image_url: state.profile_image || '',
@@ -348,7 +360,7 @@
         output = applyHandlebarsIfBlocks(output, values);
         Object.entries(values).forEach(([k, v]) => { output = replaceToken(output, k, v); });
 
-        ['projects', 'certifications', 'achievements', 'experience', 'education'].forEach(key => {
+        ['projects', 'certifications', 'certificates', 'languages', 'achievements', 'experience', 'education'].forEach(key => {
             if (!values[key] || values[key] === '<ul></ul>' || values[key] === '') {
                 const re = new RegExp('<(h2|h3|h4|div)[^>]*>[^<]*?' + key + '[^<]*?<\\/\\1>\\s*(?:<[^>]+>\\s*)*?(\\{\\{\\s*' + key + '\\s*\\}\\}|\\[\\[' + key + '\\]\\])', 'gi');
                 output = output.replace(re, '');
@@ -362,7 +374,8 @@
                 'designation': values.designation, 'email': values.email, 'mobile': values.mobile,
                 'location': values.location, 'summary': values.summary,
                 'linkedin': values.linkedin || state.social_links[0] || '',
-                'portfolio': values.portfolio, 'link': values.link, 'github': state.social_links[1] || ''
+                'portfolio': values.portfolio, 'link': values.link, 'github': state.social_links[1] || '',
+                'certifications': values.certifications, 'certificates': values.certificates, 'languages': values.languages
             };
             Object.entries(bladeMap).forEach(([k, v]) => {
                 const re = new RegExp('\\{\\{\\s*\\$resume\\[[\'"]' + k + '[\'"]\\]\\s*\\}\\}', 'g');
@@ -372,6 +385,9 @@
             output = output.replace(/@@foreach\s*\(\s*\$resume\[['"]skills['"]\][^)]*\)([\s\S]*?)@@endforeach/g, values.skills);
             output = output.replace(/@@foreach\s*\(\s*\$resume\[['"]education['"]\][^)]*\)([\s\S]*?)@@endforeach/g, values.education);
             output = output.replace(/@@foreach\s*\(\s*\$resume\[['"]projects['"]\][^)]*\)([\s\S]*?)@@endforeach/g, values.projects);
+            output = output.replace(/@@foreach\s*\(\s*\$resume\[['"]certifications['"]\][^)]*\)([\s\S]*?)@@endforeach/g, values.certifications);
+            output = output.replace(/@@foreach\s*\(\s*\$resume\[['"]certificates['"]\][^)]*\)([\s\S]*?)@@endforeach/g, values.certificates);
+            output = output.replace(/@@foreach\s*\(\s*\$resume\[['"]languages['"]\][^)]*\)([\s\S]*?)@@endforeach/g, values.languages);
             output = output.replace(/@@if\s*\([^)]*\)|@@endif|@@else/g, '');
         }
 
@@ -385,7 +401,7 @@
             }
         }
 
-        if (!hasProjectsToken) {
+        if (!hasProjectsToken && values.projects) {
             const section = `<h2>Projects</h2>${values.projects}`;
             const lastDiv = output.lastIndexOf('</div>');
             output = lastDiv !== -1 ? output.slice(0, lastDiv) + section + output.slice(lastDiv) : output + section;
@@ -432,6 +448,7 @@
                 ${state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Education</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.education.filter(e => e?.degree || e?.stream || e?.institution || e?.year).map(e=>`<li style="font-size:11px;"><strong>${esc([e.degree, e.stream].filter(Boolean).join(' - '))}</strong>${[e.institution, e.year].filter(Boolean).length ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc([e.institution, e.year].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>` : ''}
                 ${projectsHtml ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Projects</h2><ul style="margin:0 0 14px 14px;padding:0;">${projectsHtml}</ul>` : ''}
                 ${state.certifications.some(c => c?.name || typeof c === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Certifications</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.certifications.map(c => `<li style="font-size:11px;"><strong>${esc(typeof c === 'string' ? c : (c?.name || ''))}</strong>${(typeof c !== 'string' && c?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(c.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+                ${state.languages.some(l => l?.name || typeof l === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Languages</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.languages.map(l => `<li style="font-size:11px;"><strong>${esc(typeof l === 'string' ? l : (l?.name || ''))}</strong>${(typeof l !== 'string' && l?.level) ? `<span style="color:#6b7280;font-size:10.5px;"> - ${esc(l.level)}</span>` : ''}</li>`).join('')}</ul>` : ''}
                 ${state.achievements.some(a => a?.name || typeof a === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Achievements</h2><ul style="margin:0 0 0 14px;padding:0;">${state.achievements.map(a => `<li style="font-size:11px;"><strong>${esc(typeof a === 'string' ? a : (a?.name || ''))}</strong>${(typeof a !== 'string' && a?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(a.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
             </div>
             </div></div>`;
@@ -811,6 +828,28 @@
                 </div>`).join('');
         }
 
+        /* Language cards */
+        const langEditorEl = $('language-editor');
+        if (langEditorEl) {
+            langEditorEl.innerHTML = state.languages.map((l, i) => `
+                <div class="rp-entry-card" data-language="${i}">
+                    <div class="rp-entry-row">
+                        <div class="rp-entry-field">
+                            <label class="rp-entry-label">Language</label>
+                            <input class="rp-input" data-k="name" value="${esc(typeof l === 'string' ? l : (l?.name || ''))}" placeholder="e.g. English">
+                        </div>
+                        <div class="rp-entry-field">
+                            <label class="rp-entry-label">Proficiency</label>
+                            <input class="rp-input" data-k="level" value="${esc(typeof l === 'string' ? '' : (l?.level || ''))}" placeholder="e.g. Professional, Native">
+                        </div>
+                    </div>
+                    <button type="button" data-remove-language class="rp-entry-remove">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                        Remove
+                    </button>
+                </div>`).join('');
+        }
+
         /* Achievement cards */
         const achEditorEl = $('achievement-editor');
         if (achEditorEl) {
@@ -852,15 +891,17 @@
     function applyDynamicFormVisibility() {
         const tokens = templateTokensForForm(selectedTemplateId);
         const hasExplicitTokens = tokens.size > 0;
+        if (tokens.has('certificates')) tokens.add('certifications');
+        if (tokens.has('certifications')) tokens.add('certificates');
         document.querySelectorAll('[data-template-field]').forEach((node) => {
             const required = String(node.getAttribute('data-template-field') || '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
             if (!required.length) return;
             node.style.display = (!hasExplicitTokens || required.some(token => tokens.has(token))) ? '' : 'none';
         });
         document.querySelectorAll('[data-template-section]').forEach((node) => {
-            const token = String(node.getAttribute('data-template-section') || '').trim().toLowerCase();
-            if (!token) return;
-            node.style.display = (!hasExplicitTokens || tokens.has(token)) ? '' : 'none';
+            const required = String(node.getAttribute('data-template-section') || '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
+            if (!required.length) return;
+            node.style.display = (!hasExplicitTokens || required.some(token => tokens.has(token))) ? '' : 'none';
         });
     }
 
@@ -1043,6 +1084,16 @@
         renderTemplatePreview();
     });
 
+    $('language-editor')?.addEventListener('input', e => {
+        const row = e.target.closest('[data-language]');
+        if (!row) return;
+        const i = Number(row.dataset.language);
+        const k = e.target.dataset.k;
+        if (!state.languages[i]) state.languages[i] = { name:'', level:'' };
+        state.languages[i][k] = e.target.value;
+        renderTemplatePreview();
+    });
+
     $('achievement-editor')?.addEventListener('input', e => {
         const row = e.target.closest('[data-achievement]');
         if (!row) return;
@@ -1108,6 +1159,7 @@
         if (btn.id === 'add-edu-btn' || btn.id === 'add-edu') { state.education.push({ degree:'', stream:'', institution:'', year:'' }); renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'add-project-btn' || btn.id === 'add-project') { state.projects.push({ name:'', tech_stack:'', link:'', description:'' }); renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'add-certification-btn') { state.certifications.push({ name:'', description:'' }); renderEditor(); renderTemplatePreview(); }
+        if (btn.id === 'add-language-btn') { state.languages.push({ name:'', level:'' }); renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'add-achievement-btn')   { state.achievements.push({ name:'', description:'' }); renderEditor(); renderTemplatePreview(); }
 
         if (btn.dataset.removeExp !== undefined) {
@@ -1122,12 +1174,14 @@
         }
         if (btn.dataset.removeProject !== undefined)       { state.projects.splice(Number(btn.closest('[data-project]').dataset.project), 1); renderEditor(); renderTemplatePreview(); }
         if (btn.dataset.removeCertification !== undefined) { state.certifications.splice(Number(btn.closest('[data-certification]').dataset.certification), 1); renderEditor(); renderTemplatePreview(); }
+        if (btn.dataset.removeLanguage !== undefined)      { state.languages.splice(Number(btn.closest('[data-language]').dataset.language), 1); renderEditor(); renderTemplatePreview(); }
         if (btn.dataset.removeAchievement !== undefined)   { state.achievements.splice(Number(btn.closest('[data-achievement]').dataset.achievement), 1); renderEditor(); renderTemplatePreview(); }
 
         if (btn.id === 'clear-exp-section-btn')           { state.experience = []; renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'clear-edu-section-btn')           { state.education = [];  renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'clear-project-section-btn')       { state.projects = [];   renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'clear-certification-section-btn') { state.certifications = []; renderEditor(); renderTemplatePreview(); }
+        if (btn.id === 'clear-language-section-btn')      { state.languages = []; renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'clear-achievement-section-btn')   { state.achievements = [];   renderEditor(); renderTemplatePreview(); }
     });
 
@@ -1269,6 +1323,9 @@
             experience: `<div class="tpl-role"><div class="tpl-role-head"><strong>Senior Engineer</strong><span>2021-Present</span></div><p>TechCorp</p><ul><li>Led a team of 6 engineers</li><li>Reduced API latency by 40%</li></ul></div>`,
             education: '<ul><li>B.Sc. Computer Science, MIT, 2019</li></ul>',
             projects: '<ul><li><strong>Open Resume</strong><span class="tpl-description">Built with React &amp; Node.js</span></li></ul>',
+            certifications: '<ul><li>AWS Certified Developer</li></ul>',
+            certificates: '<ul><li>AWS Certified Developer</li></ul>',
+            languages: '<ul><li>English - Professional</li><li>Hindi - Native</li></ul>',
             profile_image: '<div style="width:80px; height:80px; background:#e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#94a3b8;"><svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></div>',
         };
         let filled = hasResumePlaceholders(html) ? html : editableTemplateShell();

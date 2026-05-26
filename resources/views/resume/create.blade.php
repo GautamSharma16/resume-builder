@@ -1568,7 +1568,7 @@
                     <div class="step-head">
                         <div>
                             <h2>Additional Sections</h2>
-                            <p>Add projects, certifications, and achievements to stand out.</p>
+                            <p>Add projects, certifications, languages, and achievements to stand out.</p>
                         </div>
                     </div>
 
@@ -1589,7 +1589,7 @@
                     </div>
 
                     {{-- Certifications --}}
-                    <div id="certifications-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);" data-template-section="certifications">
+                    <div id="certifications-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);" data-template-section="certifications,certificates">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                             <h3 style="font-size: 1.1rem; font-weight: 700;">Certifications</h3>
                             <button type="button" id="clear-certification-section-btn" class="rp-entry-remove">
@@ -1601,6 +1601,22 @@
                         <button type="button" id="add-certification-btn" class="rp-add-btn" style="margin-top:0.5rem;">
                             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             Add Certification
+                        </button>
+                    </div>
+
+                    {{-- Languages --}}
+                    <div id="languages-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);" data-template-section="languages">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <h3 style="font-size: 1.1rem; font-weight: 700;">Languages</h3>
+                            <button type="button" id="clear-language-section-btn" class="rp-entry-remove">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                                Delete Section
+                            </button>
+                        </div>
+                        <div id="language-editor"></div>
+                        <button type="button" id="add-language-btn" class="rp-add-btn" style="margin-top:0.5rem;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Language
                         </button>
                     </div>
 
@@ -1836,6 +1852,9 @@
                 experience: toArr(data.experience),
                 education: toArr(data.education),
                 projects: toArr(data.projects),
+                certifications: toArr(data.certifications || data.certificates),
+                certificates: toArr(data.certifications || data.certificates),
+                languages: toArr(data.languages),
             };
             return normalized;
         }
@@ -1934,6 +1953,10 @@
                 certifications: Array.from(document.querySelectorAll('[data-certification]')).map(block => ({
                     name: block.querySelector('[data-k="name"]')?.value || '',
                     description: block.querySelector('[data-k="description"]')?.value || '',
+                })),
+                languages: Array.from(document.querySelectorAll('[data-language]')).map(block => ({
+                    name: block.querySelector('[data-k="name"]')?.value || '',
+                    level: block.querySelector('[data-k="level"]')?.value || '',
                 })),
                 achievements: Array.from(document.querySelectorAll('[data-achievement]')).map(block => ({
                     name: block.querySelector('[data-k="name"]')?.value || '',

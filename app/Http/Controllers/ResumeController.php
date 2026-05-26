@@ -552,12 +552,18 @@ FORMAT:
     ],
     "projects": [
       { "name": "Name", "tech": "Stack", "description": "Description" }
+    ],
+    "certifications": [
+      { "name": "Certificate Name", "description": "Issuer or year" }
+    ],
+    "languages": [
+      { "name": "Language", "level": "Proficiency" }
     ]
   }
 }
 
 CRITICAL:
-1. "improved_resume" MUST contain all keys: name, email, mobile, location, social_links, summary, skills, experience, education, projects.
+1. "improved_resume" MUST contain all keys: name, email, mobile, location, social_links, summary, skills, experience, education, projects, certifications, languages.
 2. "experience" items MUST have: company, role, period, points (array of bullets).
 3. "education" items MUST have: degree, stream, institution, year.
 4. "projects" items MUST have: name, tech, description.
@@ -865,6 +871,10 @@ PROMPT;
                     'description' => (string) ($item['description'] ?? ''),
                 ];
             }, $resume['projects'] ?? [])),
+            'certifications' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
+            'certificates' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
+            'languages' => $this->normalizeLanguages($resume['languages'] ?? []),
+            'achievements' => $this->normalizeNamedItems($resume['achievements'] ?? []),
         ];
 
         $primaryColor = trim((string) ($resume['primary_color'] ?? ''));
@@ -874,6 +884,58 @@ PROMPT;
         }
 
         return $normalized;
+    }
+
+    private function normalizeNamedItems(array|string|null $items): array
+    {
+        if ($items === null) {
+            return [];
+        }
+
+        $items = is_array($items) ? $items : explode(',', $items);
+
+        return array_values(array_filter(array_map(function ($item) {
+            if (is_array($item)) {
+                $name = trim((string) ($item['name'] ?? ''));
+                $description = trim((string) ($item['description'] ?? $item['details'] ?? ''));
+
+                if ($name === '' && $description === '') {
+                    return null;
+                }
+
+                return compact('name', 'description');
+            }
+
+            $name = trim((string) $item);
+
+            return $name === '' ? null : ['name' => $name, 'description' => ''];
+        }, $items)));
+    }
+
+    private function normalizeLanguages(array|string|null $items): array
+    {
+        if ($items === null) {
+            return [];
+        }
+
+        $items = is_array($items) ? $items : explode(',', $items);
+
+        return array_values(array_filter(array_map(function ($item) {
+            if (is_array($item)) {
+                $name = trim((string) ($item['name'] ?? $item['language'] ?? ''));
+                $level = trim((string) ($item['level'] ?? $item['proficiency'] ?? ''));
+
+                if ($name === '' && $level === '') {
+                    return null;
+                }
+
+                return compact('name', 'level');
+            }
+
+            $name = trim((string) $item);
+
+            return $name === '' ? null : ['name' => $name, 'level' => ''];
+        }, $items)));
     }
 
     private function findAuthorizedAnalysis(Request $request, int $id): ResumeAnalysis
