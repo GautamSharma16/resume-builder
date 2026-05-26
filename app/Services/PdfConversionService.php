@@ -378,11 +378,21 @@ HTML;
         $jsFile = tempnam(sys_get_temp_dir(), 'js_') . '.cjs';
 
         $chromeCandidates = array_filter([
-            env('PUPPETEER_EXECUTABLE_PATH'),
-            'C:/Program Files/Google/Chrome/Application/chrome.exe',
-            'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-        ]);
-        $chromePath = collect($chromeCandidates)->first(fn($path) => $path && file_exists($path)) ?: '';
+    env('PUPPETEER_EXECUTABLE_PATH'),
+
+    // Linux VPS
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+
+    // Windows
+    'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+]);
+
+$chromePath = collect($chromeCandidates)
+    ->first(fn ($path) => $path && file_exists($path)) ?: '';
         $puppeteerDir = str_replace('\\', '/', base_path('node_modules/puppeteer'));
 
         $js = str_replace(
