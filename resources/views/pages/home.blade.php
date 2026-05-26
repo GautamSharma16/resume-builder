@@ -1256,27 +1256,34 @@
 
     .ts-stage {
         position: relative;
-        min-height: 0 !important;
-        overflow: visible;
-        padding: 8px 0 20px;
+        min-height: 450px !important;
+        overflow: hidden;
+        padding: 12px 0 24px;
         display: block !important;
         width: 100%;
     }
     .ts-track {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+        display: flex;
         align-items: start;
-        justify-items: center;
-        gap: clamp(16px, 2vw, 28px);
-        width: 100%;
+        gap: 22px;
+        width: max-content;
+        padding-inline: 12px;
+        will-change: transform;
+        animation-duration: 42s;
+        animation-timing-function: linear;
+        animation-iteration-count: infinite;
     }
-    .ts-stage--resume .ts-track,
-    .ts-stage--cover .ts-track,
-    .ts-stage:hover .ts-track {
-        animation: none;
+    .ts-stage--resume .ts-track {
+        animation-name: tsMarqueeRtl;
+        animation-direction: reverse;
     }
+    .ts-stage--cover .ts-track {
+        animation-name: tsMarqueeRtl;
+        animation-direction: normal;
+    }
+    .ts-stage:hover .ts-track { animation-play-state: paused; }
     .ts-card {
-        width: min(100%, 300px) !important;
+        width: 300px !important;
         height: auto !important;
         aspect-ratio: 210 / 297;
         opacity: 1 !important;
@@ -1333,6 +1340,10 @@
     .ts-stage .ts-card:not(.center) .ts-hover-overlay { display: flex !important; }
     .ts-stage .ts-card:hover .ts-hover-overlay { opacity: 1; }
     .ts-dots, .ts-nav { display: none !important; }
+    @keyframes tsMarqueeRtl {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+    }
     @media (max-width: 768px) {
         .templates-section {
             padding-inline: 1rem;
@@ -1347,6 +1358,7 @@
             -webkit-overflow-scrolling: touch;
             padding-bottom: 14px;
             margin-inline: -1rem;
+            min-height: 420px !important;
         }
         .ts-stage::-webkit-scrollbar {
             display: none;
@@ -1356,10 +1368,14 @@
             gap: 14px;
             width: max-content;
             padding-inline: 1rem;
+            animation: none !important;
         }
         .ts-card {
-            width: min(76vw, 270px) !important;
+            width: min(82vw, 290px) !important;
             scroll-snap-align: center;
+        }
+        .ts-stage--cover .ts-card {
+            width: min(88vw, 320px) !important;
         }
         .templates-section .section-heading { font-size: clamp(1.8rem, 8vw, 2.5rem); }
         .ts-use-btn { padding: 9px 16px; font-size: 12px; }
@@ -1707,7 +1723,7 @@ function buildMarquee(stageId, items) {
         return card;
     };
 
-    items.forEach((item) => track.appendChild(renderCard(item)));
+    [...items, ...items].forEach((item) => track.appendChild(renderCard(item)));
     stage.innerHTML = '';
     stage.appendChild(track);
     requestAnimationFrame(() => fitTemplatePreview(stage));
