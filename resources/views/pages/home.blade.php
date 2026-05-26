@@ -139,7 +139,7 @@
         padding: 0.3rem 1rem 0.3rem 0.8rem;
         border-radius: var(--r-full);
     }
-    .section-label::before {
+    /* .section-label::before {
         content: '';
         display: block;
         width: 8px;
@@ -147,7 +147,7 @@
         background: var(--blue);
         border-radius: 50%;
        
-    }
+    } */
     .section-heading {
         font-family: var(--font-display);
         font-size: clamp(2rem, 4vw, 3.2rem);
