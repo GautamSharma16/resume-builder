@@ -455,14 +455,17 @@ JS
         $process->setWorkingDirectory(base_path());
         $process->setTimeout(120);
         $process->setEnv([
-            'PUPPETEER_EXECUTABLE_PATH' => $chromePath,
-            'PUPPETEER_SKIP_CHROMIUM_DOWNLOAD' => 'true',
-            'PATH' => getenv('PATH'),
-            'TEMP' => sys_get_temp_dir(),
-            'TMP' => sys_get_temp_dir(),
-            'SystemRoot' => 'C:\\Windows',
-            'SystemDrive' => 'C:',
-        ]);
+    'PUPPETEER_EXECUTABLE_PATH' => $chromePath,
+    'PUPPETEER_SKIP_CHROMIUM_DOWNLOAD' => 'true',
+
+    'HOME' => '/var/www',
+    'XDG_CONFIG_HOME' => '/var/www/.config',
+    'XDG_CACHE_HOME' => '/var/www/.cache',
+
+    'PATH' => getenv('PATH'),
+    'TEMP' => sys_get_temp_dir(),
+    'TMP' => sys_get_temp_dir(),
+]);
         $process->run();
 
         @unlink($htmlFile);
