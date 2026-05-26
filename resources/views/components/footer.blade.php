@@ -271,7 +271,7 @@
                 <a href="{{ route('privacy') }}">Privacy Policy</a>
                 <a href="{{ route('terms') }}">Terms of Use</a>
                 <a href="{{ route('contact') }}">Contact Us</a>
-                <a href="{{ route('interview') }}">FAQ</a>
+                
             </div>
         </div>
     </div>
