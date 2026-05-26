@@ -84,6 +84,15 @@ class TemplateRenderService
                 'MongoDB Certified Developer',
                 'Certified React.js Specialist',
             ],
+            'certificates' => [
+                'AWS Certified Developer - Associate',
+                'MongoDB Certified Developer',
+                'Certified React.js Specialist',
+            ],
+            'languages' => [
+                ['name' => 'English', 'level' => 'Professional'],
+                ['name' => 'Hindi', 'level' => 'Native'],
+            ],
             'achievements' => [
                 'Won First Place at the State-Level Hackathon 2023.',
                 'Published a research paper on AI-driven UI optimization in IJCS.',
@@ -148,7 +157,7 @@ class TemplateRenderService
 
     public function containsResumePlaceholders(string $html): bool
     {
-        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\]\]/i', $html) === 1
+        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\]\]/i', $html) === 1
             || preg_match('/\{\{#if\s+[a-z0-9_.]+\s*\}\}/i', $html) === 1
             || $this->shouldRenderWithBlade($html);
     }
@@ -173,6 +182,8 @@ class TemplateRenderService
     <section><h2>Experience</h2>{{experience}}</section>
     <section><h2>Projects</h2>{{projects}}</section>
     <section><h2>Education</h2>{{education}}</section>
+    <section><h2>Certifications</h2>{{certifications}}</section>
+    <section><h2>Languages</h2>{{languages}}</section>
 </div>
 HTML;
     }
@@ -260,7 +271,7 @@ HTML;
         }
 
         // Dynamic Section Visibility: If a section is empty, remove its header and token
-        foreach (['projects', 'certifications', 'achievements', 'experience', 'education'] as $key) {
+        foreach (['projects', 'certifications', 'certificates', 'languages', 'achievements', 'experience', 'education'] as $key) {
             $val = $data[$key] ?? '';
             if (empty($val) || $val === '<ul></ul>' || $val === '""' || $val === 'null') {
                 // Regex to find a section header followed by the token.
@@ -278,6 +289,7 @@ HTML;
             // We also check if a section header with the title already exists to avoid duplicates.
             $this->ensureSectionVisible($html, $data, 'projects', 'Projects');
             $this->ensureSectionVisible($html, $data, 'certifications', 'Certifications');
+            $this->ensureSectionVisible($html, $data, 'languages', 'Languages');
             $this->ensureSectionVisible($html, $data, 'achievements', 'Achievements');
         }
 
@@ -409,7 +421,9 @@ HTML;
             'education' => $this->list(Arr::get($data, 'education', [])),
             'projects' => $this->projectList(Arr::get($data, 'projects', [])),
             'social_links' => $this->inline(Arr::get($data, 'social_links', [])),
-            'certifications' => $this->list(Arr::get($data, 'certifications', [])),
+            'certifications' => $this->list(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
+            'certificates' => $this->list(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
+            'languages' => $this->languageList(Arr::get($data, 'languages', [])),
             'achievements' => $this->list(Arr::get($data, 'achievements', [])),
             'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
@@ -474,7 +488,9 @@ HTML;
             'experience' => $this->normalizeBladeArray(Arr::get($data, 'experience', [])),
             'education' => $this->normalizeBladeArray(Arr::get($data, 'education', [])),
             'projects' => $this->normalizeBladeArray(Arr::get($data, 'projects', [])),
-            'certifications' => $this->normalizeBladeArray(Arr::get($data, 'certifications', [])),
+            'certifications' => $this->normalizeBladeArray(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
+            'certificates' => $this->normalizeBladeArray(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
+            'languages' => $this->normalizeBladeArray(Arr::get($data, 'languages', [])),
             'achievements' => $this->normalizeBladeArray(Arr::get($data, 'achievements', [])),
             'social_links' => $this->normalizeBladeArray(Arr::get($data, 'social_links', [])),
             'link' => $this->text(Arr::get($data, 'link', '')),
@@ -568,7 +584,10 @@ HTML;
         $normalized = collect($items)->map(function ($item) {
             if (is_array($item)) {
                 if (array_key_exists('description', $item)) {
-                    return $this->text($item['description']);
+                    $name = $this->text($item['name'] ?? '');
+                    $description = $this->text($item['description']);
+
+                    return trim($name.($description !== '' ? ' - '.$description : ''));
                 }
 
                 if (array_key_exists('points', $item)) {
@@ -587,6 +606,27 @@ HTML;
         }
 
         return '<ul>'.$normalized->map(fn ($item) => '<li>'.$this->rich($item).'</li>')->join('').'</ul>';
+    }
+
+    private function languageList(array|string|null $items): string
+    {
+        $items ??= [];
+        $items = is_array($items) ? $items : explode(',', $items);
+
+        $normalized = collect($items)->map(function ($item) {
+            if (is_array($item)) {
+                $name = $this->text($item['name'] ?? $item['language'] ?? '');
+                $level = $this->text($item['level'] ?? $item['proficiency'] ?? '');
+
+                return trim($name.($level !== '' ? ' - '.$level : ''));
+            }
+
+            return $this->text($item);
+        })->filter()->values();
+
+        return $normalized->isEmpty()
+            ? ''
+            : '<ul>'.$normalized->map(fn ($item) => '<li>'.$this->rich($item).'</li>')->join('').'</ul>';
     }
 
     private function rich(string $v): string

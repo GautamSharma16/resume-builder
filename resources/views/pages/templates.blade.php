@@ -144,9 +144,9 @@
 
     .template-grid-list {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 340px));
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 360px));
         justify-content: center;
-        gap: clamp(1.25rem, 3vw, 3rem);
+        gap: clamp(1.25rem, 3vw, 2.5rem);
         width: 100%;
     }
 
@@ -159,6 +159,8 @@
         aspect-ratio: 210 / 297;
         height: auto !important;
         contain: layout paint;
+        isolation: isolate;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     }
 
     .template-card-preview-frame {
@@ -166,9 +168,25 @@
         top: 0;
         left: 50%;
         width: 794px;
-        min-height: 1123px;
+        height: 1123px;
         transform-origin: top center;
+        transform: translateX(-50%) scale(var(--template-preview-scale, 0.42));
         pointer-events: none;
+        overflow: hidden;
+        transition: transform 0.35s var(--ease-out);
+    }
+
+    .template-card-preview:hover .template-card-preview-frame {
+        transform: translateX(-50%) scale(calc(var(--template-preview-scale, 0.42) * 1.025));
+    }
+
+    .template-card-preview-frame .tpl-resume,
+    .template-card-preview-frame .tpl-cover {
+        width: 794px !important;
+        min-height: 1123px !important;
+        max-width: none !important;
+        margin: 0 !important;
+        box-shadow: none !important;
     }
 
     @media (max-width: 640px) {
@@ -196,6 +214,10 @@
         .qv-close {
             top: 16px;
             right: 16px;
+        }
+
+        .template-grid-list {
+            grid-template-columns: minmax(0, 1fr);
         }
     }
 </style>
@@ -236,7 +258,7 @@
                 @endphp
                 @foreach($tabs as $key => $label)
                     <button
-                        @click="tab='{{ $key }}'"
+                        @click="tab='{{ $key }}'; $nextTick(() => window.dispatchEvent(new Event('resize')))"
                         :class="tab==='{{ $key }}'
                             ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
                             : 'bg-transparent text-gray-600 hover:text-blue-700 hover:bg-blue-50'"
@@ -289,7 +311,7 @@
 
                             {{-- PREVIEW THUMBNAIL --}}
                             <div class="template-card-preview relative cursor-pointer group/preview overflow-hidden rounded-2xl border border-slate-200 bg-white w-full shadow-sm">
-                                <div class="template-card-preview-frame transition-all duration-700 group-hover/preview:scale-[1.03]">
+                                <div class="template-card-preview-frame">
                                     <div class="bg-white" style="width: 794px; min-height: 1123px;">
                                         {!! $rendered[$template->id] ?? '<div class="p-8 text-gray-400">Preview not available</div>' !!}
                                     </div>
@@ -374,8 +396,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.template-card-preview').forEach((card) => {
             const frame = card.querySelector('.template-card-preview-frame');
             if (!frame) return;
-            const scale = Math.min(card.clientWidth / 794, card.clientHeight / 1123) * 0.995;
-            frame.style.transform = `translateX(-50%) scale(${scale})`;
+            const width = card.clientWidth || card.offsetWidth || 0;
+            const height = card.clientHeight || card.offsetHeight || 0;
+            if (!width || !height) return;
+            const scale = Math.min(width / 794, height / 1123) * 0.998;
+            card.style.setProperty('--template-preview-scale', scale.toFixed(5));
         });
     }
 
@@ -448,6 +473,10 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
     window.addEventListener('resize', updateZoom);
     window.addEventListener('resize', scaleTemplateCards);
+    document.querySelectorAll('[x-show]').forEach(node => {
+        new MutationObserver(() => requestAnimationFrame(scaleTemplateCards))
+            .observe(node, { attributes: true, attributeFilter: ['style', 'class'] });
+    });
 
     colorPicker?.addEventListener('click', (e) => {
         const btn = e.target.closest('.template-preview-color');
@@ -459,6 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     scaleTemplateCards();
     setTimeout(scaleTemplateCards, 100);
+    setTimeout(scaleTemplateCards, 350);
 });
 </script>
 @endsection

@@ -837,7 +837,7 @@
                             @endif
                         </div>
                         @if(!$activeSubscription)
-                            <a href="{{ route('plans') }}" class="upgrade-btn primary">Upgrade to Emerald ✦</a>
+                            <a href="{{ route('plans') }}" class="upgrade-btn primary">Upgrade Your Plan</a>
                         @else
                             <a href="{{ route('plans') }}" class="upgrade-btn secondary">Manage Plan →</a>
                         @endif
