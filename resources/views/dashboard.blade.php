@@ -483,7 +483,7 @@
         font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
         color: #93c5fd;
     }
-    .plan-badge-pill .dot { width: 6px; height: 6px; background: #60a5fa; border-radius: 50%; animation: pulse-ring 2s infinite; }
+    /* .plan-badge-pill .dot { width: 6px; height: 6px; background: #60a5fa; border-radius: 50%; animation: pulse-ring 2s infinite; } */
 
     .plan-stat-list { margin-bottom: 22px; }
     .plan-stat-row {
@@ -574,10 +574,8 @@
         background: var(--blue-light); border-radius: var(--r-full);
         padding: 4px 12px; margin-bottom: 12px;
     }
-    .section-chip::before {
-        content: ''; display: block; width: 6px; height: 6px;
-        background: var(--blue); border-radius: 50%;
-    }
+
+   
 
     /* Responsive */
     @media (max-width: 1200px) {
@@ -849,11 +847,8 @@
                 {{-- AI Insights --}}
                 <div class="insights-card">
                     <div class="insights-card-header">
-                        <h3>AI Insights</h3>
-                        <span class="ai-badge">
-                            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                            Live
-                        </span>
+                        <h3>Interview Tips</h3>
+                        
                     </div>
                     @forelse($recentBlogs as $blog)
                         <a href="{{ route('blog.show', $blog->slug) }}" class="insight-item" style="text-decoration: none;">
