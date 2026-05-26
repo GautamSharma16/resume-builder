@@ -1247,6 +1247,86 @@
         .chip-ats { right: -10px; top: 10px; padding: 0.4rem 0.8rem; }
         .chip-ai { left: -15px; bottom: 20px; padding: 0.4rem 0.8rem; }
     }
+
+    .templates-section .section-heading {
+        font-size: clamp(2rem, 3.2vw, 3.3rem);
+        line-height: 1.08;
+        overflow-wrap: anywhere;
+    }
+
+    .ts-stage {
+        position: relative;
+        min-height: 430px !important;
+        overflow: hidden;
+        padding: 12px 0 20px;
+        display: block !important;
+    }
+    .ts-track {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        width: max-content;
+        animation: tsMarqueeLeft 38s linear infinite;
+        will-change: transform;
+    }
+    .ts-stage--resume .ts-track { animation-name: tsMarqueeRight; }
+    .ts-stage--cover .ts-track { animation-name: tsMarqueeLeft; }
+    .ts-stage:hover .ts-track { animation-play-state: paused; }
+    .ts-card {
+        width: 300px !important;
+        height: 415px !important;
+        opacity: 1 !important;
+        transform: none !important;
+        z-index: 1 !important;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: #fff;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        flex-shrink: 0;
+        position: relative;
+        cursor: pointer;
+    }
+    .ts-resume-inner {
+        background: #f8fafc;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        overflow: hidden;
+    }
+    .ts-resume-inner > * {
+        width: 794px !important;
+        min-width: 794px !important;
+        height: 1123px !important;
+        transform-origin: top left !important;
+        transform: scale(0.38) !important;
+        pointer-events: none;
+    }
+    .ts-stage .ts-card .ts-hover-overlay {
+        display: flex !important;
+        opacity: 0;
+        z-index: 50;
+        pointer-events: none;
+        background: rgba(2, 6, 23, 0.55);
+    }
+    .ts-stage .ts-card:not(.center) .ts-hover-overlay { display: flex !important; }
+    .ts-stage .ts-card:hover .ts-hover-overlay { opacity: 1; }
+    .ts-dots, .ts-nav { display: none !important; }
+    @keyframes tsMarqueeLeft {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+    }
+    @keyframes tsMarqueeRight {
+        from { transform: translateX(-50%); }
+        to { transform: translateX(0); }
+    }
+    @media (max-width: 768px) {
+        .ts-stage { min-height: 390px !important; }
+        .ts-card { width: 250px !important; height: 345px !important; }
+        .ts-resume-inner > * { transform: scale(0.30) !important; }
+        .templates-section .section-heading { font-size: clamp(1.8rem, 8vw, 2.5rem); }
+        .ts-use-btn { padding: 9px 16px; font-size: 12px; }
+    }
 </style>
 
 <div class="noise-overlay"></div>
@@ -1422,14 +1502,18 @@
         </div>
         <a href="/templates">View All Templates →</a>
     </div>
+    <div class="ts-stage ts-stage--resume" id="ts-stage"></div>
+</section>
 
-    {{-- 3D Carousel --}}
-    <div class="ts-stage" id="ts-stage"></div>
-    <div class="ts-dots" id="ts-dots"></div>
-    <div class="ts-nav">
-        <button class="ts-arrow" id="ts-prev" aria-label="Previous template">&#8592;</button>
-        <button class="ts-arrow" id="ts-next" aria-label="Next template">&#8594;</button>
+<section class="templates-section" style="padding-top:1rem;">
+    <div class="templates-header">
+        <div>
+            <div class="section-label">Cover Letter Templates</div>
+            <h2 class="section-heading">Write Better with <em>Pro Cover Letters</em></h2>
+        </div>
+        <a href="/cover-letter">View All Cover Letters →</a>
     </div>
+    <div class="ts-stage ts-stage--cover" id="cl-stage"></div>
 </section>
 
 {{-- PRICING --}}
@@ -1508,6 +1592,18 @@ const carouselTemplates = [
     @endforelse
 ];
 
+const coverLetterTemplates = [
+    @forelse($professionalCoverTemplates ?? [] as $tpl)
+    {
+        name: @json($tpl->name),
+        url: "{{ route('cover-letter') }}",
+        html: @json($renderedCover[$tpl->id] ?? null),
+        isReal: true
+    },
+    @empty
+    @endforelse
+];
+
 /* Built-in mockup HTML strings */
 const mockupHTML = {
     'Modern Blue': `<div class="rm rm-a"><div class="rm-header"><div class="rm-name"></div><div class="rm-title"></div></div><div class="rm-body"><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-line"></div><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div><div class="rm-line xshort"></div><div class="rm-section-title"></div><div class="rm-line"></div><div class="rm-line short"></div></div></div>`,
@@ -1527,6 +1623,11 @@ const defaultTemplates = [
     { name: 'Rose',        url: '/templates', html: mockupHTML['Rose'], isReal: false }
 ];
 
+const defaultCoverTemplates = defaultTemplates.map((t) => ({
+    ...t,
+    url: '/cover-letter'
+}));
+
 const mockupKeys = Object.keys(mockupHTML);
 const templates = (carouselTemplates.length >= 3)
     ? carouselTemplates.map((t, i) => ({
@@ -1537,91 +1638,64 @@ const templates = (carouselTemplates.length >= 3)
       }))
     : defaultTemplates;
 
-let current = Math.floor(templates.length / 2);
-const total = templates.length;
-let isPaused = false;
+const coverTemplates = (coverLetterTemplates.length >= 3)
+    ? coverLetterTemplates.map((t, i) => ({
+        name: t.name,
+        url: t.url,
+        html: t.html || mockupHTML[mockupKeys[i % mockupKeys.length]],
+        isReal: !!t.html
+      }))
+    : defaultCoverTemplates;
 
-function renderCarousel() {
-    const stage = document.getElementById('ts-stage');
-    const dots  = document.getElementById('ts-dots');
-    if (!stage || !dots) return;
+function buildMarquee(stageId, items) {
+    const stage = document.getElementById(stageId);
+    if (!stage || !items.length) return;
 
-    const visible = [-3, -2, -1, 0, 1, 2, 3];
-    stage.innerHTML = '';
+    const track = document.createElement('div');
+    track.className = 'ts-track';
 
-    visible.forEach(offset => {
-        const idx = ((current + offset) % total + total) % total;
-        const t   = templates[idx];
-
-        const div = document.createElement('div');
-        div.className = 'ts-card ' + (offset === 0 ? 'center' : 'side-' + Math.abs(offset));
-
-        div.innerHTML = `
-            <div class="ts-resume-inner ${t.isReal ? 'is-real' : ''}">${t.html}</div>
+    const renderCard = (item) => {
+        const card = document.createElement('div');
+        card.className = 'ts-card';
+        card.innerHTML = `
+            <div class="ts-resume-inner ${item.isReal ? 'is-real' : ''}">${item.html}</div>
             <div class="ts-hover-overlay">
-                <span class="ts-template-name">${t.name}</span>
-                <a href="${t.url}" class="ts-use-btn">
+                <span class="ts-template-name">${item.name}</span>
+                <span class="ts-use-btn">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     Use this template
-                </a>
+                </span>
             </div>`;
+        card.addEventListener('click', () => { window.location.href = item.url; });
+        return card;
+    };
 
-        if (offset !== 0) {
-            div.addEventListener('click', () => { 
-                current = idx; 
-                renderCarousel(); 
-            });
-        }
-        stage.appendChild(div);
+    const loopItems = [...items, ...items];
+    loopItems.forEach((item) => track.appendChild(renderCard(item)));
+    stage.innerHTML = '';
+    stage.appendChild(track);
+    fitTemplatePreview(stage);
+}
+
+function fitTemplatePreview(stage) {
+    stage.querySelectorAll('.ts-card').forEach((card) => {
+        const doc = card.querySelector('.ts-resume-inner > *');
+        if (!doc) return;
+        const cardW = card.clientWidth;
+        const cardH = card.clientHeight;
+        const scale = Math.min(cardW / 794, cardH / 1123) * 0.98;
+        doc.style.transform = `scale(${scale})`;
     });
-
-    dots.innerHTML = '';
-    for (let i = 0; i < total; i++) {
-        const d = document.createElement('div');
-        d.className = 'ts-dot' + (i === current ? ' active' : '');
-        d.addEventListener('click', () => { current = i; renderCarousel(); });
-        dots.appendChild(d);
-    }
 }
 
-
-
-const tsPrev = document.getElementById('ts-prev');
-const tsNext = document.getElementById('ts-next');
-const tsStage = document.getElementById('ts-stage');
-
-if (tsPrev) tsPrev.addEventListener('click', () => { current = (current - 1 + total) % total; renderCarousel(); });
-if (tsNext) tsNext.addEventListener('click', () => { current = (current + 1) % total; renderCarousel(); });
-
-if (tsStage) {
-    tsStage.addEventListener('mouseenter', () => isPaused = true);
-    tsStage.addEventListener('mouseleave', () => isPaused = false);
-
-    // Touch Swipe Support
-    let touchStartX = 0;
-    let touchEndX = 0;
-
-    tsStage.addEventListener('touchstart', e => {
-        touchStartX = e.changedTouches[0].screenX;
-        isPaused = true;
-    }, {passive: true});
-
-    tsStage.addEventListener('touchend', e => {
-        touchEndX = e.changedTouches[0].screenX;
-        const swipeThreshold = 50;
-        if (touchEndX < touchStartX - swipeThreshold) {
-            current = (current + 1) % total;
-            renderCarousel();
-        } else if (touchEndX > touchStartX + swipeThreshold) {
-            current = (current - 1 + total) % total;
-            renderCarousel();
-        }
-        isPaused = false;
-    }, {passive: true});
-}
-
-// Initial render
-renderCarousel();
+buildMarquee('ts-stage', templates);
+buildMarquee('cl-stage', coverTemplates);
+window.addEventListener('resize', () => {
+    const resumeStage = document.getElementById('ts-stage');
+    const coverStage = document.getElementById('cl-stage');
+    if (resumeStage) fitTemplatePreview(resumeStage);
+    if (coverStage) fitTemplatePreview(coverStage);
+});
 
 
 /* ─── INTERSECTION OBSERVER: reveal on scroll ─────────────────────── */

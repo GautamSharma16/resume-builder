@@ -31,6 +31,13 @@ class SubscriptionController extends Controller
     private function redirectToPayment(Request $request, Plan $plan, PlanActivationService $plans)
     {
         abort_unless($plan->is_active, 404);
+        $activeSubscription = $request->user()?->activeSubscription;
+
+        if ($activeSubscription && $activeSubscription->hasDownloadsRemaining()) {
+            return redirect()
+                ->route('dashboard')
+                ->with('status', 'Your plan is already active. Downloads are already unlocked.');
+        }
 
         if ($plan->price_paise <= 0) {
             $plans->activate($request->user(), $plan);

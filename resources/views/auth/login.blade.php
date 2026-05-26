@@ -69,9 +69,13 @@
     }
     
     .lp-logo img {
-        height: 60px;
+        height: 64px;
         width: auto;
-        filter: brightness(1.2);
+        filter: brightness(1.28) contrast(1.08) drop-shadow(0 6px 20px rgba(37,99,235,0.35));
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 14px;
+        padding: 8px 10px;
     }
 
     .lp-headline {
@@ -322,6 +326,16 @@
     @media (max-width: 1024px) {
         .lp-wrap { grid-template-columns: 1fr; }
         .lp-left { display: none; }
+        .mobile-brand { display: inline-flex !important; }
+    }
+    .mobile-brand { display: none; margin-bottom: 1rem; }
+    .mobile-brand img {
+        height: 54px;
+        width: auto;
+        background: rgba(37, 99, 235, 0.12);
+        border: 1px solid rgba(37, 99, 235, 0.25);
+        border-radius: 12px;
+        padding: 8px 10px;
     }
 </style>
 
@@ -381,6 +395,9 @@
     {{-- Right Panel --}}
     <div class="lp-right">
         <div class="form-shell">
+            <a href="{{ route('home') }}" class="mobile-brand">
+                <img src="{{ asset('Logo.png') }}" alt="CvBliss Logo">
+            </a>
             
             @php $activeTab = $activeTab ?? 'login'; @endphp
 

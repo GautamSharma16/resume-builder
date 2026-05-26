@@ -88,7 +88,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $this->attachPendingResume($request, $user);
 
-        return redirect()->intended($this->redirectPath($user));
+        return redirect()->intended($this->postLoginRedirect($request, $user));
     }
 
     public function showRegister(Request $request)
@@ -158,7 +158,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $this->attachPendingResume($request, $user);
 
-        return redirect()->intended($this->redirectPath($user));
+        return redirect()->intended($this->postLoginRedirect($request, $user));
     }
 
     public function resendOtp(Request $request)
@@ -306,7 +306,11 @@ class AuthController extends Controller
             }
         }
 
-        return $this->redirectPath($user);
+        if (! $intended) {
+            return $this->redirectPath($user);
+        }
+
+        return $intended;
     }
 
     private function rememberIntendedRedirect(Request $request): void

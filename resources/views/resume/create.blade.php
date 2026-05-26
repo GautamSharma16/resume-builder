@@ -1173,8 +1173,21 @@
 
             /* Form */
             .rp-form-body { padding: 1rem !important; }
-            .rp-form-footer { flex-direction: column; padding: 1rem !important; gap: 8px; }
+            .rp-form-footer {
+                flex-direction: column;
+                padding: 0.75rem !important;
+                gap: 8px;
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+                z-index: 1200;
+                background: #fff;
+                border-top: 1px solid var(--border);
+            }
             .rp-form-footer .btn { width: 100%; justify-content: center; }
+            .rp-form-body { padding-bottom: 300px !important; }
+            .rp-builder.view-preview .rp-form-footer { display: none !important; }
 
             /* Topbar */
             .rp-topbar { height: 48px !important; padding: 0 12px !important; }

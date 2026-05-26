@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
@@ -16,7 +17,7 @@ class GoogleAuthController extends Controller
             ->redirect();
     }
 
-    public function callback()
+    public function callback(Request $request)
     {
         $googleUser = Socialite::driver('google')
             ->stateless()
@@ -50,6 +51,15 @@ class GoogleAuthController extends Controller
 
         request()->session()->regenerate();
 
-        return redirect()->route('dashboard');
+        $intended = (string) $request->session()->get('url.intended', '');
+        $plansPath = parse_url(route('plans'), PHP_URL_PATH) ?: '/plans';
+        $intendedPath = parse_url($intended, PHP_URL_PATH) ?: '';
+
+        if ($user->activeSubscription?->hasDownloadsRemaining() && $intendedPath === $plansPath) {
+            $request->session()->forget('url.intended');
+            return redirect()->route('dashboard');
+        }
+
+        return redirect()->intended(route('dashboard'));
     }
 }

@@ -11,7 +11,6 @@ use App\Models\Template;
 use App\Models\User;
 use App\Models\VisitorLog;
 use App\Services\TemplateRenderService;
-use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -168,12 +167,6 @@ class DashboardController extends Controller
 
     private function uniqueVisitorSql(): string
     {
-        $driver = DB::connection()->getDriverName();
-
-        if ($driver === 'sqlite') {
-            return "COUNT(DISTINCT COALESCE(session_id, ip_address || '|' || COALESCE(user_agent, '')))";
-        }
-
-        return "COUNT(DISTINCT COALESCE(session_id, CONCAT(ip_address, '|', COALESCE(user_agent, ''))))";
+        return 'COUNT(DISTINCT ip_address)';
     }
 }

@@ -12,19 +12,30 @@ class PageController extends Controller
     public function home(TemplateRenderService $renderer)
     {
         $rendered = [];
+        $renderedCover = [];
         $templates = Template::where('is_active', true)
             ->where('type', 'resume')
             ->orderBy('name')
-            ->limit(12)
+            ->limit(10)
+            ->get();
+        $coverTemplates = Template::where('is_active', true)
+            ->whereIn('type', ['cover_letter', 'cover'])
+            ->orderBy('name')
+            ->limit(10)
             ->get();
 
         foreach ($templates as $template) {
             $rendered[$template->id] = (string) $renderer->renderResume($template, null, false);
         }
+        foreach ($coverTemplates as $template) {
+            $renderedCover[$template->id] = (string) $renderer->renderCoverLetter($template);
+        }
 
         return view('pages.home', [
             'professionalTemplates' => $templates,
+            'professionalCoverTemplates' => $coverTemplates,
             'rendered' => $rendered,
+            'renderedCover' => $renderedCover,
             'plans' => Plan::where('is_active', true)->orderBy('price_paise')->get(),
         ]);
     }
