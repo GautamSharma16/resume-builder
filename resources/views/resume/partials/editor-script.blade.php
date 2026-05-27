@@ -1105,6 +1105,14 @@
     });
 
     $('edit-resume')?.addEventListener('click', () => goToStep(1));
+    $('finalize-exit-btn')?.addEventListener('click', () => {
+        if (document.referrer && document.referrer !== window.location.href) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = app.dataset.loginUrl ? '/' : '/';
+    });
 
     /* ── Field event listeners ── */
     document.querySelectorAll('.cv-field').forEach(input => {
@@ -1514,7 +1522,7 @@
     renderEditor();
     renderTemplatePreview();
     goToStep(1);
-    applyColorSelection(state.primary_color || '');
+    applyColorSelection(state.primary_color_customized ? state.primary_color : '');
 
 })();
 </script>

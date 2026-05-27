@@ -61,15 +61,13 @@ class ResumeController extends Controller
             $jobDescription = $request->input('job_description');
 
             $analysis = ($validated['mode'] ?? null) === 'autofill'
-                ? [
-                    'success' => true,
-                    'score' => 0,
-                    'strengths' => [],
-                    'weaknesses' => [],
-                    'missing_keywords' => [],
-                    'suggestions' => [],
-                    'improved_resume' => $resumeJson,
-                ]
+                ? $this->askGeminiForAnalysis(
+                    $resumeJson,
+                    $jobRole,
+                    $jobDescription,
+                    false,
+                    'Extract and clean the uploaded resume into the required structured JSON. Preserve factual content, map fields accurately, keep concise summaries, split skills cleanly, place job responsibilities under experience.points, project details under projects, and certifications/languages in their correct arrays. Do not invent facts.'
+                )
                 : $this->askGeminiForAnalysis(
                     $resumeJson,
                     $jobRole,
@@ -459,11 +457,14 @@ class ResumeController extends Controller
 
         $location = $this->inferLocationFromLines($lines->all());
 
-        $skills = $this->extractSectionItems($text, ['skills', 'technical skills', 'core skills']);
-        $educationLines = $this->extractSectionItems($text, ['education', 'academic']);
-        $experienceLines = $this->extractSectionItems($text, ['experience', 'work experience', 'professional experience']);
-        $projectLines = $this->extractSectionItems($text, ['projects', 'project', 'portfolio', 'projects & accomplishments', 'selected projects']);
+        $skills = $this->extractSectionItems($text, ['skills', 'technical skills', 'core skills', 'key skills', 'technologies']);
+        $educationLines = $this->extractSectionItems($text, ['education', 'academic', 'academics', 'qualification']);
+        $experienceLines = $this->extractSectionItems($text, ['experience', 'work experience', 'professional experience', 'employment history', 'career history', 'internship']);
+        $projectLines = $this->extractSectionItems($text, ['projects', 'project', 'portfolio', 'projects & accomplishments', 'selected projects', 'academic projects']);
+        $certificationLines = $this->extractSectionItems($text, ['certifications', 'certification', 'certificates', 'licenses']);
+        $languageLines = $this->extractSectionItems($text, ['languages', 'language']);
         $education = $this->buildEducationFromLines($educationLines);
+        $experience = $this->buildExperienceFromLines($experienceLines);
         $projects = $this->buildProjectsFromLines($projectLines);
         $summarySection = $this->extractSectionBody($text, ['summary', 'professional summary', 'profile summary', 'objective', 'career objective']);
 
@@ -482,15 +483,11 @@ class ResumeController extends Controller
             'address' => $location,
             'summary' => $summarySection !== '' ? $summarySection : implode(' ', $summaryLines),
             'skills' => $skills,
-            'experience' => [
-                [
-                    'company' => '',
-                    'role' => '',
-                    'points' => array_slice($experienceLines, 0, 8),
-                ]
-            ],
+            'experience' => $experience,
             'education' => $education,
             'projects' => $projects,
+            'certifications' => $certificationLines,
+            'languages' => $languageLines,
         ]);
     }
 
@@ -581,6 +578,68 @@ class ResumeController extends Controller
 
         return array_values(array_filter($rows, fn ($r) => collect($r)->filter()->isNotEmpty()));
     }
+
+    private function buildExperienceFromLines(array $lines): array
+    {
+        $entries = [];
+        $current = null;
+
+        foreach ($lines as $line) {
+            $line = trim((string) $line);
+            if ($line === '') {
+                continue;
+            }
+
+            $hasRole = preg_match('/\b(intern|developer|engineer|manager|analyst|designer|consultant|lead|architect|specialist|associate)\b/i', $line) === 1;
+            $hasCompany = preg_match('/\b(inc|llc|ltd|pvt|private|technologies|technology|solutions|systems|labs|corp|company)\b/i', $line) === 1;
+            $hasPeriod = preg_match('/\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}|present)\b/i', $line) === 1;
+            $isBullet = preg_match('/^\s*(?:[-*]|\x{2022}|\x{25CF}|\x{25AA}|\x{25E6})\s*/u', $line) === 1 || mb_strlen($line) > 90;
+
+            if (($hasRole || $hasCompany) && ! $isBullet) {
+                if ($current && collect($current)->flatten()->filter()->isNotEmpty()) {
+                    $entries[] = $current;
+                }
+
+                $period = '';
+                if ($hasPeriod && preg_match('/((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*\d{4}\s*(?:-|to|–|—)\s*(?:present|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*\d{4}))/i', $line, $match)) {
+                    $period = trim($match[1]);
+                    $line = trim(str_replace($match[1], '', $line));
+                }
+
+                $parts = preg_split('/\s+(?:at|\||-|–|—)\s+/i', $line) ?: [];
+                $parts = array_values(array_filter(array_map('trim', $parts)));
+
+                $current = [
+                    'company' => count($parts) > 1 ? end($parts) : ($hasCompany && ! $hasRole ? $line : ''),
+                    'role' => count($parts) > 1 ? $parts[0] : ($hasRole ? $line : ''),
+                    'period' => $period,
+                    'points' => [],
+                ];
+                continue;
+            }
+
+            if (! $current) {
+                $current = ['company' => '', 'role' => '', 'period' => '', 'points' => []];
+            }
+
+            if ($hasPeriod && $current['period'] === '' && mb_strlen($line) < 60) {
+                $current['period'] = $line;
+                continue;
+            }
+
+            $current['points'][] = trim(preg_replace('/^\s*(?:[-*]|\x{2022}|\x{25CF}|\x{25AA}|\x{25E6})\s*/u', '', $line));
+        }
+
+        if ($current && collect($current)->flatten()->filter()->isNotEmpty()) {
+            $entries[] = $current;
+        }
+
+        return array_values(array_filter(array_map(function ($entry) {
+            $entry['points'] = array_values(array_filter(array_slice(array_unique($entry['points'] ?? []), 0, 6)));
+            return collect($entry)->flatten()->filter()->isEmpty() ? null : $entry;
+        }, $entries)));
+    }
+
     private function buildProjectsFromLines(array $lines): array
     {
         $projects = [];
@@ -803,7 +862,7 @@ PROMPT;
         $prompt .= "\n" . json_encode($resume, JSON_UNESCAPED_SLASHES);
 
         try {
-            $response = Http::request(90)
+            $response = Http::timeout(90)
 
                 ->retry(2, 500)
                 ->post(
@@ -1196,4 +1255,3 @@ PROMPT;
         return trim($slug, '-') . '-improved-resume.pdf';
     }
 }
-

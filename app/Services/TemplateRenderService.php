@@ -129,7 +129,7 @@ class TemplateRenderService
         $accentColor = $this->resumeAccentColor($data);
 
         if ($this->shouldRenderWithBlade($html)) {
-            return new HtmlString($this->resumeAccentStyle($accentColor).$this->renderBlade($html, $this->bladeRenderDataForResume($data)));
+            return new HtmlString($this->withScopedAccent($this->renderBlade($html, $this->bladeRenderDataForResume($data)), $accentColor));
         }
 
         if (! $this->containsResumePlaceholders($html)) {
@@ -222,7 +222,7 @@ HTML;
 
         if ($this->shouldRenderWithBlade($html)) {
             $accentColor = $this->resumeAccentColor($data);
-            return new HtmlString($this->resumeAccentStyle($accentColor).$this->renderBlade($html, $this->bladeRenderDataForCoverLetter($data)));
+            return new HtmlString($this->withScopedAccent($this->renderBlade($html, $this->bladeRenderDataForCoverLetter($data)), $accentColor));
         }
 
         if (! $this->containsCoverLetterPlaceholders($html)) {
@@ -293,9 +293,20 @@ HTML;
             $this->ensureSectionVisible($html, $data, 'achievements', 'Achievements');
         }
 
-        $html = $this->resumeAccentStyle($this->resumeAccentColor($data)).$html;
+        $html = $this->withScopedAccent($html, $this->resumeAccentColor($data));
 
         return $html;
+    }
+
+    private function withScopedAccent(string $html, string $color): string
+    {
+        if (! preg_match('/^#[0-9a-f]{6}$/i', $color)) {
+            return $html;
+        }
+
+        $scope = 'tpl-accent-'.substr(md5($color.'|'.$html), 0, 12);
+
+        return $this->resumeAccentStyle($color, '.'.$scope).'<div class="'.$scope.'">'.$html.'</div>';
     }
 
     private function ensureSectionVisible(string &$html, array $data, string $key, string $title): void
@@ -328,58 +339,59 @@ HTML;
         }
     }
 
-    private function resumeAccentStyle(string $color): string
+    private function resumeAccentStyle(string $color, string $scope = ''): string
     {
         if (! preg_match('/^#[0-9a-f]{6}$/i', $color)) {
             return '';
         }
 
         $primaryColor = $color;
+        $prefix = $scope !== '' ? $scope.' ' : '';
 
         return '<style>
-            .tpl-resume, .tpl-cover { --primary: '.$primaryColor.'; }
-            .tpl-resume h2, .tpl-cover h2 {
+            '.$prefix.'.tpl-resume, '.$prefix.'.tpl-cover, '.$scope.' { --primary: '.$primaryColor.'; }
+            '.$prefix.'.tpl-resume h2, '.$prefix.'.tpl-cover h2 {
                 border-color: var(--primary) !important;
                 color: var(--primary) !important;
             }
-            .tpl-resume h1,
-            .tpl-resume h3,
-            .tpl-resume a,
-            .tpl-cover h1,
-            .tpl-cover h3,
-            .tpl-cover a,
-            .tpl-role-head strong {
+            '.$prefix.'.tpl-resume h1,
+            '.$prefix.'.tpl-resume h3,
+            '.$prefix.'.tpl-resume a,
+            '.$prefix.'.tpl-cover h1,
+            '.$prefix.'.tpl-cover h3,
+            '.$prefix.'.tpl-cover a,
+            '.$prefix.'.tpl-role-head strong {
                 color: var(--primary) !important;
             }
 
-            .tpl-badge {
+            '.$prefix.'.tpl-badge {
                 background: var(--primary) !important;
                 border-color: var(--primary) !important;
                 color: #fff !important;
             }
-            .tpl-rule,
-            .tpl-accentbox header > div,
-            .tpl-two aside,
-            .tpl-carded header,
-            .tpl-band header,
-            .tpl-resume > header[style*="background"],
-            .tpl-resume h2[style*="background"],
-            .tpl-cover > header[style*="background"],
-            .tpl-cover-modern header,
-            .tpl-cover-executive h1 {
+            '.$prefix.'.tpl-rule,
+            '.$prefix.'.tpl-accentbox header > div,
+            '.$prefix.'.tpl-two aside,
+            '.$prefix.'.tpl-carded header,
+            '.$prefix.'.tpl-band header,
+            '.$prefix.'.tpl-resume > header[style*="background"],
+            '.$prefix.'.tpl-resume h2[style*="background"],
+            '.$prefix.'.tpl-cover > header[style*="background"],
+            '.$prefix.'.tpl-cover-modern header,
+            '.$prefix.'.tpl-cover-executive h1 {
                 background: var(--primary) !important;
                 color: #fff !important;
             }
-            .tpl-cover-executive h1 { padding: 10px; }
-            .tpl-rule *,
-            .tpl-accentbox header > div *,
-            .tpl-two aside *,
-            .tpl-carded header *,
-            .tpl-band header *,
-            .tpl-resume > header[style*="background"] *,
-            .tpl-resume h2[style*="background"],
-            .tpl-cover > header[style*="background"] *,
-            .tpl-cover-modern header * {
+            '.$prefix.'.tpl-cover-executive h1 { padding: 10px; }
+            '.$prefix.'.tpl-rule *,
+            '.$prefix.'.tpl-accentbox header > div *,
+            '.$prefix.'.tpl-two aside *,
+            '.$prefix.'.tpl-carded header *,
+            '.$prefix.'.tpl-band header *,
+            '.$prefix.'.tpl-resume > header[style*="background"] *,
+            '.$prefix.'.tpl-resume h2[style*="background"],
+            '.$prefix.'.tpl-cover > header[style*="background"] *,
+            '.$prefix.'.tpl-cover-modern header * {
                 color: #fff !important;
                 border-color: rgba(255,255,255,0.45) !important;
             }

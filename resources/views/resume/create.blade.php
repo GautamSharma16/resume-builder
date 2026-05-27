@@ -1655,6 +1655,15 @@
                             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             Save &amp; Download PDF
                         </button>
+                        @auth
+                            <a href="{{ route('dashboard') }}" class="btn" style="font-size:1rem; padding: 0.9rem 2.5rem; margin-top:0.75rem; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
+                                Go to Dashboard
+                            </a>
+                        @else
+                            <button type="button" id="finalize-exit-btn" class="btn" style="font-size:1rem; padding: 0.9rem 2.5rem; margin-top:0.75rem;">
+                                Exit
+                            </button>
+                        @endauth
                     </div>
                 </div>
 
@@ -1910,14 +1919,17 @@
             }
         });
 
-        function currentResumePayload() {
+        function currentResumePayload(options = {}) {
+            const aiContext = options.context || '';
+            const targetEl = options.targetEl || null;
+            const seedText = String(options.seedText || '');
             const read = id => {
                 if (id === 'cv-summary' && typeof tinymce !== 'undefined' && tinymce.get(id)) {
                     return tinymce.get(id).getContent();
                 }
                 return document.getElementById(id)?.value || '';
             };
-            return {
+            const payload = {
                 name: read('cv-name'),
                 last_name: read('cv-last-name'),
                 designation: read('cv-designation'),
@@ -1971,10 +1983,27 @@
                     description: block.querySelector('[data-k="description"]')?.value || '',
                 })),
             };
+
+            if (aiContext === 'summary') {
+                payload.summary = seedText;
+            }
+
+            if (aiContext === 'experience' && targetEl) {
+                const expBlock = targetEl.closest('[data-exp]');
+                const expIndex = Number(expBlock?.dataset?.exp);
+                if (!Number.isNaN(expIndex) && payload.experience[expIndex]) {
+                    payload.experience[expIndex].points = seedText
+                        ? seedText.split('\n').map(v => v.trim()).filter(Boolean)
+                        : [];
+                }
+            }
+
+            return payload;
         }
 
         const resumeAiInFlight = new WeakSet();
         const resumeAiHistory = window.__resumeAiHistory || (window.__resumeAiHistory = {});
+        const resumeAiState = window.__resumeAiState || (window.__resumeAiState = {});
         const plainResumeText = (value = '') => {
             const div = document.createElement('div');
             div.innerHTML = String(value || '');
@@ -1983,6 +2012,22 @@
                 .replace(/\s+/g, ' ')
                 .trim();
         };
+        const normalizeAiSeedText = (value = '') => {
+            const div = document.createElement('div');
+            div.innerHTML = String(value || '')
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/<\/p>/gi, '\n')
+                .replace(/<\/li>/gi, '\n');
+            return (div.textContent || div.innerText || String(value || ''))
+                .replace(/\u00a0/g, ' ')
+                .split(/\n+/)
+                .map(line => line.replace(/\s+/g, ' ').trim())
+                .map(line => line.replace(/^\s*[-*•]\s*/u, '').trim())
+                .filter(Boolean)
+                .join('\n')
+                .slice(0, 900);
+        };
+        const normalizeAiHistoryEntry = (value = '') => plainResumeText(value).slice(0, 500);
         const notifyResumeAi = (message, type = 'info') => {
             if (window.resumeMakerNotify) {
                 window.resumeMakerNotify(message, type);
@@ -2000,6 +2045,17 @@
                 return `experience:${block?.dataset?.exp || '0'}`;
             }
             return 'summary';
+        };
+        const getResumeAiMeta = (historyKey) => {
+            if (!resumeAiState[historyKey]) {
+                resumeAiState[historyKey] = {
+                    lastGenerated: '',
+                    seedText: '',
+                    jobRole: '',
+                };
+            }
+
+            return resumeAiState[historyKey];
         };
         const getClickedExperienceRole = (targetEl) => {
             const block = targetEl?.closest('[data-exp]');
@@ -2034,23 +2090,56 @@
             const plainOrig = plainResumeText(orig);
             const jobRole = context === 'experience' ? getClickedExperienceRole(targetEl) : '';
             const historyKey = getResumeAiHistoryKey(context, targetEl);
-            const previousOutputs = (resumeAiHistory[historyKey] || []).slice(-3);
+            const aiMeta = getResumeAiMeta(historyKey);
+            const roleChanged = context === 'experience' && aiMeta.jobRole && aiMeta.jobRole !== jobRole;
+
+            if (roleChanged) {
+                aiMeta.lastGenerated = '';
+                aiMeta.seedText = '';
+                resumeAiHistory[historyKey] = [];
+            }
+
+            const plainLastGenerated = plainResumeText(aiMeta.lastGenerated || '');
+            const currentLooksGenerated = plainOrig && plainLastGenerated && plainOrig === plainLastGenerated;
+            const effectiveSeedText = context === 'experience'
+                ? ''
+                : normalizeAiSeedText(
+                    currentLooksGenerated
+                        ? (aiMeta.seedText || '')
+                        : plainOrig
+                );
+            const previousOutputs = (resumeAiHistory[historyKey] || [])
+                .map(normalizeAiHistoryEntry)
+                .filter(Boolean)
+                .slice(-1);
 
             if (triggerButton && resumeAiInFlight.has(triggerButton)) return;
-            if (context === 'summary' && !plainOrig) {
-                notifyResumeAi('Please write 2-3 lines about yourself first, then click Generate with AI to improve and rewrite your summary professionally.', 'error');
+            const currentSource = window.getResumeMakerSource ? window.getResumeMakerSource() : 'manual';
+            if (context === 'summary' && currentSource !== 'upload' && !plainOrig) {
+                notifyResumeAi('Please write 2-3 lines about yourself first.', 'error');
                 targetEl.closest('.summary-editor-shell')?.classList.add('field-needs-attention');
                 setTimeout(() => targetEl.closest('.summary-editor-shell')?.classList.remove('field-needs-attention'), 1200);
                 targetEl.focus();
                 return;
             }
             if (context === 'experience' && !jobRole) {
-                notifyResumeAi('Please enter your Job Role first to generate AI-based responsibilities.', 'error');
+                notifyResumeAi('Please enter Job Role first.', 'error');
                 const roleInput = targetEl.closest('[data-exp]')?.querySelector('[data-k="role"]');
                 roleInput?.classList.add('field-needs-attention');
                 setTimeout(() => roleInput?.classList.remove('field-needs-attention'), 1200);
                 roleInput?.focus();
                 return;
+            }
+
+            if (context === 'experience') {
+                if (activeEditor) {
+                    activeEditor.setContent('');
+                    activeEditor.save();
+                    targetEl.value = '';
+                } else {
+                    targetEl.value = '';
+                }
+                targetEl.dispatchEvent(new Event('input', { bubbles: true }));
             }
 
             const btnOriginalHtml = triggerButton?.innerHTML || '';
@@ -2066,16 +2155,17 @@
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token },
                     body: JSON.stringify({
                         context,
-                        text: orig,
-                        source: window.getResumeMakerSource ? window.getResumeMakerSource() : 'manual',
+                        text: effectiveSeedText,
+                        source: currentSource,
                         job_role: jobRole,
-                        resume: currentResumePayload(),
+                        resume: currentResumePayload({ context, targetEl, seedText: effectiveSeedText }),
                         previous_outputs: previousOutputs,
                         variation_seed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${window.crypto?.getRandomValues ? window.crypto.getRandomValues(new Uint32Array(1))[0] : Math.random()}`
                     })
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.text) throw new Error(data.message || 'AI generation failed.');
+                const generatedPlainText = normalizeAiHistoryEntry(data.text);
 
                 if (activeEditor) {
                     activeEditor.setContent(data.text);
@@ -2087,7 +2177,10 @@
                 if (context === 'summary') {
                     targetEl.value = data.text;
                 }
-                resumeAiHistory[historyKey] = [...previousOutputs, data.text].slice(-3);
+                aiMeta.seedText = effectiveSeedText;
+                aiMeta.lastGenerated = generatedPlainText;
+                aiMeta.jobRole = jobRole;
+                resumeAiHistory[historyKey] = generatedPlainText ? [generatedPlainText] : [];
                 notifyResumeAi(context === 'summary' ? 'Summary rewritten with a fresh AI variation.' : 'Responsibilities generated with a fresh AI variation.', 'success');
             } catch(e) {
                 if (activeEditor) {

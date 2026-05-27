@@ -118,12 +118,16 @@ class ResumeBuilderController extends Controller
             'job_role' => ['nullable', 'string', 'max:180'],
             'variation_seed' => ['nullable', 'string', 'max:120'],
             'previous_outputs' => ['nullable', 'array', 'max:3'],
-            'previous_outputs.*' => ['nullable', 'string', 'max:1200'],
+            'previous_outputs.*' => ['nullable', 'string', 'max:5000'],
         ]);
 
         $resume = $this->normalizeResume($validated['resume'] ?? []);
         $context = $validated['context'];
+        $source = $this->toText($validated['source'] ?? 'manual');
         $existingText = $this->toText($validated['text'] ?? '');
+        $existingText = $context === 'experience'
+            ? $this->cleanAiSeedText($existingText, 700)
+            : $this->cleanAiSeedText($existingText, 900);
         $clickedJobRole = $this->toText($validated['job_role'] ?? '');
         $jobTitle = $clickedJobRole
             ?: $this->toText($resume['job_title'] ?? $resume['designation'] ?? '')
@@ -147,15 +151,15 @@ class ResumeBuilderController extends Controller
             ->filter()
             ->join('; ');
 
-        if ($context === 'summary' && $existingText === '') {
+        if ($context === 'summary' && $source !== 'upload' && $existingText === '') {
             return response()->json([
-                'message' => 'Please write 2-3 lines about yourself first, then click Generate with AI to improve and rewrite your summary professionally.',
+                'message' => 'Please write 2-3 lines about yourself first.',
             ], 422);
         }
 
         if ($context === 'experience' && $jobTitle === '') {
             return response()->json([
-                'message' => 'Please enter your Job Role first to generate AI-based responsibilities.',
+                'message' => 'Please enter Job Role first.',
             ], 422);
         }
         if ($jobTitle !== '') {
@@ -164,9 +168,9 @@ class ResumeBuilderController extends Controller
         }
 
         $previousOutputs = collect($validated['previous_outputs'] ?? [])
-            ->map(fn ($item) => $this->toText($item))
+            ->map(fn ($item) => $this->cleanAiSeedText($item, 500))
             ->filter()
-            ->take(3)
+            ->take(1)
             ->values()
             ->all();
 
@@ -181,12 +185,14 @@ class ResumeBuilderController extends Controller
         ];
         $styleDirection = $styleDirections[abs(crc32($variationSeed)) % count($styleDirections)];
 
+        $profileLevel = $this->candidateLooksFresher($resume) ? 'fresher/intern' : 'experienced';
+        $summaryLimit = $profileLevel === 'fresher/intern' ? '35-60 words maximum' : '50-80 words maximum';
         $prompt = $context === 'summary'
-            ? "Rewrite the candidate's existing resume summary into one professional ATS-friendly paragraph. Preserve the same profile meaning and facts from Existing text; improve grammar, readability, confidence, sentence structure, and professional tone. Do not ignore the user input. Do not invent employers, years, degrees, certifications, links, metrics, or tools that are not present. Keep it 55-95 words. No heading, no markdown, no placeholders."
-            : "Generate or rewrite professional key responsibilities for the clicked resume experience role. Create 4 ATS-friendly lines, each on a new line. Make them role-specific, realistic, corporate, and human-written. Use action verbs and measurable impact only when supported by the candidate data. Use uploaded/profile context when available, but do not invent employers, dates, tools, certifications, or metrics. No heading, no markdown bullets; separate each line with a newline.";
+            ? "Create ONE clean professional resume summary paragraph for a {$profileLevel} candidate. Rewrite from scratch each time and replace any old summary completely. If Existing text is present, improve and rewrite it instead of appending. If Existing text is empty, use parsed resume/profile data. Include role, skills, strengths, impact/value, and career goal. Keep {$summaryLimit}, 3-4 lines maximum, concise, ATS-friendly, readable, human-like, and non-repetitive. Use fresh wording and sentence structure every request. Do not reuse phrases from Previous outputs. Do not invent employers, years, degrees, certifications, links, metrics, or tools that are not present. No heading, no markdown, no placeholders, no bullet points, no explanation."
+            : "Generate ONLY 4 or 5 professional resume responsibility bullet lines for the CURRENT clicked job role. Total response must be 50-100 words and never more than 100 words. Rewrite from scratch each time and replace any old responsibilities completely. Keep every line concise, ATS-friendly, readable, role-specific, professional, meaningful, and non-repetitive. Use different wording, sentence structure, and action verbs from Previous outputs. Tailor the content to the actual role domain: for example, drivers should mention routes, safety, delivery, vehicle checks; developers should mention code, APIs, debugging, performance, deployment; project managers should mention planning, deadlines, stakeholders, coordination. Use uploaded/profile context when available, but focus only on the current clicked role. Do not invent employers, dates, tools, certifications, or metrics. No heading, no introduction, no explanation, no paragraph; return one responsibility per newline.";
 
         $prompt .= "\n\nCandidate name: ".trim(($resume['name'] ?? '').' '.($resume['last_name'] ?? ''));
-        $prompt .= "\nCreation source: ".$this->toText($validated['source'] ?? 'manual');
+        $prompt .= "\nCreation source: ".$source;
         $prompt .= "\nTarget/clicked job role: ".$jobTitle;
         $prompt .= "\nSkills: ".$skills;
         $prompt .= "\nExtracted or current profile summary: ".$profileSummary;
@@ -200,16 +206,20 @@ class ResumeBuilderController extends Controller
 
         $generated = $this->callGeminiForText($prompt);
 
-        if ($generated === '' || ($context === 'summary' && str_word_count(strip_tags($generated)) < 40)) {
+        if ($generated === '' || ($context === 'summary' && str_word_count(strip_tags($generated)) < 25)) {
             $generated = $this->buildLocalAiText($context, $resume, $existingText);
             if ($context === 'experience') {
-                $generated = $this->normalizeExperienceAiOutput($generated, $resume, $existingText);
+                $generated = $this->normalizeExperienceAiOutputStrict($generated, $resume, $existingText);
+            } else {
+                $generated = $this->normalizeSummaryAiOutput($generated, $resume);
             }
             return response()->json(['text' => $generated, 'source' => 'local_fallback']);
         }
 
         if ($context === 'experience') {
-            $generated = $this->normalizeExperienceAiOutput($generated, $resume, $existingText);
+            $generated = $this->normalizeExperienceAiOutputStrict($generated, $resume, $existingText);
+        } else {
+            $generated = $this->normalizeSummaryAiOutput($generated, $resume);
         }
 
         return response()->json(['text' => $generated, 'source' => 'ai']);
@@ -252,6 +262,162 @@ class ResumeBuilderController extends Controller
             })
             ->filter()
             ->join("\n");
+    }
+
+    private function normalizeExperienceAiOutputStrict(string $generated, array $resume, string $existingText): string
+    {
+        $cleanLine = fn ($line) => trim(preg_replace('/^\s*[-*•]\s*/u', '', (string) $line));
+        $lines = collect(preg_split('/\R+/', strip_tags($generated)))
+            ->map($cleanLine)
+            ->map(fn ($line) => trim(preg_replace('/\s+/', ' ', (string) $line)))
+            ->filter()
+            ->unique(fn ($line) => strtolower(rtrim((string) $line, '.')))
+            ->values();
+
+        if ($lines->isEmpty()) {
+            $lines = collect(preg_split('/\R+/', strip_tags($existingText)))
+                ->map($cleanLine)
+                ->filter()
+                ->unique(fn ($line) => strtolower(rtrim((string) $line, '.')))
+                ->values();
+        }
+
+        if ($lines->count() < 4) {
+            $fallbackLines = preg_split('/\R+/', $this->buildLocalAiText('experience', $resume, $existingText)) ?: [];
+            foreach ($fallbackLines as $line) {
+                $line = $cleanLine($line);
+                if ($line !== '' && ! $lines->contains($line)) {
+                    $lines->push($line);
+                }
+                if ($lines->count() >= 4) {
+                    break;
+                }
+            }
+        }
+
+        $outputLines = $lines
+            ->take(5)
+            ->map(function ($line) {
+                $line = trim(preg_replace('/\s+/', ' ', (string) $line));
+                $line = rtrim($line, '.');
+
+                return $line === '' ? '' : $line.'.';
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $role = $this->toText($resume['job_title'] ?? $resume['designation'] ?? '') ?: 'role';
+        if ($this->countWordsInLines($outputLines) < 50 && count($outputLines) < 5) {
+            $outputLines[] = "Supported {$role} goals through reliable coordination, clear communication, and consistent follow-through.";
+        }
+
+        return implode("\n", $this->limitLinesToWords($outputLines, 100));
+    }
+
+    private function countWordsInLines(array $lines): int
+    {
+        return str_word_count(implode(' ', $lines));
+    }
+
+    private function limitLinesToWords(array $lines, int $maxWords): array
+    {
+        $remaining = $maxWords;
+        $limited = [];
+
+        foreach ($lines as $line) {
+            $words = preg_split('/\s+/', trim((string) $line)) ?: [];
+            $words = array_values(array_filter($words, fn ($word) => $word !== ''));
+            if (! $words || $remaining <= 0) {
+                continue;
+            }
+
+            if (count($words) > $remaining) {
+                $words = array_slice($words, 0, $remaining);
+                $line = rtrim(implode(' ', $words), " \t\n\r\0\x0B,;:.-").'.';
+            }
+
+            $limited[] = $line;
+            $remaining -= count($words);
+
+            if ($remaining <= 0) {
+                break;
+            }
+        }
+
+        return array_slice($limited, 0, 5);
+    }
+
+    private function normalizeSummaryAiOutput(string $generated, array $resume): string
+    {
+        $text = trim(strip_tags($generated));
+        $text = preg_replace('/\s+/', ' ', (string) $text);
+        $text = preg_replace('/^(professional summary|summary|profile)\s*:?\s*/i', '', (string) $text);
+
+        $isFresher = $this->candidateLooksFresher($resume);
+        $maxWords = $isFresher ? 60 : 80;
+        $minWords = $isFresher ? 35 : 50;
+
+        $sentences = preg_split('/(?<=[.!?])\s+/', $text) ?: [];
+        $seen = [];
+        $unique = [];
+        foreach ($sentences as $sentence) {
+            $sentence = trim($sentence);
+            if ($sentence === '') {
+                continue;
+            }
+
+            $key = strtolower(trim(preg_replace('/[^a-z0-9]+/i', ' ', $sentence)));
+            if ($key !== '' && ! isset($seen[$key])) {
+                $seen[$key] = true;
+                $unique[] = $sentence;
+            }
+        }
+
+        if ($unique) {
+            $text = implode(' ', array_slice($unique, 0, 4));
+        }
+
+        $words = preg_split('/\s+/', $text) ?: [];
+        if (count($words) > $maxWords) {
+            $text = implode(' ', array_slice($words, 0, $maxWords));
+            $text = rtrim($text, " \t\n\r\0\x0B,;:").'.';
+        }
+
+        if (str_word_count($text) < $minWords) {
+            $fallback = $this->buildLocalAiText('summary', $resume, $text);
+            if ($fallback !== $generated) {
+                return $this->normalizeSummaryAiOutput($fallback, $resume);
+            }
+        }
+
+        return trim($text);
+    }
+
+    private function cleanAiSeedText(string $value, int $maxLength = 900): string
+    {
+        $value = trim(strip_tags($value));
+        $value = preg_replace('/^\s*[-*•]\s*/um', '', (string) $value);
+        $value = preg_replace('/[ \t]+/', ' ', (string) $value);
+        $value = preg_replace('/\R{3,}/', "\n\n", (string) $value);
+
+        return mb_substr(trim((string) $value), 0, $maxLength);
+    }
+
+    private function candidateLooksFresher(array $resume): bool
+    {
+        $experience = collect($resume['experience'] ?? [])->filter(function ($item) {
+            if (! is_array($item)) {
+                return false;
+            }
+
+            return collect($item)->flatten()->map(fn ($value) => trim((string) $value))->filter()->isNotEmpty();
+        });
+
+        $roleText = strtolower($this->toText($resume['job_title'] ?? $resume['designation'] ?? ''));
+
+        return $experience->isEmpty()
+            || preg_match('/\b(fresher|fresh graduate|intern|trainee|student|entry[- ]?level)\b/i', $roleText) === 1;
     }
 
     public function edit(Resume $resume)
@@ -391,7 +557,7 @@ class ResumeBuilderController extends Controller
                             'temperature' => 0.94,
                             'topP' => 0.92,
                             'topK' => 40,
-                            'maxOutputTokens' => 520,
+                            'maxOutputTokens' => 260,
                         ],
                     ]
                 );
@@ -421,6 +587,7 @@ class ResumeBuilderController extends Controller
     private function buildLocalAiText(string $context, array $resume, string $existingText): string
     {
         $role = $this->toText($resume['job_title'] ?? '') ?: 'professional';
+        $roleLower = strtolower($role);
         $skills = array_slice($resume['skills'] ?? [], 0, 6);
         $skillsText = $skills ? implode(', ', $skills) : 'cross-functional collaboration, problem solving, and delivery-focused execution';
         $experience = collect($resume['experience'] ?? [])
@@ -448,20 +615,67 @@ class ResumeBuilderController extends Controller
                 })->join("\n");
             }
 
-            return implode("\n", [
-                "Built and maintained {$role} workflows with attention to quality, timelines, and user needs.",
-                "Collaborated with stakeholders to translate requirements into reliable, production-ready outcomes.",
-                "Used {$skillsText} to improve delivery quality and support measurable business goals.",
-                "Delivered consistent execution with clear communication, ownership, and continuous improvement.",
-            ]);
+            $roleFamilies = [
+                'driver' => [
+                    'Planned efficient routes and completed transport assignments on schedule while following safety rules.',
+                    'Inspected vehicle condition, reported issues early, and maintained cleanliness before every trip.',
+                    'Coordinated with dispatch or customers to confirm pickup, delivery, and timing updates.',
+                    'Maintained logs, delivery records, and trip documentation with accuracy and accountability.',
+                    'Handled goods carefully to prevent damage and support smooth daily operations.',
+                ],
+                'project manager' => [
+                    'Defined project plans, milestones, and dependencies to keep delivery aligned with business goals.',
+                    'Coordinated with stakeholders, design, and development teams to remove blockers quickly.',
+                    'Tracked progress against deadlines, communicated status updates, and managed changing priorities.',
+                    'Reviewed risks early and guided execution to keep work organized and on schedule.',
+                    'Supported team alignment through clear expectations, follow-ups, and delivery ownership.',
+                ],
+                'full stack developer' => [
+                    'Developed responsive user interfaces and connected them with backend services and APIs.',
+                    'Worked across database, server-side, and frontend layers to build stable application features.',
+                    'Debugged issues, improved code quality, and optimized performance for better user experience.',
+                    'Collaborated with product and design teams to translate requirements into reliable releases.',
+                    'Maintained reusable code structure and supported deployment-ready application updates.',
+                ],
+                'web developer' => [
+                    'Built responsive web pages and interactive features using modern frontend technologies.',
+                    'Integrated REST APIs and supported backend workflows for smooth data exchange.',
+                    'Debugged browser issues, improved loading speed, and refined user-facing functionality.',
+                    'Worked with designers and developers to deliver clean, accessible, and consistent interfaces.',
+                    'Wrote reusable code and helped keep applications maintainable across updates.',
+                ],
+            ];
+
+            $matchedFamily = null;
+            foreach ($roleFamilies as $family => $bullets) {
+                if (str_contains($roleLower, $family) || ($family === 'web developer' && (str_contains($roleLower, 'developer') || str_contains($roleLower, 'web')))) {
+                    $matchedFamily = $bullets;
+                    break;
+                }
+            }
+
+            if (! $matchedFamily) {
+                $matchedFamily = [
+                    "Performed {$role} responsibilities with a focus on quality, coordination, and timely delivery.",
+                    "Worked with team members and stakeholders to turn requirements into practical day-to-day results.",
+                    "Applied {$skillsText} where relevant to improve output quality and support business objectives.",
+                    "Maintained clear communication, organized execution, and consistent follow-through on assigned work.",
+                    "Adapted to changing priorities while keeping tasks accurate, reliable, and professional.",
+                ];
+            }
+
+            shuffle($matchedFamily);
+
+            return implode("\n", array_slice($matchedFamily, 0, 5));
         }
 
         if ($existingText !== '') {
             $base = trim(preg_replace('/\s+/', ' ', strip_tags($existingText)));
+            $base = implode(' ', array_slice(preg_split('/\s+/', $base) ?: [], 0, 26));
             $templates = [
-                "ATS-focused {$role} with a background in {$base} Known for clear communication, disciplined execution, and a practical approach to improving outcomes through {$skillsText}.",
-                "Results-oriented {$role} with strengths in {$base} Combines reliable ownership, structured problem solving, and collaborative delivery to support high-quality professional outcomes.",
-                "Motivated {$role} with experience in {$base} Offers strong attention to detail, adaptable execution, and a commitment to turning requirements into clear, dependable results.",
+                "{$role} with a foundation in {$base}, supported by skills in {$skillsText}. Brings clear communication, disciplined execution, and a practical approach to learning quickly, solving problems, and contributing dependable value to professional teams.",
+                "Results-focused {$role} with strengths shaped by {$base} and practical exposure to {$skillsText}. Known for ownership, adaptability, and structured problem solving, with a career goal of building reliable work that supports team and business outcomes.",
+                "Motivated {$role} with hands-on interest in {$skillsText} and a background in {$base}. Offers attention to detail, collaborative energy, and a growth mindset focused on turning requirements into clear, useful results.",
             ];
 
             return $templates[random_int(0, count($templates) - 1)];
