@@ -520,7 +520,7 @@ class ResumeController extends Controller
             }
 
             $isInstitution = preg_match('/\b(university|college|institute|school)\b/i', $line) === 1;
-            $isYear = preg_match('/\b(19|20)\d{2}\b|present|^\d{4}\s*[-–]\s*\d{4}$/i', $line) === 1;
+            $isYear = preg_match('/\b(19|20)\d{2}\b|present|^\d{4}\s*(?:-|to)\s*\d{4}$/i', $line) === 1;
             $isDegree = preg_match('/\b(b\.?tech|m\.?tech|bca|mca|b\.?sc|m\.?sc|bachelor|master|ph\.?d|diploma)\b/i', $line) === 1;
             $isCgpa = preg_match('/\b(cgpa|gpa|percentage|percent|marks?)\b/i', $line) === 1;
             $isLocation = preg_match('/\b(india|noida|delhi|mumbai|pune|hyderabad|chennai|kolkata|bengaluru|bangalore)\b/i', $line) === 1;
@@ -581,7 +581,6 @@ class ResumeController extends Controller
 
         return array_values(array_filter($rows, fn ($r) => collect($r)->filter()->isNotEmpty()));
     }
-
     private function buildProjectsFromLines(array $lines): array
     {
         $projects = [];
@@ -593,18 +592,19 @@ class ResumeController extends Controller
                 continue;
             }
 
-            $isTitle = preg_match('/\b(project|app|system|platform|extension|shortener|dashboard|portal|website)\b/i', $line) === 1 || str_contains($line, ' - ') || str_contains($line, ' · ');
-            $isUrl = preg_match('/(?:https?:\/\/|www\.|[a-z0-9\-]+\.[a-z]{2,})/i', $line) === 1;
+            $isUrl = preg_match('/(?:https?:\/\/|www\.|[a-z0-9\-]+\.[a-z]{2,}(?:\/[^\s]*)?)/i', $line) === 1;
+            $looksLikeHeader = $this->looksLikeProjectHeader($line) && ! $isUrl;
 
-            if ($current === null || ($isTitle && ! $isUrl)) {
+            if ($current === null || $looksLikeHeader) {
                 if ($current !== null) {
                     $projects[] = $current;
                 }
 
-                $parts = preg_split('/\s+(?:-|–|—|·)\s+/', $line, 2);
+                [$title, $tech] = $this->splitProjectHeader($line);
                 $current = [
-                    'name' => trim((string) ($parts[0] ?? $line)),
-                    'tech' => trim((string) ($parts[1] ?? '')),
+                    'name' => $title,
+                    'tech' => $tech,
+                    'tech_stack' => $tech,
                     'description' => '',
                     'link' => '',
                 ];
@@ -620,16 +620,67 @@ class ResumeController extends Controller
                 continue;
             }
 
-            $current['description'] = trim(($current['description'] ? $current['description'].' ' : '').$line);
+            $cleanLine = preg_replace('/^\s*(?:[-*]|\x{2022}|\x{25CF}|\x{25AA}|\x{25E6})\s*/u', '', $line);
+            $current['description'] = trim(($current['description'] ? $current['description'].' ' : '').$cleanLine);
         }
 
         if ($current !== null) {
             $projects[] = $current;
         }
 
-        return array_values(array_filter($projects, fn ($p) => trim((string) ($p['name'] ?? '')) !== ''));
+        return array_values(array_filter(array_map(function ($project) {
+            $name = trim((string) ($project['name'] ?? ''));
+            $tech = trim((string) ($project['tech_stack'] ?? $project['tech'] ?? ''));
+            $link = trim((string) ($project['link'] ?? ''));
+            $description = trim((string) ($project['description'] ?? ''));
+
+            if ($name === '' && $tech === '' && $link === '' && $description === '') {
+                return null;
+            }
+
+            return [
+                'name' => $name,
+                'tech' => $tech,
+                'tech_stack' => $tech,
+                'link' => $link,
+                'description' => $description,
+            ];
+        }, $projects)));
     }
 
+    private function looksLikeProjectHeader(string $line): bool
+    {
+        if (mb_strlen($line) < 3 || mb_strlen($line) > 170) {
+            return false;
+        }
+
+        if (preg_match('/\b(project|app|system|platform|extension|shortener|dashboard|portal|website)\b/i', $line) === 1) {
+            return true;
+        }
+
+        if (preg_match('/\s(?:-|\||\x{2013}|\x{2014}|\x{00B7})\s/u', $line) === 1) {
+            return true;
+        }
+
+        return preg_match('/\b(react|node|spring|django|laravel|postgres|mysql|mongodb|next\.?js|express|api)\b/i', $line) === 1;
+    }
+
+    private function splitProjectHeader(string $line): array
+    {
+        $line = trim($line);
+        $normalized = str_replace(["\u{2013}", "\u{2014}", "\u{00B7}"], ' - ', $line);
+        $parts = preg_split('/\s+(?:-|\|)\s+/', $normalized);
+        $parts = array_values(array_filter(array_map('trim', $parts), fn ($part) => $part !== ''));
+
+        if (count($parts) < 2) {
+            return [$line, ''];
+        }
+
+        $title = array_shift($parts) ?: '';
+        $tech = implode(' · ', $parts);
+
+        return [$title, $tech];
+    }
     private function inferLocationFromLines(array $lines): string
     {
         $candidates = collect($lines)->take(10)->filter(function ($line) {
@@ -659,7 +710,7 @@ class ResumeController extends Controller
         }
 
         $body = trim($match['body']);
-        $body = preg_replace('/[•●▪◦]/u', "\n", (string) $body);
+        $body = preg_replace('/[\x{2022}\x{25CF}\x{25AA}\x{25E6}]/u', "\n", (string) $body);
         $parts = preg_split('/(?:\R|;)+/', (string) $body);
 
         return collect($parts)
@@ -1031,6 +1082,8 @@ PROMPT;
                     return [
                         'name' => (string) $item,
                         'tech' => '',
+                        'tech_stack' => '',
+                        'link' => '',
                         'description' => '',
                     ];
                 }
@@ -1038,6 +1091,7 @@ PROMPT;
                     'name' => (string) ($item['name'] ?? ''),
                     'tech' => (string) ($item['tech'] ?? $item['tech_stack'] ?? ''),
                     'tech_stack' => (string) ($item['tech_stack'] ?? $item['tech'] ?? ''),
+                    'link' => (string) ($item['link'] ?? $item['url'] ?? ''),
                     'description' => (string) ($item['description'] ?? ''),
                 ];
             }, $resume['projects'] ?? [])),
@@ -1142,3 +1196,4 @@ PROMPT;
         return trim($slug, '-') . '-improved-resume.pdf';
     }
 }
+

@@ -337,7 +337,7 @@ HTML;
         $primaryColor = $color;
 
         return '<style>
-            :root, .tpl-resume, .tpl-cover { --primary: '.$primaryColor.'; }
+            .tpl-resume, .tpl-cover { --primary: '.$primaryColor.'; }
             .tpl-resume h2, .tpl-cover h2 {
                 border-color: var(--primary) !important;
                 color: var(--primary) !important;
