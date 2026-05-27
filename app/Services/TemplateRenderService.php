@@ -293,6 +293,10 @@ HTML;
             $this->ensureSectionVisible($html, $data, 'achievements', 'Achievements');
         }
 
+        $html = preg_replace('/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary)\s*<\/h[1-6]>\s*(?:<div[^>]*>\s*)?<\/section>/i', '', $html);
+        $html = preg_replace('/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/i', '', $html);
+        $html = preg_replace('/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/i', '', $html);
+
         $html = $this->withScopedAccent($html, $this->resumeAccentColor($data));
 
         return $html;
@@ -430,7 +434,7 @@ HTML;
             'link' => e($this->text(Arr::get($data, 'link', Arr::get($data, 'portfolio', '')))),
             'skills' => $this->badges(Arr::get($data, 'skills', [])),
             'experience' => $this->experience(Arr::get($data, 'experience', [])),
-            'education' => $this->list(Arr::get($data, 'education', [])),
+            'education' => $this->educationList(Arr::get($data, 'education', [])),
             'projects' => $this->projectList(Arr::get($data, 'projects', [])),
             'social_links' => $this->inline(Arr::get($data, 'social_links', [])),
             'certifications' => $this->list(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
@@ -586,7 +590,12 @@ HTML;
         $items ??= [];
         $items = is_array($items) ? $items : explode(',', $items);
 
-        return collect($items)->map(fn ($item) => $this->text($item))->filter()->map(fn ($item) => '<span class="tpl-badge">'.$this->rich($item).'</span>')->join('');
+        return collect($items)
+            ->map(fn ($item) => $this->text($item))
+            ->filter()
+            ->values()
+            ->map(fn ($item) => '<span class="tpl-badge">'.$this->rich($item).'</span>')
+            ->join('');
     }
 
     private function list(array|string|null $items): string
@@ -612,12 +621,50 @@ HTML;
             return $this->text($item);
         })->filter()->values();
 
+        if ($normalized->isEmpty()) {
+            return '';
+        }
+
         $first = $normalized->first();
         if ($normalized->count() === 1 && is_string($first) && preg_match('/<[a-z][\s\S]*>/i', $first)) {
             return $first;
         }
 
         return '<ul>'.$normalized->map(fn ($item) => '<li>'.$this->rich($item).'</li>')->join('').'</ul>';
+    }
+
+    private function educationList(array|string|null $items): string
+    {
+        $items ??= [];
+        $items = is_array($items) ? $items : explode("\n", $items);
+
+        $normalized = collect($items)->map(function ($item) {
+            if (! is_array($item)) {
+                $text = $this->text($item);
+
+                return $text === '' ? null : '<li>'.$this->rich($text).'</li>';
+            }
+
+            $degree = $this->text($item['degree'] ?? $item['course'] ?? '');
+            $stream = $this->text($item['stream'] ?? $item['field'] ?? $item['specialization'] ?? '');
+            $institution = $this->text($item['institution'] ?? $item['school'] ?? $item['university'] ?? $item['college'] ?? '');
+            $year = $this->text($item['year'] ?? $item['duration'] ?? $item['period'] ?? '');
+            $cgpa = $this->text($item['cgpa'] ?? '');
+
+            $title = collect([$degree, $stream])->filter()->join(' - ');
+            $meta = collect([$institution, $cgpa !== '' ? 'CGPA: '.$cgpa : '', $year])->filter()->join(', ');
+
+            if ($title === '' && $meta === '') {
+                return null;
+            }
+
+            return '<li>'
+                .($title !== '' ? '<strong>'.e($title).'</strong>' : '')
+                .($meta !== '' ? '<span class="tpl-description">'.e($meta).'</span>' : '')
+                .'</li>';
+        })->filter()->values();
+
+        return $normalized->isEmpty() ? '' : '<ul>'.$normalized->join('').'</ul>';
     }
 
     private function languageList(array|string|null $items): string
@@ -659,7 +706,7 @@ HTML;
         $items ??= [];
         $items = is_array($items) ? $items : explode("\n", $items);
 
-        return '<ul>'.collect($items)->map(function ($item) {
+        $rendered = collect($items)->map(function ($item) {
             if (! is_array($item)) {
                 $name = $this->text($item);
 
@@ -692,7 +739,9 @@ HTML;
                 : '';
 
             return '<li>'.$title.$meta.$body.'</li>';
-        })->filter()->join('').'</ul>';
+        })->filter()->join('');
+
+        return $rendered === '' ? '' : '<ul>'.$rendered.'</ul>';
     }
 
     private function inline(array|string|null $items): string
@@ -707,18 +756,29 @@ HTML;
     {
         $items ??= [];
         if (! is_array($items)) {
-            return '<p>'.e($items).'</p>';
+            $text = $this->text($items);
+
+            return $text === '' ? '' : '<p>'.e($text).'</p>';
         }
 
         return collect($items)->map(function ($item) {
             if (! is_array($item)) {
-                return '<div class="tpl-role"><p>'.e($this->text($item)).'</p></div>';
+                $text = $this->text($item);
+
+                return $text === '' ? '' : '<div class="tpl-role"><p>'.e($text).'</p></div>';
             }
 
-            $points = $this->list($item['points'] ?? []);
+            $role = $this->text($item['role'] ?? $item['title'] ?? $item['position'] ?? '');
+            $period = $this->text($item['period'] ?? $item['duration'] ?? $item['dates'] ?? '');
+            $company = $this->text($item['company'] ?? $item['organization'] ?? '');
+            $points = $this->list($item['points'] ?? $item['highlights'] ?? []);
 
-            return '<div class="tpl-role"><div class="tpl-role-head"><strong>'.e($this->text($item['role'] ?? '')).'</strong><span>'.e($this->text($item['period'] ?? '')).'</span></div><p>'.e($this->text($item['company'] ?? '')).'</p>'.$points.'</div>';
-        })->join('');
+            if ($role === '' && $period === '' && $company === '' && $points === '') {
+                return '';
+            }
+
+            return '<div class="tpl-role"><div class="tpl-role-head"><strong>'.e($role).'</strong><span>'.e($period).'</span></div><p>'.e($company).'</p>'.$points.'</div>';
+        })->filter()->join('');
     }
 
     private function text(mixed $value): string

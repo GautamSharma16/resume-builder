@@ -1701,21 +1701,33 @@
         return ensureArray(data.skills).map(s => `<span class="tpl-badge">${esc(s)}</span>`).join('');
     }
     function renderListForTemplate(items) {
-        return `<ul>${ensureArray(items).map(item => {
+        const rendered = ensureArray(items).filter(item => {
+            if (!item) return false;
+            if (typeof item === 'string') return item.trim() !== '';
+            return Object.values(item).some(value => String(value ?? '').trim() !== '');
+        }).map(item => {
             if (typeof item === 'string') return `<li>${esc(item)}</li>`;
             const name = esc(item?.name || item?.degree || item?.title || '');
             const meta = esc(item?.institution || item?.tech || item?.company || item?.stream || '');
-            const desc = esc(item?.description || item?.year || item?.period || item?.details || '');
+            const desc = esc(item?.description || item?.year || item?.duration || item?.period || item?.details || '');
             return `<li>${name ? `<strong>${name}</strong>` : ''}${meta ? ` ${meta}` : ''}${desc ? `<span class="tpl-description">${desc}</span>` : ''}</li>`;
-        }).join('')}</ul>`;
+        }).join('');
+
+        return rendered ? `<ul>${rendered}</ul>` : '';
     }
     function renderExperienceForTemplate(data) {
-        return ensureArray(data.experience).map(exp => {
+        return ensureArray(data.experience).filter(exp => {
+            if (!exp || typeof exp !== 'object') return false;
+            const pointsArray = Array.isArray(exp?.points)
+                ? exp.points
+                : (typeof exp?.points === 'string' ? exp.points.split('\n').map(p => p.trim()).filter(Boolean) : []);
+            return Boolean(exp?.role || exp?.company || exp?.period || exp?.duration || pointsArray.length);
+        }).map(exp => {
             const pointsArray = Array.isArray(exp?.points)
                 ? exp.points
                 : (typeof exp?.points === 'string' ? exp.points.split('\n').map(p => p.trim()).filter(Boolean) : []);
             const points = pointsArray.map(p => `<li>${esc(p)}</li>`).join('');
-            return `<div class="tpl-role"><div class="tpl-role-head"><strong>${esc(exp?.role||'')}</strong><span>${esc(exp?.period||'')}</span></div><p>${esc(exp?.company||'')}</p><ul>${points}</ul></div>`;
+            return `<div class="tpl-role"><div class="tpl-role-head"><strong>${esc(exp?.role||'')}</strong><span>${esc(exp?.period||exp?.duration||'')}</span></div><p>${esc(exp?.company||'')}</p>${points ? `<ul>${points}</ul>` : ''}</div>`;
         }).join('');
     }
     function replaceToken(html, key, value) {
@@ -1765,6 +1777,14 @@
         };
         const hasProjectsToken = /\{\{\s*projects\s*\}\}/i.test(html) || /\[\[\s*projects\s*\]\]/i.test(html);
         Object.entries(values).forEach(([key, val]) => { html = replaceToken(html, key, val); });
+
+        ['experience', 'education', 'projects', 'certifications', 'languages', 'achievements'].forEach((key) => {
+            if (!values[key] || values[key] === '<ul></ul>') {
+                html = html
+                    .replace(new RegExp(`<section[^>]*>\\s*<h[1-6][^>]*>\\s*${key}s?\\s*<\\/h[1-6]>\\s*(?:<ul[^>]*>\\s*<\\/ul>|<div[^>]*>\\s*<\\/div>|<p[^>]*>\\s*<\\/p>|)\\s*<\\/section>`, 'gi'), '')
+                    .replace(new RegExp(`<h[1-6][^>]*>\\s*${key}s?\\s*<\\/h[1-6]>\\s*(?:<ul[^>]*>\\s*<\\/ul>|<div[^>]*>\\s*<\\/div>|<p[^>]*>\\s*<\\/p>)`, 'gi'), '');
+            }
+        });
 
         // Blade-style fallback for templates that use $resume['field'] placeholders
         Object.entries(values).forEach(([key, val]) => {

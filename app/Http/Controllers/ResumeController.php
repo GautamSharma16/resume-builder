@@ -349,13 +349,11 @@ class ResumeController extends Controller
             $template = Template::find($validated['template_id']);
         }
 
-        if ($template) {
-            $htmlContent = $renderer->renderResume($template, $resume);
-            $html = view('templates.rendered-document', ['html' => $htmlContent])->render();
-        } else {
-            // Fallback to basic PDF view if no template is specified or found
-            $html = view('resume.pdf', ['resume' => $resume])->render();
-        }
+        $htmlContent = $template
+            ? $renderer->renderResume($template, $resume)
+            : $renderer->renderResume(new Template(), $resume);
+
+        $html = view('templates.rendered-document', ['html' => $htmlContent])->render();
 
         $pdf = $pdfConversionService->htmlToPdfWithPuppeteer($html);
 

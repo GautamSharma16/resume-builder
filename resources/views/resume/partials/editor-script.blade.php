@@ -284,7 +284,7 @@
             const pts = isHtml
                 ? e.points[0]
                 : (e.points.filter(Boolean).length ? `<ul>${e.points.filter(Boolean).map(p => `<li>${rich(p)}</li>`).join('')}</ul>` : '');
-            return `<div class="tpl-role"><div class="tpl-role-head"><strong>${esc(e.role)}</strong><span>${esc(e.period)}</span></div><p>${esc(e.company)}</p>${pts}</div>`;
+            return `<div class="tpl-role"><div class="tpl-role-head"><strong>${esc(e.role)}</strong><span>${esc(e.period || e.duration || '')}</span></div><p>${esc(e.company)}</p>${pts}</div>`;
         }).join('');
     }
     function renderList(arr) {
@@ -296,7 +296,11 @@
             if (typeof i === 'string') return `<li>${esc(i)}</li>`;
             if ('degree' in i || 'institution' in i || 'stream' in i || 'year' in i) {
                 const title = [i.degree, i.stream].map(v => String(v || '').trim()).filter(Boolean).join(' - ');
-                const meta = [i.institution, i.year].map(v => String(v || '').trim()).filter(Boolean).join(', ');
+                const meta = [
+                    i.institution,
+                    i.cgpa ? `CGPA: ${i.cgpa}` : '',
+                    i.year || i.duration || i.period || ''
+                ].map(v => String(v || '').trim()).filter(Boolean).join(', ');
                 return `<li>${title ? `<strong>${esc(title)}</strong>` : ''}${meta ? `<span class="tpl-description">${esc(meta)}</span>` : ''}</li>`;
             }
             if ('level' in i || 'proficiency' in i || 'language' in i) {
@@ -486,8 +490,8 @@
         // Remove empty sections entirely so clear/delete reflects instantly in preview.
         output = output
             .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary)\s*<\/h[1-6]>\s*(?:<div[^>]*>\s*)?<\/section>/gi, '')
-            .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Languages|Achievements)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|)\s*<\/section>/gi, '')
-            .replace(/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Languages|Achievements)\s*<\/h[1-6]>\s*<ul[^>]*>\s*<\/ul>/gi, '');
+            .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/gi, '')
+            .replace(/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/gi, '');
 
         output = output.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function(match, css) {
             let scoped = css.replace(/(^|\}|\s)body\s*\{/gi, '$1.resume-sheet-preview {');
