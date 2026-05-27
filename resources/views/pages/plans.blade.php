@@ -399,11 +399,11 @@
                     <ul class="plan-features">
                         <li>
                             <span class="check-icon"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>
-                            {{ is_null($plan->downloads_allowed) ? 'Unlimited' : $plan->downloads_allowed }} Resumes
+                            {{ is_null($plan->resume_limit) ? 'Unlimited' : $plan->resume_limit }} Resumes
                         </li>
                         <li>
                             <span class="check-icon"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>
-                            {{ is_null($plan->downloads_allowed) ? 'Unlimited' : $plan->downloads_allowed }} Cover Letters
+                            {{ is_null($plan->cover_letter_limit) ? 'Unlimited' : $plan->cover_letter_limit }} Cover Letters
                         </li>
                         <li>
                             <span class="check-icon"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>

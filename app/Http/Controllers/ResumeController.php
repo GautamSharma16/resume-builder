@@ -60,11 +60,21 @@ class ResumeController extends Controller
             $jobRole = $request->input('job_role') ?: 'General';
             $jobDescription = $request->input('job_description');
 
-            $analysis = $this->askGeminiForAnalysis(
-                $resumeJson,
-                $jobRole,
-                $jobDescription
-            );
+            $analysis = ($validated['mode'] ?? null) === 'autofill'
+                ? [
+                    'success' => true,
+                    'score' => 0,
+                    'strengths' => [],
+                    'weaknesses' => [],
+                    'missing_keywords' => [],
+                    'suggestions' => [],
+                    'improved_resume' => $resumeJson,
+                ]
+                : $this->askGeminiForAnalysis(
+                    $resumeJson,
+                    $jobRole,
+                    $jobDescription
+                );
 
             if (!Arr::get($analysis, 'success', true)) {
                 if (($validated['mode'] ?? null) === 'autofill') {
@@ -447,13 +457,15 @@ class ResumeController extends Controller
             $mobile = trim($match[0]);
         }
 
-        $location = $lines
-            ->first(fn($line) => !str_contains($line, '@') && !preg_match('/\+?\d[\d\s().-]{7,}/', $line) && preg_match('/\b(?:India|USA|UK|Remote|Bengaluru|Bangalore|Mumbai|Delhi|Pune|Hyderabad|Chennai|Kolkata|Noida|Gurgaon)\b/i', $line)) ?: '';
+        $location = $this->inferLocationFromLines($lines->all());
 
         $skills = $this->extractSectionItems($text, ['skills', 'technical skills', 'core skills']);
-        $education = $this->extractSectionItems($text, ['education', 'academic']);
+        $educationLines = $this->extractSectionItems($text, ['education', 'academic']);
         $experienceLines = $this->extractSectionItems($text, ['experience', 'work experience', 'professional experience']);
-        $projects = $this->extractSectionItems($text, ['projects', 'project', 'portfolio', 'projects & accomplishments', 'selected projects']);
+        $projectLines = $this->extractSectionItems($text, ['projects', 'project', 'portfolio', 'projects & accomplishments', 'selected projects']);
+        $education = $this->buildEducationFromLines($educationLines);
+        $projects = $this->buildProjectsFromLines($projectLines);
+        $summarySection = $this->extractSectionBody($text, ['summary', 'professional summary', 'profile summary', 'objective', 'career objective']);
 
         $summaryLines = $lines
             ->reject(fn($line) => str_contains(strtolower($line), '@') || preg_match('/\+?\d[\d\s().-]{7,}/', $line))
@@ -468,7 +480,7 @@ class ResumeController extends Controller
             'location' => $location,
             'contact' => trim(implode(' | ', array_filter([$email, $mobile]))),
             'address' => $location,
-            'summary' => implode(' ', $summaryLines),
+            'summary' => $summarySection !== '' ? $summarySection : implode(' ', $summaryLines),
             'skills' => $skills,
             'experience' => [
                 [
@@ -482,6 +494,162 @@ class ResumeController extends Controller
         ]);
     }
 
+    private function extractSectionBody(string $text, array $headings): string
+    {
+        $pattern = '/(?:^|\n)(' . implode('|', array_map('preg_quote', $headings)) . ')\s*:?\s*\n(?<body>.*?)(?=\n[A-Z][A-Z &\/-]{2,}:?\s*\n|$)/is';
+        if (!preg_match($pattern, $text, $match)) {
+            return '';
+        }
+
+        $body = trim((string) ($match['body'] ?? ''));
+        $body = preg_replace('/[ \t]+/', ' ', $body);
+        $body = preg_replace('/\s*\n\s*/', "\n", (string) $body);
+
+        return trim((string) $body);
+    }
+
+    private function buildEducationFromLines(array $lines): array
+    {
+        $rows = [];
+        $current = null;
+
+        foreach ($lines as $line) {
+            $line = trim((string) $line);
+            if ($line === '') {
+                continue;
+            }
+
+            $isInstitution = preg_match('/\b(university|college|institute|school)\b/i', $line) === 1;
+            $isYear = preg_match('/\b(19|20)\d{2}\b|present|^\d{4}\s*[-–]\s*\d{4}$/i', $line) === 1;
+            $isDegree = preg_match('/\b(b\.?tech|m\.?tech|bca|mca|b\.?sc|m\.?sc|bachelor|master|ph\.?d|diploma)\b/i', $line) === 1;
+            $isCgpa = preg_match('/\b(cgpa|gpa|percentage|percent|marks?)\b/i', $line) === 1;
+            $isLocation = preg_match('/\b(india|noida|delhi|mumbai|pune|hyderabad|chennai|kolkata|bengaluru|bangalore)\b/i', $line) === 1;
+
+            if ($isDegree) {
+                if ($current && collect($current)->filter()->isNotEmpty()) {
+                    $rows[] = $current;
+                }
+                $current = ['degree' => $line, 'stream' => '', 'institution' => '', 'year' => ''];
+                continue;
+            }
+
+            if ($isInstitution) {
+                if (! $current) {
+                    $current = ['degree' => '', 'stream' => '', 'institution' => $line, 'year' => ''];
+                } elseif ($current['institution'] === '') {
+                    $current['institution'] = $line;
+                } else {
+                    $rows[] = $current;
+                    $current = ['degree' => '', 'stream' => '', 'institution' => $line, 'year' => ''];
+                }
+                continue;
+            }
+
+            if ($isYear) {
+                if (! $current) {
+                    $current = ['degree' => '', 'stream' => '', 'institution' => '', 'year' => $line];
+                } else {
+                    $current['year'] = $line;
+                }
+                continue;
+            }
+
+            if ($isCgpa || $isLocation) {
+                if ($current && $current['institution'] !== '') {
+                    $current['institution'] = trim($current['institution'].', '.$line);
+                }
+                continue;
+            }
+
+            if (! $current) {
+                $current = ['degree' => $line, 'stream' => '', 'institution' => '', 'year' => ''];
+                continue;
+            }
+
+            if ($current['stream'] === '') {
+                $current['stream'] = $line;
+            } elseif ($current['institution'] === '') {
+                $current['institution'] = $line;
+            } else {
+                $current['degree'] = trim(($current['degree'] ? $current['degree'].' | ' : '').$line);
+            }
+        }
+
+        if ($current && collect($current)->filter()->isNotEmpty()) {
+            $rows[] = $current;
+        }
+
+        return array_values(array_filter($rows, fn ($r) => collect($r)->filter()->isNotEmpty()));
+    }
+
+    private function buildProjectsFromLines(array $lines): array
+    {
+        $projects = [];
+        $current = null;
+
+        foreach ($lines as $line) {
+            $line = trim((string) $line);
+            if ($line === '') {
+                continue;
+            }
+
+            $isTitle = preg_match('/\b(project|app|system|platform|extension|shortener|dashboard|portal|website)\b/i', $line) === 1 || str_contains($line, ' - ') || str_contains($line, ' · ');
+            $isUrl = preg_match('/(?:https?:\/\/|www\.|[a-z0-9\-]+\.[a-z]{2,})/i', $line) === 1;
+
+            if ($current === null || ($isTitle && ! $isUrl)) {
+                if ($current !== null) {
+                    $projects[] = $current;
+                }
+
+                $parts = preg_split('/\s+(?:-|–|—|·)\s+/', $line, 2);
+                $current = [
+                    'name' => trim((string) ($parts[0] ?? $line)),
+                    'tech' => trim((string) ($parts[1] ?? '')),
+                    'description' => '',
+                    'link' => '',
+                ];
+                continue;
+            }
+
+            if ($isUrl) {
+                if ($current['link'] === '') {
+                    $current['link'] = $line;
+                } else {
+                    $current['description'] = trim(($current['description'] ? $current['description'].' ' : '').$line);
+                }
+                continue;
+            }
+
+            $current['description'] = trim(($current['description'] ? $current['description'].' ' : '').$line);
+        }
+
+        if ($current !== null) {
+            $projects[] = $current;
+        }
+
+        return array_values(array_filter($projects, fn ($p) => trim((string) ($p['name'] ?? '')) !== ''));
+    }
+
+    private function inferLocationFromLines(array $lines): string
+    {
+        $candidates = collect($lines)->take(10)->filter(function ($line) {
+            $line = trim((string) $line);
+            if ($line === '') {
+                return false;
+            }
+            if (str_contains($line, '@') || preg_match('/\+?\d[\d\s().-]{7,}/', $line)) {
+                return false;
+            }
+            if (preg_match('/\b(university|college|institute|school|cgpa|gpa|percentage|project|experience|education)\b/i', $line)) {
+                return false;
+            }
+
+            return preg_match('/\b(?:india|usa|uk|remote|bengaluru|bangalore|mumbai|delhi|pune|hyderabad|chennai|kolkata|noida|gurgaon)\b/i', $line);
+        });
+
+        return trim((string) ($candidates->first() ?? ''));
+    }
+
     private function extractSectionItems(string $text, array $headings): array
     {
         $pattern = '/(?:^|\n)(' . implode('|', array_map('preg_quote', $headings)) . ')\s*:?\s*\n(?<body>.*?)(?=\n[A-Z][A-Z &\/-]{2,}:?\s*\n|$)/is';
@@ -491,11 +659,13 @@ class ResumeController extends Controller
         }
 
         $body = trim($match['body']);
-        $parts = preg_split('/(?:\R|,|;|•|- )+/', $body);
+        $body = preg_replace('/[•●▪◦]/u', "\n", (string) $body);
+        $parts = preg_split('/(?:\R|;)+/', (string) $body);
 
         return collect($parts)
-            ->map(fn($item) => trim($item, " \t\n\r\0\x0B-•"))
-            ->filter(fn($item) => mb_strlen($item) > 1 && mb_strlen($item) < 180)
+            ->map(fn($item) => trim((string) $item))
+            ->map(fn($item) => trim(preg_replace('/^\s*[-*]\s+/', '', $item)))
+            ->filter(fn($item) => mb_strlen($item) > 1 && mb_strlen($item) < 220)
             ->take(24)
             ->values()
             ->all();

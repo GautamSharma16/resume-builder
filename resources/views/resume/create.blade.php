@@ -1860,6 +1860,7 @@
         }
 
         document.getElementById('resume-autofill-file')?.addEventListener('change', async function() {
+            if (window.__resumeAutofillHandledByPartial) return;
             const file = this.files?.[0];
             if (!file) return;
             const statusEl = document.getElementById('resume-autofill-status');
@@ -1967,7 +1968,13 @@
 
         async function generateAIText(context, targetEl, triggerButton = null) {
             if (!targetEl) return;
-            if (triggerButton) triggerButton.classList.add('loading');
+            let btnOriginalHtml = '';
+            if (triggerButton) {
+                btnOriginalHtml = triggerButton.innerHTML;
+                triggerButton.classList.add('loading');
+                triggerButton.disabled = true;
+                triggerButton.innerHTML = '<span style="display:inline-flex;align-items:center;gap:.4rem;"><span aria-hidden="true" style="width:12px;height:12px;display:inline-block;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:999px;animation:rmSpin .8s linear infinite;"></span>Generating...</span>';
+            }
 
             const getEditorForEl = (el) => {
                 if (typeof tinymce === 'undefined' || !el) return null;
@@ -1982,7 +1989,12 @@
                 const res = await fetch(app.dataset.aiTextUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token },
-                    body: JSON.stringify({ context, text: orig, resume: currentResumePayload() })
+                    body: JSON.stringify({
+                        context,
+                        text: orig,
+                        resume: currentResumePayload(),
+                        variation_seed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+                    })
                 });
                 const data = await res.json();
                 if (!res.ok || !data.text) throw new Error(data.message || 'AI generation failed.');
@@ -1994,6 +2006,9 @@
                 } else {
                     targetEl.value = data.text;
                 }
+                if (context === 'summary') {
+                    targetEl.value = data.text;
+                }
             } catch(e) {
                 if (activeEditor) {
                     activeEditor.setContent(orig);
@@ -2002,8 +2017,23 @@
                 } else {
                     targetEl.value = orig;
                 }
+                console.error('AI generate failed:', e);
+                const statusEl = document.getElementById('resume-autofill-status');
+                if (statusEl) {
+                    statusEl.textContent = e.message || 'AI generation failed. Please try again.';
+                    statusEl.style.color = '#dc2626';
+                }
+                if (triggerButton) {
+                    const oldText = triggerButton.textContent;
+                    triggerButton.textContent = 'Try Again';
+                    setTimeout(() => { triggerButton.textContent = oldText; }, 1300);
+                }
             } finally {
-                if (triggerButton) triggerButton.classList.remove('loading');
+                if (triggerButton) {
+                    triggerButton.classList.remove('loading');
+                    triggerButton.disabled = false;
+                    triggerButton.innerHTML = btnOriginalHtml || triggerButton.innerHTML;
+                }
             }
 
             targetEl.dispatchEvent(new Event('input', { bubbles: true }));

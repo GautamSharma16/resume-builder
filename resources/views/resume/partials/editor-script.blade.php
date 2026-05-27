@@ -59,6 +59,70 @@
         }
         return String(value);
     };
+    const listify = (value, splitRegex = /[\n,;|]+/) => {
+        if (Array.isArray(value)) return value.map(v => toText(v)).map(v => v.trim()).filter(Boolean);
+        if (value == null) return [];
+        const text = toText(value).replace(/[•●▪◦]/g, '\n');
+        return String(text).split(splitRegex).map(v => v.trim()).filter(Boolean);
+    };
+    const looksLikeCompany = (line = '') => /\b(inc|llc|ltd|pvt|technologies|technology|solutions|systems|labs|corp)\b/i.test(line);
+    const looksLikeUrl = (line = '') => /(?:https?:\/\/|www\.|[a-z0-9-]+\.[a-z]{2,})/i.test(line);
+    const looksLikeLocation = (line = '') => /\b(remote|on[- ]?site|hybrid|india|usa|uk|delhi|mumbai|pune|bengaluru|bangalore|hyderabad|chennai|kolkata)\b/i.test(line);
+    const looksLikeRole = (line = '') => /\b(intern|developer|engineer|manager|analyst|designer|consultant|lead|architect)\b/i.test(line);
+    const looksLikePeriod = (line = '') => /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}|present)\b/i.test(line);
+    const stitchProjectStrings = (items = []) => {
+        const lines = items.map(v => String(v || '').trim()).filter(Boolean);
+        const stitched = [];
+        let current = null;
+        for (const line of lines) {
+            const isTitle = / - | • |\| /.test(line) && line.length <= 130;
+            if (!current || isTitle) {
+                if (current) stitched.push(current);
+                current = { name: line, tech_stack: '', link: '', description: '' };
+                continue;
+            }
+            if (!current.link && looksLikeUrl(line)) {
+                current.link = line;
+                continue;
+            }
+            current.description = [current.description, line].filter(Boolean).join(' ');
+        }
+        if (current) stitched.push(current);
+        return stitched;
+    };
+    const normalizeExperienceEntry = (entry) => {
+        const base = typeof entry === 'string'
+            ? { company: '', role: '', period: '', points: listify(entry, /\n+/) }
+            : {
+                company: String(entry?.company ?? entry?.organization ?? ''),
+                role: String(entry?.role ?? entry?.title ?? entry?.position ?? ''),
+                period: String(entry?.period ?? entry?.duration ?? entry?.dates ?? ''),
+                points: listify(entry?.points ?? entry?.description ?? entry?.details ?? entry?.summary ?? '', /\n+/),
+            };
+
+        if (!base.role && !base.company && base.points.length) {
+            const kept = [];
+            base.points.forEach((line) => {
+                if (!base.company && looksLikeCompany(line)) { base.company = line; return; }
+                if (!base.role && looksLikeRole(line)) {
+                    base.role = line;
+                    if (!base.period && looksLikePeriod(line)) {
+                        const m = line.match(/((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*\d{4}\s*[-–]\s*(?:present|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*\d{4}))/i);
+                        if (m) {
+                            base.period = m[1].trim();
+                            base.role = line.replace(m[1], '').trim();
+                        }
+                    }
+                    return;
+                }
+                if (looksLikeUrl(line) || looksLikeLocation(line)) return;
+                kept.push(line);
+            });
+            base.points = kept;
+        }
+
+        return base;
+    };
 
     /* ── Constants ── */
     const A4_W = 794;
@@ -144,24 +208,25 @@
         contact:      String(r.contact ?? ''),
         address:      String(r.address ?? ''),
         summary:      String(r.summary ?? ''),
-        skills:       ensureArray(r.skills).map(String),
-        experience:   ensureArray(r.experience).map(e => ({
-            company: String(e?.company ?? ''),
-            role:    String(e?.role ?? ''),
-            period:  String(e?.period ?? ''),
-            points:  ensureArray(e?.points).map(toText),
-        })),
+        skills:       listify(r.skills, /[\n,;|]+/),
+        experience:   ensureArray(r.experience).map(normalizeExperienceEntry),
         education: ensureArray(r.education).map(educationToObject).filter(e => e.degree || e.stream || e.institution || e.year),
-        projects:  ensureArray(r.projects).map(p =>
-            typeof p === 'string'
-                ? { name: p, tech_stack: '', link: '', description: '' }
-                : {
-                    name: String(p?.name ?? ''),
-                    tech_stack: String(p?.tech_stack ?? p?.tech ?? ''),
-                    link: String(p?.link ?? p?.url ?? ''),
-                    description: toText(p?.description ?? p?.highlights ?? p?.points ?? ''),
-                }
-        ),
+        projects:  (() => {
+            const rawProjects = ensureArray(r.projects);
+            if (rawProjects.every(p => typeof p === 'string') && rawProjects.length > 3) {
+                return stitchProjectStrings(rawProjects);
+            }
+            return rawProjects.map(p =>
+                typeof p === 'string'
+                    ? { name: p, tech_stack: '', link: '', description: '' }
+                    : {
+                        name: String(p?.name ?? ''),
+                        tech_stack: String(p?.tech_stack ?? p?.tech ?? ''),
+                        link: String(p?.link ?? p?.url ?? ''),
+                        description: toText(p?.description ?? p?.highlights ?? listify(p?.points, /\n+/).join('\n') ?? ''),
+                    }
+            );
+        })(),
         certifications: ensureArray(r.certifications ?? r.certificates).map(c =>
             typeof c === 'string' ? { name: c, description: '' } : { name: String(c?.name ?? ''), description: String(c?.description ?? '') }
         ),
@@ -368,6 +433,12 @@
             }
         });
 
+        if (!values.certifications && !values.certificates) {
+            output = output
+                .replace(/<h[1-6][^>]*>\s*certifications?\s*<\/h[1-6]>/gi, '')
+                .replace(/<section[^>]*>\s*<\/section>/gi, '');
+        }
+
         if (output.includes('$resume')) {
             const bladeMap = {
                 'name': values.name, 'last_name': values.last_name, 'job_title': values.job_title,
@@ -406,6 +477,12 @@
             const lastDiv = output.lastIndexOf('</div>');
             output = lastDiv !== -1 ? output.slice(0, lastDiv) + section + output.slice(lastDiv) : output + section;
         }
+
+        // Remove empty sections entirely so clear/delete reflects instantly in preview.
+        output = output
+            .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary)\s*<\/h[1-6]>\s*(?:<div[^>]*>\s*)?<\/section>/gi, '')
+            .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Languages|Achievements)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|)\s*<\/section>/gi, '')
+            .replace(/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Languages|Achievements)\s*<\/h[1-6]>\s*<ul[^>]*>\s*<\/ul>/gi, '');
 
         output = output.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function(match, css) {
             let scoped = css.replace(/(^|\}|\s)body\s*\{/gi, '$1.resume-sheet-preview {');
@@ -1223,11 +1300,15 @@
     });
 
     /* ── File autofill ── */
-    if (autofillBtnEl && autofillFileEl) {
+    window.__resumeAutofillHandledByPartial = true;
+    if (autofillFileEl) {
         autofillFileEl.addEventListener('change', () => {
             const f = autofillFileEl.files?.[0];
             if (fileNameEl) fileNameEl.textContent = f ? f.name : 'Click to upload your resume';
             if (autofillStatusEl) { autofillStatusEl.textContent = f ? 'File selected. Click Autofill to import it.' : ''; autofillStatusEl.style.color = ''; }
+            if (f) {
+                setTimeout(() => doAutofill(), 0);
+            }
         });
 
         const doAutofill = async () => {
@@ -1239,8 +1320,13 @@
             }
             try {
                 uploadInProgress = true;
-                autofillBtnEl.disabled = true;
-                autofillBtnEl.style.opacity = '.6';
+                if (typeof window.showResumeScanOverlay === 'function') {
+                    window.showResumeScanOverlay();
+                }
+                if (autofillBtnEl) {
+                    autofillBtnEl.disabled = true;
+                    autofillBtnEl.style.opacity = '.6';
+                }
                 if (autofillStatusEl) { autofillStatusEl.textContent = 'Reading your resume with AI…'; autofillStatusEl.style.color = ''; }
                 const fd = new FormData();
                 fd.append('resume', file);
@@ -1268,12 +1354,17 @@
                 if (autofillStatusEl) { autofillStatusEl.textContent = err.response?.data?.message || err.message || 'Could not read this file. Try a text-based PDF or DOCX.'; autofillStatusEl.style.color = '#c0392b'; }
             } finally {
                 uploadInProgress = false;
-                autofillBtnEl.disabled = false;
-                autofillBtnEl.style.opacity = '';
+                if (typeof window.hideResumeScanOverlay === 'function') {
+                    window.hideResumeScanOverlay();
+                }
+                if (autofillBtnEl) {
+                    autofillBtnEl.disabled = false;
+                    autofillBtnEl.style.opacity = '';
+                }
             }
         };
 
-        autofillBtnEl.addEventListener('click', doAutofill);
+        autofillBtnEl?.addEventListener('click', doAutofill);
     }
 
     $('rp-dropzone-trigger')?.addEventListener('click', e => {

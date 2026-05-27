@@ -54,13 +54,14 @@ class GoogleAuthController extends Controller
         request()->session()->regenerate();
         app(PendingDownloadService::class)->attachPendingDocuments($request, $user, $guestSessionId);
 
-        if (app(PendingDownloadService::class)->hasPending($request)) {
+        $intended = (string) $request->session()->get('url.intended', '');
+        $intendedPath = parse_url($intended, PHP_URL_PATH) ?: '';
+
+        if (app(PendingDownloadService::class)->hasPending($request) && ! str_starts_with($intendedPath, '/plans/')) {
             return redirect()->route('dashboard');
         }
 
-        $intended = (string) $request->session()->get('url.intended', '');
         $plansPath = parse_url(route('plans'), PHP_URL_PATH) ?: '/plans';
-        $intendedPath = parse_url($intended, PHP_URL_PATH) ?: '';
 
         if ($user->activeSubscription?->hasDownloadsRemaining() && $intendedPath === $plansPath) {
             $request->session()->forget('url.intended');

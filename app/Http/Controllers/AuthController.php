@@ -279,18 +279,21 @@ class AuthController extends Controller
 
     private function postLoginRedirect(Request $request, User $user): string
     {
-        if (app(PendingDownloadService::class)->hasPending($request) && $user->hasRole('user')) {
+        $intended = (string) $request->session()->get('url.intended', '');
+        $plansUrl = route('plans');
+        $intendedPath = parse_url($intended, PHP_URL_PATH) ?: '';
+        $plansPath = parse_url($plansUrl, PHP_URL_PATH) ?: '/plans';
+
+        if (
+            app(PendingDownloadService::class)->hasPending($request)
+            && $user->hasRole('user')
+            && ! str_starts_with($intendedPath, '/plans/')
+        ) {
             $request->session()->forget('url.intended');
             return route('dashboard');
         }
 
-        $intended = (string) $request->session()->get('url.intended', '');
-        $plansUrl = route('plans');
-
         if ($user->activeSubscription?->hasDownloadsRemaining() && $intended) {
-            $intendedPath = parse_url($intended, PHP_URL_PATH) ?: '';
-            $plansPath = parse_url($plansUrl, PHP_URL_PATH) ?: '/plans';
-
             if ($intendedPath === $plansPath) {
                 $request->session()->forget('url.intended');
                 return $this->redirectPath($user);

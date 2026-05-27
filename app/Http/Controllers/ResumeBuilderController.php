@@ -114,6 +114,7 @@ class ResumeBuilderController extends Controller
             'context' => ['required', 'in:summary,experience'],
             'resume' => ['nullable', 'array'],
             'text' => ['nullable', 'string', 'max:5000'],
+            'variation_seed' => ['nullable', 'string', 'max:120'],
         ]);
 
         $resume = $this->normalizeResume($validated['resume'] ?? []);
@@ -143,14 +144,64 @@ class ResumeBuilderController extends Controller
         $prompt .= "\nExperience context: ".$experience;
         $prompt .= "\nEducation context: ".$education;
         $prompt .= "\nExisting text: ".$existingText;
+        $variationSeed = $this->toText($validated['variation_seed'] ?? '');
+        $prompt .= "\nVariation token: ".($variationSeed !== '' ? $variationSeed : now()->format('Uu').'|'.random_int(1000, 9999));
+        $prompt .= "\nReturn a fresh phrasing variant each time while preserving facts.";
 
         $generated = $this->callGeminiForText($prompt);
 
-        if ($generated === '' || ($context === 'summary' && str_word_count(strip_tags($generated)) < 55)) {
+        if ($generated === '' || ($context === 'summary' && str_word_count(strip_tags($generated)) < 40)) {
             $generated = $this->buildLocalAiText($context, $resume, $existingText);
+            if ($context === 'experience') {
+                $generated = $this->normalizeExperienceAiOutput($generated, $resume, $existingText);
+            }
+            return response()->json(['text' => $generated, 'source' => 'local_fallback']);
         }
 
-        return response()->json(['text' => $generated]);
+        if ($context === 'experience') {
+            $generated = $this->normalizeExperienceAiOutput($generated, $resume, $existingText);
+        }
+
+        return response()->json(['text' => $generated, 'source' => 'ai']);
+    }
+
+    private function normalizeExperienceAiOutput(string $generated, array $resume, string $existingText): string
+    {
+        $lines = collect(preg_split('/\R+/', strip_tags($generated)))
+            ->map(fn ($line) => trim(preg_replace('/^\s*[-*•]\s*/u', '', (string) $line)))
+            ->filter()
+            ->values();
+
+        if ($lines->isEmpty()) {
+            $lines = collect(preg_split('/\R+/', strip_tags($existingText)))
+                ->map(fn ($line) => trim(preg_replace('/^\s*[-*•]\s*/u', '', (string) $line)))
+                ->filter()
+                ->values();
+        }
+
+        if ($lines->isEmpty()) {
+            $lines = collect(preg_split('/\.\s+/', strip_tags($this->buildLocalAiText('experience', $resume, $existingText))))
+                ->map(fn ($line) => trim((string) $line))
+                ->filter()
+                ->values();
+        }
+
+        $seed = $lines->all();
+        while (count($seed) < 4 && count($seed) > 0) {
+            $seed[] = $seed[count($seed) % count($lines)];
+        }
+
+        return collect($seed)
+            ->take(4)
+            ->map(function ($line) {
+                $line = trim((string) $line);
+                $line = preg_replace('/\s+/', ' ', $line);
+                $line = rtrim($line, '.');
+
+                return $line === '' ? '' : $line.'.';
+            })
+            ->filter()
+            ->join("\n");
     }
 
     public function edit(Resume $resume)
@@ -287,7 +338,7 @@ class ResumeBuilderController extends Controller
                             ['parts' => [['text' => $prompt]]],
                         ],
                         'generationConfig' => [
-                            'temperature' => 0.35,
+                            'temperature' => 0.72,
                             'maxOutputTokens' => 520,
                         ],
                     ]
@@ -332,20 +383,37 @@ class ResumeBuilderController extends Controller
                 ->values();
 
             if ($base->isNotEmpty()) {
-                return $base->map(fn ($line) => 'Improved and delivered '.$line)->join("\n");
+                $verbs = ['Led', 'Delivered', 'Executed', 'Improved', 'Drove', 'Built'];
+                $seed = $base->values()->all();
+                while (count($seed) < 4) {
+                    $seed[] = $base[count($seed) % $base->count()];
+                }
+
+                return collect($seed)->take(4)->values()->map(function ($line, $index) use ($verbs) {
+                    $verb = $verbs[$index % count($verbs)];
+
+                    return $verb.' '.$line;
+                })->join("\n");
             }
 
             return implode("\n", [
                 "Built and maintained {$role} workflows with attention to quality, timelines, and user needs.",
                 "Collaborated with stakeholders to translate requirements into reliable, production-ready outcomes.",
                 "Used {$skillsText} to improve delivery quality and support measurable business goals.",
+                "Delivered consistent execution with clear communication, ownership, and continuous improvement.",
             ]);
         }
 
         $company = is_array($experience) ? $this->toText($experience['company'] ?? '') : '';
         $contextLine = $company ? "with experience at {$company}" : 'with practical experience across professional projects';
+        $openers = [
+            "{$role} {$contextLine}, skilled in {$skillsText}.",
+            "Results-focused {$role} {$contextLine}, with strengths in {$skillsText}.",
+            "{$role} {$contextLine}, bringing hands-on capability in {$skillsText}.",
+        ];
+        $opener = $openers[random_int(0, count($openers) - 1)];
 
-        return "{$role} {$contextLine}, skilled in {$skillsText}. Brings a disciplined, detail-oriented approach to understanding requirements, building dependable solutions, and improving user-facing outcomes. Experienced in collaborating with teams, organizing work clearly, and turning business needs into polished deliverables. Focused on continuous learning, clean execution, and contributing meaningful value to teams that need reliable ownership, strong communication, and consistent delivery.";
+        return "{$opener} Brings a disciplined, detail-oriented approach to understanding requirements, building dependable solutions, and improving user-facing outcomes. Experienced in collaborating with teams, organizing work clearly, and turning business needs into polished deliverables. Focused on continuous learning, clean execution, and contributing meaningful value to teams that need reliable ownership, strong communication, and consistent delivery.";
     }
 
     private function normalizeResume(array $resume): array
