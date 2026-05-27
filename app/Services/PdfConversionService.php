@@ -378,11 +378,21 @@ HTML;
         $jsFile = tempnam(sys_get_temp_dir(), 'js_') . '.cjs';
 
         $chromeCandidates = array_filter([
-            env('PUPPETEER_EXECUTABLE_PATH'),
-            'C:/Program Files/Google/Chrome/Application/chrome.exe',
-            'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-        ]);
-        $chromePath = collect($chromeCandidates)->first(fn($path) => $path && file_exists($path)) ?: '';
+    env('PUPPETEER_EXECUTABLE_PATH'),
+
+    // Linux VPS
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+
+    // Windows
+    'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
+]);
+
+$chromePath = collect($chromeCandidates)
+    ->first(fn ($path) => $path && file_exists($path)) ?: '';
         $puppeteerDir = str_replace('\\', '/', base_path('node_modules/puppeteer'));
 
         $js = str_replace(
@@ -445,14 +455,17 @@ JS
         $process->setWorkingDirectory(base_path());
         $process->setTimeout(120);
         $process->setEnv([
-            'PUPPETEER_EXECUTABLE_PATH' => $chromePath,
-            'PUPPETEER_SKIP_CHROMIUM_DOWNLOAD' => 'true',
-            'PATH' => getenv('PATH'),
-            'TEMP' => sys_get_temp_dir(),
-            'TMP' => sys_get_temp_dir(),
-            'SystemRoot' => 'C:\\Windows',
-            'SystemDrive' => 'C:',
-        ]);
+    'PUPPETEER_EXECUTABLE_PATH' => $chromePath,
+    'PUPPETEER_SKIP_CHROMIUM_DOWNLOAD' => 'true',
+
+    'HOME' => '/var/www',
+    'XDG_CONFIG_HOME' => '/var/www/.config',
+    'XDG_CACHE_HOME' => '/var/www/.cache',
+
+    'PATH' => getenv('PATH'),
+    'TEMP' => sys_get_temp_dir(),
+    'TMP' => sys_get_temp_dir(),
+]);
         $process->run();
 
         @unlink($htmlFile);
