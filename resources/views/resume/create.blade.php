@@ -20,6 +20,7 @@
     data-login-url="{{ route('login') }}"
     data-plans-url="{{ route('plans') }}"
     data-ai-text-url="{{ route('resume.ai-text') }}"
+    data-initial-source="{{ $editingResume?->source ?? (!empty($initialResume ?? []) ? 'upload' : 'manual') }}"
     data-authenticated="{{ auth()->check() ? '1' : '0' }}"
     data-download-requires-plan="{{ (!auth()->check() || (!auth()->user()->activeSubscription?->hasDownloadsRemaining() && (!$editingResume || !$editingResume->is_paid))) ? '1' : '0' }}"
     @if($selectedTemplateId) data-selected-template="{{ $selectedTemplateId }}" @endif>
@@ -459,6 +460,10 @@
         }
         .ai-gen-btn:hover { transform: scale(1.02); }
         .ai-gen-btn.loading { opacity: 0.75; pointer-events: none; }
+        .field-needs-attention {
+            border-color: #f87171 !important;
+            box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.18) !important;
+        }
         .rich-ta {
             border: none;
             border-radius: 0;
@@ -1744,6 +1749,7 @@
 
     <script>
         function startFromScratch() {
+            if (window.setResumeMakerSource) window.setResumeMakerSource('manual');
             document.body.classList.add('is-builder');
             document.getElementById('rp-onboarding-view').style.display = 'none';
             document.getElementById('rp-builder-view').classList.add('visible');
@@ -1886,6 +1892,7 @@
 
                 const normalized = sanitizeImportedResume(data.improved_resume || {});
                 if (typeof applyResumeData === 'function') applyResumeData(normalized);
+                if (window.setResumeMakerSource) window.setResumeMakerSource('upload');
                 document.getElementById('rp-onboarding-view').style.display = 'none';
                 document.getElementById('rp-builder-view').classList.add('visible');
                 if (statusEl) {
@@ -1966,16 +1973,57 @@
             };
         }
 
+        const resumeAiInFlight = new WeakSet();
+        const resumeAiHistory = window.__resumeAiHistory || (window.__resumeAiHistory = {});
+        const plainResumeText = (value = '') => {
+            const div = document.createElement('div');
+            div.innerHTML = String(value || '');
+            return (div.textContent || div.innerText || String(value || ''))
+                .replace(/\u00a0/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        };
+        const notifyResumeAi = (message, type = 'info') => {
+            if (window.resumeMakerNotify) {
+                window.resumeMakerNotify(message, type);
+                return;
+            }
+            const statusEl = document.getElementById('resume-autofill-status') || document.getElementById('cv-status');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.style.color = type === 'error' ? '#dc2626' : '#2563eb';
+            }
+        };
+        const getResumeAiHistoryKey = (context, targetEl) => {
+            if (context === 'experience') {
+                const block = targetEl?.closest('[data-exp]');
+                return `experience:${block?.dataset?.exp || '0'}`;
+            }
+            return 'summary';
+        };
+        const getClickedExperienceRole = (targetEl) => {
+            const block = targetEl?.closest('[data-exp]');
+            return block?.querySelector('[data-k="role"]')?.value?.trim() || '';
+        };
+        const setAiButtonLoading = (button, isLoading, originalHtml = '') => {
+            if (!button) return;
+            if (isLoading) {
+                button.dataset.originalHtml = originalHtml || button.innerHTML;
+                button.classList.add('loading');
+                button.disabled = true;
+                button.setAttribute('aria-busy', 'true');
+                button.innerHTML = '<span style="display:inline-flex;align-items:center;gap:.4rem;"><span aria-hidden="true" style="width:12px;height:12px;display:inline-block;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:999px;animation:rmSpin .8s linear infinite;"></span>Generating...</span>';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                button.removeAttribute('aria-busy');
+                button.innerHTML = button.dataset.originalHtml || originalHtml || button.innerHTML;
+                delete button.dataset.originalHtml;
+            }
+        };
+
         async function generateAIText(context, targetEl, triggerButton = null) {
             if (!targetEl) return;
-            let btnOriginalHtml = '';
-            if (triggerButton) {
-                btnOriginalHtml = triggerButton.innerHTML;
-                triggerButton.classList.add('loading');
-                triggerButton.disabled = true;
-                triggerButton.innerHTML = '<span style="display:inline-flex;align-items:center;gap:.4rem;"><span aria-hidden="true" style="width:12px;height:12px;display:inline-block;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:999px;animation:rmSpin .8s linear infinite;"></span>Generating...</span>';
-            }
-
             const getEditorForEl = (el) => {
                 if (typeof tinymce === 'undefined' || !el) return null;
                 if (el.id && tinymce.get(el.id)) return tinymce.get(el.id);
@@ -1983,6 +2031,33 @@
             };
             const activeEditor = getEditorForEl(targetEl);
             let orig = activeEditor ? activeEditor.getContent() : targetEl.value;
+            const plainOrig = plainResumeText(orig);
+            const jobRole = context === 'experience' ? getClickedExperienceRole(targetEl) : '';
+            const historyKey = getResumeAiHistoryKey(context, targetEl);
+            const previousOutputs = (resumeAiHistory[historyKey] || []).slice(-3);
+
+            if (triggerButton && resumeAiInFlight.has(triggerButton)) return;
+            if (context === 'summary' && !plainOrig) {
+                notifyResumeAi('Please write 2-3 lines about yourself first, then click Generate with AI to improve and rewrite your summary professionally.', 'error');
+                targetEl.closest('.summary-editor-shell')?.classList.add('field-needs-attention');
+                setTimeout(() => targetEl.closest('.summary-editor-shell')?.classList.remove('field-needs-attention'), 1200);
+                targetEl.focus();
+                return;
+            }
+            if (context === 'experience' && !jobRole) {
+                notifyResumeAi('Please enter your Job Role first to generate AI-based responsibilities.', 'error');
+                const roleInput = targetEl.closest('[data-exp]')?.querySelector('[data-k="role"]');
+                roleInput?.classList.add('field-needs-attention');
+                setTimeout(() => roleInput?.classList.remove('field-needs-attention'), 1200);
+                roleInput?.focus();
+                return;
+            }
+
+            const btnOriginalHtml = triggerButton?.innerHTML || '';
+            if (triggerButton) {
+                resumeAiInFlight.add(triggerButton);
+                setAiButtonLoading(triggerButton, true, btnOriginalHtml);
+            }
             try {
                 const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                 const app = document.getElementById('create-cv-app');
@@ -1992,11 +2067,14 @@
                     body: JSON.stringify({
                         context,
                         text: orig,
+                        source: window.getResumeMakerSource ? window.getResumeMakerSource() : 'manual',
+                        job_role: jobRole,
                         resume: currentResumePayload(),
-                        variation_seed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+                        previous_outputs: previousOutputs,
+                        variation_seed: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${window.crypto?.getRandomValues ? window.crypto.getRandomValues(new Uint32Array(1))[0] : Math.random()}`
                     })
                 });
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
                 if (!res.ok || !data.text) throw new Error(data.message || 'AI generation failed.');
 
                 if (activeEditor) {
@@ -2009,6 +2087,8 @@
                 if (context === 'summary') {
                     targetEl.value = data.text;
                 }
+                resumeAiHistory[historyKey] = [...previousOutputs, data.text].slice(-3);
+                notifyResumeAi(context === 'summary' ? 'Summary rewritten with a fresh AI variation.' : 'Responsibilities generated with a fresh AI variation.', 'success');
             } catch(e) {
                 if (activeEditor) {
                     activeEditor.setContent(orig);
@@ -2018,21 +2098,15 @@
                     targetEl.value = orig;
                 }
                 console.error('AI generate failed:', e);
-                const statusEl = document.getElementById('resume-autofill-status');
-                if (statusEl) {
-                    statusEl.textContent = e.message || 'AI generation failed. Please try again.';
-                    statusEl.style.color = '#dc2626';
-                }
+                notifyResumeAi(e.message || 'AI generation failed. Please try again.', 'error');
                 if (triggerButton) {
-                    const oldText = triggerButton.textContent;
                     triggerButton.textContent = 'Try Again';
-                    setTimeout(() => { triggerButton.textContent = oldText; }, 1300);
+                    setTimeout(() => { triggerButton.innerHTML = btnOriginalHtml; }, 1300);
                 }
             } finally {
                 if (triggerButton) {
-                    triggerButton.classList.remove('loading');
-                    triggerButton.disabled = false;
-                    triggerButton.innerHTML = btnOriginalHtml || triggerButton.innerHTML;
+                    resumeAiInFlight.delete(triggerButton);
+                    setAiButtonLoading(triggerButton, false, btnOriginalHtml);
                 }
             }
 

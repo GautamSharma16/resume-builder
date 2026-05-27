@@ -42,6 +42,7 @@
             toast.style.transform = 'translateY(10px)';
         }, 2800);
     };
+    window.resumeMakerNotify = notify;
     const toList = (v) => String(v).split(',').map(x => x.trim()).filter(Boolean);
     const validSocials = (items) => ensureArray(items)
         .map(String)
@@ -139,7 +140,11 @@
     }
 
     const templates = readJson('resume-templates-json', {});
-    let source = 'manual';
+    let source = app.dataset.initialSource === 'upload' ? 'upload' : 'manual';
+    window.getResumeMakerSource = () => source;
+    window.setResumeMakerSource = (src) => {
+        source = src === 'upload' ? 'upload' : 'manual';
+    };
     let selectedTemplateId = app.dataset.selectedTemplate || '';
     let currentStep = 1;
     let savedResumeId = app.dataset.resumeId || null;
@@ -992,6 +997,9 @@
 
     /* ── Source toggle ── */
     const setSourceState = (src) => {
+        if (src) {
+            source = src === 'upload' ? 'upload' : 'manual';
+        }
         document.querySelectorAll('.source-btn').forEach(b => b.classList.toggle('active', b.dataset.source === src));
     };
 
@@ -1501,7 +1509,7 @@
     else if (window.matchMedia('(max-width: 1300px)').matches) previewZoom = 80;
 
     setZoom(previewZoom);
-    setSourceState('manual');
+    setSourceState(source);
     applyColorSelection(state.primary_color_customized ? state.primary_color : '');
     renderEditor();
     renderTemplatePreview();

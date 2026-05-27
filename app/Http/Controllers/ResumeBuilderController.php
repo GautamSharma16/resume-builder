@@ -114,16 +114,29 @@ class ResumeBuilderController extends Controller
             'context' => ['required', 'in:summary,experience'],
             'resume' => ['nullable', 'array'],
             'text' => ['nullable', 'string', 'max:5000'],
+            'source' => ['nullable', 'in:manual,upload'],
+            'job_role' => ['nullable', 'string', 'max:180'],
             'variation_seed' => ['nullable', 'string', 'max:120'],
+            'previous_outputs' => ['nullable', 'array', 'max:3'],
+            'previous_outputs.*' => ['nullable', 'string', 'max:1200'],
         ]);
 
         $resume = $this->normalizeResume($validated['resume'] ?? []);
         $context = $validated['context'];
         $existingText = $this->toText($validated['text'] ?? '');
-        $jobTitle = $this->toText($resume['job_title'] ?? '');
+        $clickedJobRole = $this->toText($validated['job_role'] ?? '');
+        $jobTitle = $clickedJobRole
+            ?: $this->toText($resume['job_title'] ?? $resume['designation'] ?? '')
+            ?: $this->toText(Arr::get($resume, 'experience.0.role', ''));
         $skills = implode(', ', $resume['skills'] ?? []);
+        $profileSummary = $this->toText($resume['summary'] ?? '');
         $experience = collect($resume['experience'] ?? [])
-            ->map(fn ($item) => trim(($item['role'] ?? '').' at '.($item['company'] ?? '')))
+            ->map(fn ($item) => trim(collect([
+                $item['role'] ?? '',
+                $item['company'] ? 'at '.$item['company'] : '',
+                $item['period'] ?? '',
+                $this->toText($item['points'] ?? ''),
+            ])->filter()->join(' ')))
             ->filter()
             ->join('; ');
 
@@ -134,19 +147,56 @@ class ResumeBuilderController extends Controller
             ->filter()
             ->join('; ');
 
+        if ($context === 'summary' && $existingText === '') {
+            return response()->json([
+                'message' => 'Please write 2-3 lines about yourself first, then click Generate with AI to improve and rewrite your summary professionally.',
+            ], 422);
+        }
+
+        if ($context === 'experience' && $jobTitle === '') {
+            return response()->json([
+                'message' => 'Please enter your Job Role first to generate AI-based responsibilities.',
+            ], 422);
+        }
+        if ($jobTitle !== '') {
+            $resume['job_title'] = $jobTitle;
+            $resume['designation'] = $jobTitle;
+        }
+
+        $previousOutputs = collect($validated['previous_outputs'] ?? [])
+            ->map(fn ($item) => $this->toText($item))
+            ->filter()
+            ->take(3)
+            ->values()
+            ->all();
+
+        $variationSeed = $this->toText($validated['variation_seed'] ?? '');
+        $variationSeed = $variationSeed !== '' ? $variationSeed : now()->format('Uu').'|'.random_int(1000, 9999);
+        $styleDirections = [
+            'Use concise, confident wording with strong recruiter-friendly verbs.',
+            'Use a polished corporate tone with varied sentence openings.',
+            'Use energetic, human wording while staying factual and ATS-friendly.',
+            'Use crisp, impact-oriented phrasing with natural professional language.',
+            'Use mature, credible language and avoid copying prior sentence patterns.',
+        ];
+        $styleDirection = $styleDirections[abs(crc32($variationSeed)) % count($styleDirections)];
+
         $prompt = $context === 'summary'
-            ? "Write one polished resume professional summary using the candidate data below. Make it 75-110 words in one strong paragraph, with specific role, skills, work context, and value delivered. Do not invent employers, years, degrees, certifications, links, metrics, or tools that are not present. No heading, no markdown, no placeholders."
-            : "Rewrite this resume experience entry into 3-5 strong responsibility or achievement lines. Use action verbs and measurable impact only when supported by the candidate data. Do not invent employers, dates, tools, or metrics. No heading, no markdown bullets; separate each line with a newline.";
+            ? "Rewrite the candidate's existing resume summary into one professional ATS-friendly paragraph. Preserve the same profile meaning and facts from Existing text; improve grammar, readability, confidence, sentence structure, and professional tone. Do not ignore the user input. Do not invent employers, years, degrees, certifications, links, metrics, or tools that are not present. Keep it 55-95 words. No heading, no markdown, no placeholders."
+            : "Generate or rewrite professional key responsibilities for the clicked resume experience role. Create 4 ATS-friendly lines, each on a new line. Make them role-specific, realistic, corporate, and human-written. Use action verbs and measurable impact only when supported by the candidate data. Use uploaded/profile context when available, but do not invent employers, dates, tools, certifications, or metrics. No heading, no markdown bullets; separate each line with a newline.";
 
         $prompt .= "\n\nCandidate name: ".trim(($resume['name'] ?? '').' '.($resume['last_name'] ?? ''));
-        $prompt .= "\nTarget role: ".$jobTitle;
+        $prompt .= "\nCreation source: ".$this->toText($validated['source'] ?? 'manual');
+        $prompt .= "\nTarget/clicked job role: ".$jobTitle;
         $prompt .= "\nSkills: ".$skills;
+        $prompt .= "\nExtracted or current profile summary: ".$profileSummary;
         $prompt .= "\nExperience context: ".$experience;
         $prompt .= "\nEducation context: ".$education;
         $prompt .= "\nExisting text: ".$existingText;
-        $variationSeed = $this->toText($validated['variation_seed'] ?? '');
-        $prompt .= "\nVariation token: ".($variationSeed !== '' ? $variationSeed : now()->format('Uu').'|'.random_int(1000, 9999));
-        $prompt .= "\nReturn a fresh phrasing variant each time while preserving facts.";
+        $prompt .= "\nPrevious outputs to avoid close repetition: ".($previousOutputs ? implode("\n---\n", $previousOutputs) : 'None');
+        $prompt .= "\nVariation token: ".$variationSeed;
+        $prompt .= "\nVariation direction: ".$styleDirection;
+        $prompt .= "\nReturn a fresh phrasing variant every request. Do not reuse the same opening phrase, sentence order, or responsibility wording from Previous outputs. Preserve factual meaning.";
 
         $generated = $this->callGeminiForText($prompt);
 
@@ -338,7 +388,9 @@ class ResumeBuilderController extends Controller
                             ['parts' => [['text' => $prompt]]],
                         ],
                         'generationConfig' => [
-                            'temperature' => 0.72,
+                            'temperature' => 0.94,
+                            'topP' => 0.92,
+                            'topK' => 40,
                             'maxOutputTokens' => 520,
                         ],
                     ]
@@ -402,6 +454,17 @@ class ResumeBuilderController extends Controller
                 "Used {$skillsText} to improve delivery quality and support measurable business goals.",
                 "Delivered consistent execution with clear communication, ownership, and continuous improvement.",
             ]);
+        }
+
+        if ($existingText !== '') {
+            $base = trim(preg_replace('/\s+/', ' ', strip_tags($existingText)));
+            $templates = [
+                "ATS-focused {$role} with a background in {$base} Known for clear communication, disciplined execution, and a practical approach to improving outcomes through {$skillsText}.",
+                "Results-oriented {$role} with strengths in {$base} Combines reliable ownership, structured problem solving, and collaborative delivery to support high-quality professional outcomes.",
+                "Motivated {$role} with experience in {$base} Offers strong attention to detail, adaptable execution, and a commitment to turning requirements into clear, dependable results.",
+            ];
+
+            return $templates[random_int(0, count($templates) - 1)];
         }
 
         $company = is_array($experience) ? $this->toText($experience['company'] ?? '') : '';

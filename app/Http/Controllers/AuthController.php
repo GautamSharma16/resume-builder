@@ -224,6 +224,12 @@ class AuthController extends Controller
         });
 
         if ($status !== Password::PASSWORD_RESET) {
+            if ($status === Password::INVALID_TOKEN) {
+                throw ValidationException::withMessages([
+                    'email' => 'This password reset link is invalid or has expired. Please request a new one.',
+                ]);
+            }
+
             throw ValidationException::withMessages(['email' => __($status)]);
         }
 
