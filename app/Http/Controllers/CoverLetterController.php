@@ -116,13 +116,14 @@ class CoverLetterController extends Controller
 
             $resumeContext = $resume?->data ?? [];
             $uploadedResumeContact = $uploadedResumeText ? $this->extractResumeContact($uploadedResumeText) : [];
-
-            $name = $this->firstFilled(Arr::get($uploadedResumeContact, 'name'), $validated['name'] ?? null, Arr::get($resumeContext, 'name'));
             $email = $this->firstFilled(Arr::get($uploadedResumeContact, 'email'), $validated['email'] ?? null, Arr::get($resumeContext, 'email'));
             $mobile = $this->firstFilled(Arr::get($uploadedResumeContact, 'mobile'), $validated['mobile'] ?? null, Arr::get($resumeContext, 'mobile', Arr::get($resumeContext, 'contact')));
             $location = $this->firstFilled(Arr::get($uploadedResumeContact, 'location'), $validated['location'] ?? null, Arr::get($resumeContext, 'location', Arr::get($resumeContext, 'address')));
             $company = $validated['company_name'] ?? $validated['company'] ?? '';
             $jobRole = $validated['job_role'] ?? '';
+
+            // Determine the applicant name: prefer uploaded resume contact, then explicit input, then resume data
+            $name = $this->firstFilled(Arr::get($uploadedResumeContact, 'name'), $validated['name'] ?? null, Arr::get($resumeContext, 'name'));
 
             if ($uploadedResumeText) {
                 $resumeContext['uploaded_resume_text'] = mb_substr($uploadedResumeText, 0, 12000);
@@ -190,6 +191,7 @@ class CoverLetterController extends Controller
                         'resume_uploaded' => (bool) $uploadedResumeText,
                     ],
                 ]);
+
             }
 
             return response()->json([
@@ -419,7 +421,6 @@ class CoverLetterController extends Controller
         $this->authorizeLetter($coverLetter);
 
         if (!$coverLetter->is_paid) {
-            app(PlanActivationService::class)->consumeDownload($request->user());
             $coverLetter->forceFill(['is_paid' => true])->save();
         }
 

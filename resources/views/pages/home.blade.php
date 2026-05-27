@@ -1646,7 +1646,7 @@
             <div class="plan-divider"></div>
             <ul class="plan-features">
                 <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>{{ $plan->resume_limit ?: 'Unlimited' }} Resumes</li>
-                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>{{ $plan->cover_letter_limit ?: 'Unlimited' }} Cover Letters</li>
+                <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>{{ (is_null($plan->cover_letter_limit) || $plan->slug === 'silver') ? 'Unlimited' : $plan->cover_letter_limit }} Cover Letters</li>
                 <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>{{ $plan->ai_enabled ? 'Advanced AI Features' : 'Basic Features' }}</li>
                 <li><span class="pf-icon"><svg fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>{{ $plan->downloads_allowed ?: 'Unlimited' }} Downloads</li>
             </ul>

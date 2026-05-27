@@ -16,7 +16,19 @@ class SubscriptionController extends Controller
 {
     public function plans()
     {
-        return view('pages.plans', ['plans' => Plan::where('is_active', true)->orderBy('price_paise')->get()]);
+        $plans = Plan::where('is_active', true)
+            ->orderBy('price_paise')
+            ->get();
+
+        $activeSubscription = auth()->check()
+            ? auth()->user()->activeSubscription()->with('plan')->first()
+            : null;
+
+        $latestSubscription = auth()->check()
+            ? auth()->user()->subscription()->with('plan')->first()
+            : null;
+
+        return view('pages.plans', compact('plans', 'activeSubscription', 'latestSubscription'));
     }
 
     public function checkout(Request $request, Plan $plan, PlanActivationService $plans)
@@ -34,10 +46,13 @@ class SubscriptionController extends Controller
         abort_unless($plan->is_active, 404);
         $activeSubscription = $request->user()?->activeSubscription;
 
-        if ($activeSubscription && $activeSubscription->hasDownloadsRemaining()) {
+        if ($activeSubscription
+            && $activeSubscription->hasDownloadsRemaining()
+            && $activeSubscription->plan_id === $plan->id
+        ) {
             return redirect()
                 ->route('dashboard')
-                ->with('status', 'Your plan is already active. Downloads are already unlocked.');
+                ->with('status', 'Your current plan is already active. Downloads are already unlocked.');
         }
 
         if ($plan->price_paise <= 0) {

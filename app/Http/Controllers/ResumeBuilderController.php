@@ -82,6 +82,15 @@ class ResumeBuilderController extends Controller
             'download_format' => ['nullable', 'in:pdf,doc,ppt'],
         ]);
 
+        $subscription = $request->user()?->activeSubscription;
+        if ($subscription && ! $subscription->hasResumeSlotsRemaining()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Your plan resume limit has been reached. Please renew or upgrade your plan.',
+                'pricing_url' => route('plans'),
+            ], 402);
+        }
+
         $normalizedResume = $this->normalizeResume($validated['resume']);
         $resume = Resume::create([
             'user_id' => $request->user()?->id,
@@ -91,6 +100,10 @@ class ResumeBuilderController extends Controller
             'source' => $validated['source'],
             'data' => $normalizedResume,
         ]);
+
+        if ($subscription) {
+            $subscription->incrementResumeCount();
+        }
 
         $redirect = null;
         if (! $request->user()) {

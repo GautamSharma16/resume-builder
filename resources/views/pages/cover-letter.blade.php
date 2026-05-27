@@ -1202,7 +1202,7 @@
 
         const selectedTemplateIdFromUrl = @json($selectedTemplateId ?? null);
         const editingCoverLetter = @json($editingCoverLetter ?? null);
-        const downloadRequiresPlan = @json(auth()->check() && ! auth()->user()->activeSubscription?->hasDownloadsRemaining());
+        const downloadRequiresPlan = @json(auth()->check() && ! auth()->user()->activeSubscription?->isActive());
         const isAuthenticated = @json(auth()->check());
         const plansUrl = @json(route('plans'));
         const tplHtml = @json($templates->mapWithKeys(fn($t) => [$t->id => $t->html]));

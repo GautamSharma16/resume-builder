@@ -47,7 +47,7 @@ class PlanCatalog
                 'downloads_allowed' => $config['downloads_allowed'],
                 'duration_days' => $config['duration_days'],
                 'resume_limit' => $config['downloads_allowed'],
-                'cover_letter_limit' => $config['downloads_allowed'],
+                'cover_letter_limit' => null,
                 'ai_enabled' => $slug !== 'basic',
                 'is_active' => true,
             ]

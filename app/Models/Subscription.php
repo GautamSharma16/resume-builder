@@ -52,4 +52,71 @@ class Subscription extends Model
         return is_null($this->downloads_allowed)
             || $this->downloads_used < $this->downloads_allowed;
     }
+
+    public function downloadsRemaining(): ?int
+    {
+        if (is_null($this->downloads_allowed)) {
+            return null;
+        }
+
+        return max(0, $this->downloads_allowed - $this->downloads_used);
+    }
+
+    public function hasResumeSlotsRemaining(): bool
+    {
+        if (! $this->isActive()) {
+            return false;
+        }
+
+        return is_null($this->plan->resume_limit)
+            || $this->resume_count < $this->plan->resume_limit;
+    }
+
+    public function resumeRemaining(): ?int
+    {
+        if (is_null($this->plan->resume_limit)) {
+            return null;
+        }
+
+        return max(0, $this->plan->resume_limit - $this->resume_count);
+    }
+
+    public function incrementResumeCount(): self
+    {
+        if ($this->isActive()) {
+            $this->increment('resume_count');
+            $this->refresh();
+        }
+
+        return $this;
+    }
+
+    public function hasCoverLettersRemaining(): bool
+    {
+        if (! $this->isActive()) {
+            return false;
+        }
+
+        return is_null($this->plan->cover_letter_limit)
+            || $this->cover_letter_count < $this->plan->cover_letter_limit;
+    }
+
+    public function coverLettersRemaining(): ?int
+    {
+        if (is_null($this->plan->cover_letter_limit)) {
+            return null;
+        }
+
+        return max(0, $this->plan->cover_letter_limit - $this->cover_letter_count);
+    }
+
+    public function incrementCoverLetterCount(): self
+    {
+        if ($this->isActive()) {
+            $this->increment('cover_letter_count');
+            $this->refresh();
+        }
+
+        return $this;
+    }
 }

@@ -105,7 +105,15 @@ class PendingDownloadService
             ];
         }
 
-        $canDownload = (bool) $user->activeSubscription?->hasDownloadsRemaining();
+        $pending = $request->session()->get(self::SESSION_KEY, []);
+        $type = is_array($pending) ? ($pending['type'] ?? null) : null;
+
+        $canDownload = match ($type) {
+            'cover_letter' => (bool) $user->activeSubscription?->isActive(),
+            'resume' => (bool) $user->activeSubscription?->hasDownloadsRemaining(),
+            default => false,
+        };
+
         $shouldRedirectToPlans = ! $canDownload && ! $request->session()->pull(self::PLAN_PROMPTED_KEY, false);
 
         if (! $canDownload && $shouldRedirectToPlans) {

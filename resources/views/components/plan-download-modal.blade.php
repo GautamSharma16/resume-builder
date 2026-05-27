@@ -33,7 +33,7 @@
                         <div class="my-5 h-px {{ $index === 1 ? 'bg-white/10' : 'bg-gray-100' }}"></div>
                         <ul class="space-y-3 text-sm font-semibold">
                             <li>{{ $plan->resume_limit ?: 'Unlimited' }} Resumes</li>
-                            <li>{{ $plan->cover_letter_limit ?: 'Unlimited' }} Cover Letters</li>
+                            <li>{{ (is_null($plan->cover_letter_limit) || $plan->slug === 'silver') ? 'Unlimited' : $plan->cover_letter_limit }} Cover Letters</li>
                             <li>{{ $plan->ai_enabled ? 'Advanced AI Features' : 'Basic Features' }}</li>
                             <li>{{ $plan->downloads_allowed ?: 'Unlimited' }} Downloads</li>
                         </ul>

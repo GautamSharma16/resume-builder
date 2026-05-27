@@ -39,7 +39,7 @@ class EnsureDownloadAccess
                 return redirect()->guest(route('login'));
             }
 
-            if (! $document->is_paid && ! $request->user()->activeSubscription?->hasDownloadsRemaining()) {
+            if (! $document->is_paid && ! $request->user()->activeSubscription?->isActive()) {
                 return redirect()->route('plans')->with('status', 'Choose a plan to unlock downloads.');
             }
         }

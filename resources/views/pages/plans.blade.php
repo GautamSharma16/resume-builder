@@ -337,6 +337,11 @@
     transform:translateY(-3px);
     box-shadow:0 8px 36px rgba(76,107,255,.6);
 }
+.plan-btn:disabled{
+    opacity:.62;
+    cursor:not-allowed;
+    pointer-events:none;
+}
 /* arrow ripple */
 .btn-arrow{
     display:inline-block;
@@ -374,6 +379,12 @@
             @endif
         </div>
 
+        @php
+            $hasActiveSubscription = auth()->check() && $activeSubscription !== null;
+            $currentPlanSlug = $activeSubscription?->plan_slug;
+            $latestPlanSlug = $latestSubscription?->plan_slug;
+        @endphp
+
         <div class="plan-grid">
             @foreach($plans as $plan)
                 @php $isFeatured = $loop->index === 1; @endphp
@@ -403,7 +414,7 @@
                         </li>
                         <li>
                             <span class="check-icon"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>
-                            {{ is_null($plan->cover_letter_limit) ? 'Unlimited' : $plan->cover_letter_limit }} Cover Letters
+                            {{ (is_null($plan->cover_letter_limit) || $plan->slug === 'silver') ? 'Unlimited' : $plan->cover_letter_limit }} Cover Letters
                         </li>
                         <li>
                             <span class="check-icon"><svg viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></span>
@@ -415,16 +426,29 @@
                         </li>
                     </ul>
 
+                    @php
+                        $isCurrentPlan = $hasActiveSubscription && $currentPlanSlug === $plan->slug;
+                        $isRenewPlan = ! $hasActiveSubscription && $latestPlanSlug === $plan->slug;
+                        $buttonText = $isCurrentPlan ? 'Current plan' : ($isRenewPlan ? 'Renew plan' : ($hasActiveSubscription ? 'Upgrade' : ($isFeatured ? 'Choose '.$plan->name : 'Get Started')));
+                        $buttonUrl = auth()->check()
+                            ? route('plans.checkout', $plan)
+                            : route('login', ['redirect' => route('plans.checkout', $plan)]);
+                    @endphp
+
                     @auth
-                        <a href="{{ route('plans.checkout', $plan) }}"
-                           class="plan-btn {{ $isFeatured ? 'plan-btn-primary' : 'plan-btn-outline' }}">
-                            {{ $isFeatured ? 'Choose '.$plan->name : 'Get Started' }}
-                            <span class="btn-arrow">→</span>
-                        </a>
+                        @if($isCurrentPlan)
+                            <button type="button" class="plan-btn plan-btn-outline" disabled>
+                                {{ $buttonText }}
+                            </button>
+                        @else
+                            <a href="{{ $buttonUrl }}" class="plan-btn {{ $isFeatured ? 'plan-btn-primary' : 'plan-btn-outline' }}">
+                                {{ $buttonText }}
+                                <span class="btn-arrow">→</span>
+                            </a>
+                        @endif
                     @else
-                        <a href="{{ route('login', ['redirect' => route('plans.checkout', $plan)]) }}"
-                           class="plan-btn {{ $isFeatured ? 'plan-btn-primary' : 'plan-btn-outline' }}">
-                            {{ $isFeatured ? 'Choose '.$plan->name : 'Get Started' }}
+                        <a href="{{ $buttonUrl }}" class="plan-btn {{ $isFeatured ? 'plan-btn-primary' : 'plan-btn-outline' }}">
+                            {{ $buttonText }}
                             <span class="btn-arrow">→</span>
                         </a>
                     @endauth

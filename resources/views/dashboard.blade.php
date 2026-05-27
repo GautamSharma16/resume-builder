@@ -827,7 +827,15 @@
                             </div>
                             <div class="plan-stat-row">
                                 <span class="plan-stat-label">Downloads</span>
-                                <span class="plan-stat-val">{{ $activeSubscription ? 'Unlimited' : '0 Remaining' }}</span>
+                                <span class="plan-stat-val">
+                                    @if($activeSubscription)
+                                        {{ is_null($activeSubscription->downloads_allowed)
+                                            ? 'Unlimited'
+                                            : $activeSubscription->downloadsRemaining().' of '.$activeSubscription->downloads_allowed.' remaining' }}
+                                    @else
+                                        0 Remaining
+                                    @endif
+                                </span>
                             </div>
                             @if($activeSubscription)
                             <div class="plan-stat-row">
