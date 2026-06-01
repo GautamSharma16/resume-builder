@@ -37,7 +37,14 @@ return [
 
     'gemini' => [
         'key' => env('GEMINI_API_KEY'),
+        'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
         'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        'fallback_models' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+            'GEMINI_FALLBACK_MODELS',
+            'gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash'
+        ))))),
+        'max_output_tokens' => (int) env('GEMINI_MAX_OUTPUT_TOKENS', 1200),
+        'temperature' => (float) env('GEMINI_TEMPERATURE', 0.2),
     ],
 
     'affinda' => [

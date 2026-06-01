@@ -75,12 +75,6 @@ class PdfConversionService
 
     private function improveHtmlWithAI(string $html): string
     {
-        $key = config('services.gemini.key');
-        $model = config('services.gemini.model', 'gemini-1.5-flash');
-
-        if (!$key)
-            return $html;
-
         // Strip tags but keep some structure for AI to understand
         $textContent = strip_tags($html, '<h1><h2><h3><p><li>');
 
@@ -109,38 +103,23 @@ Text to convert:
 PROMPT;
 
         try {
-            $response = \Illuminate\Support\Facades\Http::timeout(120)
+            $result = app(GeminiService::class)->generateContent($prompt, [
+                'temperature'     => 0.1,
+                'maxOutputTokens' => 8000,
+                'timeout'         => 120,
+            ]);
 
-                ->withoutVerifying()
-                ->post(
-                    "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($key),
-                    [
-                        'contents' => [
-                            [
-                                'parts' => [
-                                    ['text' => $prompt]
-                                ]
-                            ]
-                        ],
-                        'generationConfig' => [
-                            'temperature' => 0.1, // Lower temperature for more consistent layout
-                            'maxOutputTokens' => 8000,
-                        ],
-                    ]
-                );
-
-            if ($response->successful()) {
-                $aiHtml = \Illuminate\Support\Arr::get($response->json(), 'candidates.0.content.parts.0.text', '');
+            if ($result['success'] ?? false) {
+                $aiHtml = (string) ($result['text'] ?? '');
                 $aiHtml = preg_replace('/```(?:html)?/i', '', $aiHtml);
                 $aiHtml = str_replace('```', '', $aiHtml);
 
-                // If it looks like a valid HTML doc, return it
                 if (str_contains($aiHtml, '<style>') && str_contains($aiHtml, '{{')) {
                     return trim($aiHtml);
                 }
             }
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error("PDF AI Conversion failed: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('PDF AI Conversion failed: '.$e->getMessage());
         }
 
         return $html;
