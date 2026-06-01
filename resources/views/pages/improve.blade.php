@@ -294,13 +294,9 @@
         font-size: 0.7rem;
         font-weight: 600;
         color: var(--muted);
-        transition: all 0.3s var(--ease-spring);
         box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    }
-    .badge-item:hover {
-        border-color: var(--blue);
-        color: var(--blue);
-        transform: translateY(-2px);
+        cursor: default;
+        user-select: none;
     }
 
     /* Hero right: upload card */
@@ -1153,14 +1149,19 @@
     }
     .hiw-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 2rem;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: clamp(1rem, 2vw, 1.75rem);
         position: relative;
+        align-items: stretch;
     }
     .hiw-grid::before {
         display: none;
     }
-    .hiw-step { text-align: center; }
+    .hiw-step {
+        text-align: center;
+        min-width: 0;
+        padding: 0 0.4rem;
+    }
     .hiw-step-num {
         width: 56px; height: 56px;
         background: linear-gradient(135deg, rgba(37,99,235,0.3), rgba(139,92,246,0.2));
@@ -1181,8 +1182,24 @@
         box-shadow: 0 0 20px rgba(37,99,235,0.3);
     }
     .hiw-step-title { font-weight: 700; color: white; font-size: 0.9rem; margin-bottom: 0.4rem; }
-    .hiw-step-desc { font-size: 0.78rem; color: rgba(255,255,255,0.45); line-height: 1.5; }
+    .hiw-step-desc { font-size: 0.78rem; color: rgba(255,255,255,0.45); line-height: 1.5; max-width: 250px; margin: 0 auto; }
+    .hiw-step-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 0.75rem;
+        padding: 0.28rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(132, 204, 22, 0.14);
+        color: #a3e635;
+        border: 1px solid rgba(163, 230, 53, 0.28);
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
 
+    @media (max-width: 1100px) { .hiw-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (max-width: 768px) { .hiw-grid { grid-template-columns: repeat(2, 1fr); } .hiw-grid::before { display: none; } }
     @media (max-width: 480px) { .hiw-grid { grid-template-columns: 1fr; } }
 
@@ -1314,22 +1331,28 @@
             <div class="hiw-step">
                 <div class="hiw-step-num">1</div>
                 <div class="hiw-step-title">Upload Resume</div>
-                <div class="hiw-step-desc">Upload your existing PDF or DOCX resume. We accept any format.</div>
+                <div class="hiw-step-desc">Upload your existing PDF, DOC, or DOCX resume to get started.</div>
             </div>
             <div class="hiw-step">
                 <div class="hiw-step-num">2</div>
-                <div class="hiw-step-title">AI Analysis</div>
-                <div class="hiw-step-desc">Our AI scans for ATS compatibility, keywords, and structure issues.</div>
+                <div class="hiw-step-title">Review &amp; Complete Details</div>
+                <div class="hiw-step-desc">Verify the extracted information and add any missing details before enhancement.</div>
             </div>
             <div class="hiw-step">
                 <div class="hiw-step-num">3</div>
-                <div class="hiw-step-title">Smart Rewrite</div>
-                <div class="hiw-step-desc">Every section is rewritten with stronger language and optimized keywords.</div>
+                <div class="hiw-step-title">Enhance with AI</div>
+                <div class="hiw-step-desc">Improve ATS compatibility, content quality, keywords, grammar, and formatting using AI.</div>
             </div>
             <div class="hiw-step">
                 <div class="hiw-step-num">4</div>
-                <div class="hiw-step-title">Download PDF</div>
-                <div class="hiw-step-desc">Pick a professional template and export a polished, job-ready PDF.</div>
+                <div class="hiw-step-title">Choose Template</div>
+                <div class="hiw-step-desc">Select a professional resume template that best matches your career goals.</div>
+            </div>
+            <div class="hiw-step">
+                <div class="hiw-step-num">5</div>
+                <div class="hiw-step-title">Download Resume</div>
+                <div class="hiw-step-desc">Download your final resume in PDF or Word format after payment.</div>
+                <div class="hiw-step-badge">After Payment</div>
             </div>
         </div>
     </div>

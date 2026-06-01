@@ -69,8 +69,10 @@
     }
     
     .lp-logo img {
-        height: 60px;
+        height: clamp(52px, 7vw, 72px);
         width: auto;
+        max-width: min(210px, 70vw);
+        object-fit: contain;
         filter: brightness(1.2);
     }
 
@@ -218,7 +220,7 @@
         
         <div class="lp-content">
             <a href="{{ route('home') }}" class="lp-logo">
-                <img src="{{ asset('Logo.png') }}" alt="CvBliss Logo">
+                <img src="{{ asset('Logo.png') }}" alt="CvBliss Logo" class="cvb-logo">
             </a>
 
             <h1 class="lp-headline">Administrative Control Center</h1>

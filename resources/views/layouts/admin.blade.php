@@ -46,14 +46,14 @@
                  x-transition:leave="transition ease-in-out duration-300 transform"
                  x-transition:leave-start="translate-x-0"
                  x-transition:leave-end="-translate-x-full"
-                 class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 md:hidden flex flex-col">
+                 class="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,calc(100vw-2rem))] flex-col border-r border-gray-200 bg-white shadow-[24px_0_60px_rgba(15,23,42,0.18)] md:hidden">
                 
                 <!-- Mobile Logo Area -->
-                <div class="flex items-center justify-between h-20 px-6 border-b border-slate-100">
-                    <a href="{{ route('home') }}">
-                        <img src="{{ asset('Logo.png') }}" alt="Cvbliss Logo" class="h-8 w-auto">
+                <div class="flex h-20 shrink-0 items-center justify-between border-b border-slate-100 px-5">
+                    <a href="{{ route('home') }}" class="flex min-w-0 items-center">
+                        <img src="{{ asset('Logo.png') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-drawer">
                     </a>
-                    <button @click="sidebarOpen = false" class="p-2 rounded-xl text-slate-400 hover:bg-slate-50 transition-colors focus:outline-none">
+                    <button @click="sidebarOpen = false" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-slate-400 transition duration-200 hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -63,6 +63,32 @@
                 <!-- Mobile Nav links -->
                 @php $isMobile = true; @endphp
                 @include('admin.partials.sidebar-nav')
+
+                <div class="shrink-0 border-t border-slate-100 bg-slate-50/70 p-4">
+                    <div class="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70">
+                        <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-sm font-bold text-white shadow-md">
+                            {{ substr(Auth::user()->name, 0, 1) }}
+                        </span>
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-bold text-slate-900">{{ Auth::user()->name }}</p>
+                            <p class="truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                @php
+                                    $mobileRoleLabels = [
+                                        'admin' => 'Admin',
+                                        'team' => 'Team',
+                                        'sales' => 'Sales',
+                                        'developer' => 'Developer',
+                                        'dev' => 'Developer',
+                                        'seo' => 'SEO Manager',
+                                        'article_writer' => 'Content Strategist',
+                                        'article' => 'Content Strategist',
+                                    ];
+                                @endphp
+                                {{ $mobileRoleLabels[Auth::user()->role] ?? ucfirst(Auth::user()->role) }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Static Sidebar for Desktop -->
@@ -71,7 +97,7 @@
                     <!-- Logo -->
                     <div class="flex items-center px-8 h-20 border-b border-slate-100 shrink-0">
                         <a href="{{ route('home') }}" class="flex items-center">
-                            <img src="{{ asset('Logo.png') }}" alt="Cvbliss Logo" class="h-30 w-50">
+                            <img src="{{ asset('Logo.png') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-admin-sidebar">
                         </a>
                     </div>
 

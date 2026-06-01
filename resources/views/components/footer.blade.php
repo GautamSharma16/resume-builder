@@ -26,8 +26,10 @@
         text-decoration: none;
     }
     .ft-logo img {
-        height: 115px;
-        width: 200px;
+        height: clamp(58px, 7vw, 92px);
+        width: auto;
+        max-width: min(210px, 58vw);
+        object-fit: contain;
         transition: opacity .2s;
     }
     .ft-logo:hover img { opacity: .8; }
@@ -168,7 +170,7 @@
     <!-- Top bar: Logo left, Social icons right -->
     <div class="ft-topbar">
         <a href="{{ route('home') }}" class="ft-logo">
-            <img src="{{ asset('Logo.png') }}" alt="Cvbliss Logo">
+            <img src="{{ asset('Logo.png') }}" alt="Cvbliss Logo" class="cvb-logo">
         </a>
 
         <div class="ft-socials">

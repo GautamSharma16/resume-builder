@@ -1196,7 +1196,7 @@
 
             /* Topbar */
             .rp-topbar { height: 48px !important; padding: 0 12px !important; }
-            .rp-topbar-logo img { height: 80px !important; }
+            .rp-topbar-logo img { height: clamp(38px, 12vw, 46px) !important; }
 
             /* Preview topbar on very small screens */
             .preview-topbar { padding: 5px 6px !important; gap: 5px !important; }
@@ -1272,7 +1272,7 @@
     {{-- ══ TOPBAR ══ --}}
     <header class="rp-topbar" style="position: relative; z-index: 100;">
         <a href="{{ route('home') }}" class="rp-topbar-logo">
-            <img src="{{ asset('Logo.png') }}" alt="Cvbliss" style="height: 110px; width: auto;">
+            <img src="{{ asset('Logo.png') }}" alt="Cvbliss" class="cvb-logo" style="height: clamp(42px, 5vw, 52px); width: auto; max-width: 150px;">
         </a>
         <div style="flex: 1;"></div>
         <div class="rp-topbar-actions" style="display: flex; gap: 0.75rem; align-items: center;">
