@@ -376,8 +376,15 @@
     }
     .dropzone:hover .dropzone-icon { transform: scale(1.1) rotate(-5deg); }
 
-    .dropzone-text { font-weight: 700; font-size: 0.9rem; color: var(--navy); }
-    .dropzone-sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem; }
+    .dropzone-text { font-weight: 700; font-size: 0.9rem; color: var(--navy); line-height: 1.35; word-break: break-word; }
+    .dropzone-sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.35rem; line-height: 1.4; }
+    .dropzone.has-file {
+        border-color: var(--blue);
+        border-style: solid;
+        background: linear-gradient(135deg, #ecfdf5 0%, #eff6ff 100%);
+    }
+    .dropzone.has-file .dropzone-icon { background: #dbeafe; }
+    .dropzone.has-file .dropzone-sub { color: var(--blue-dark); font-weight: 600; }
 
     .format-pills { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
     .format-pill {
@@ -1255,7 +1262,7 @@
         <div class="upload-card" id="uploadCardEl">
             <div class="upload-card-header">
                 <h3>Upload Your Resume</h3>
-                <p>Upload your resume — AI will parse and enhance it in one step</p>
+                <p>Choose a file, then click the button below to parse and enhance with AI</p>
             </div>
             <div class="upload-card-body">
                 <form id="resumeForm">
@@ -1273,9 +1280,9 @@
                             <div class="dropzone-icon">
                                 <svg width="24" height="24" fill="none" stroke="var(--blue)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                             </div>
-                            <div>
-                                <div class="dropzone-text">Click to upload or drag &amp; drop</div>
-                                <div id="fileNameDisplay" class="dropzone-sub">PDF, DOC, DOCX up to 10 MB</div>
+                            <div style="min-width:0;flex:1;">
+                                <div id="dropzoneTitle" class="dropzone-text">Click to upload or drag &amp; drop</div>
+                                <div id="fileNameDisplay" class="dropzone-sub">PDF, DOC, or DOCX · max 10 MB</div>
                             </div>
                         </div>
                     </div>
@@ -1287,7 +1294,8 @@
                     </div>
                     <div class="upload-actions">
                         <button type="submit" id="enhanceBtn" class="btn-enhance" disabled>
-                            Enhance with AI
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            Enhance Resume with AI
                         </button>
                         <button type="button" id="resetBtn" class="btn-reset">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -1568,6 +1576,7 @@
     const fileInput     = document.getElementById('resumeFile');
     const dropzone      = document.getElementById('dropzoneEl');
     const fileNameDisplay = document.getElementById('fileNameDisplay');
+    const dropzoneTitle   = document.getElementById('dropzoneTitle');
     const enhanceBtn    = document.getElementById('enhanceBtn');
     const resetBtn      = document.getElementById('resetBtn');
     const statusMsg     = document.getElementById('statusMsg');
@@ -1829,26 +1838,45 @@
         renderTemplatePreview(normalizedData);
     }
 
+    function formatFileSize(bytes) {
+        if (!bytes) return '';
+        const mb = bytes / (1024 * 1024);
+        return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    }
+
+    function clearSelectedFile() {
+        dropzone?.classList.remove('has-file');
+        if (dropzoneTitle) dropzoneTitle.textContent = 'Click to upload or drag & drop';
+        fileNameDisplay.textContent = 'PDF, DOC, or DOCX · max 10 MB';
+        enhanceBtn.disabled = true;
+        statusMsg.innerHTML = '';
+    }
+
     function setSelectedFile(file) {
         if (!file) {
-            enhanceBtn.disabled = true;
-            fileNameDisplay.textContent = 'PDF, DOC, DOCX up to 10 MB';
-            statusMsg.innerHTML = '';
+            clearSelectedFile();
             return;
         }
-        fileNameDisplay.textContent = file.name;
+        dropzone?.classList.add('has-file');
+        if (dropzoneTitle) dropzoneTitle.textContent = file.name;
+        const ext = (file.name.split('.').pop() || '').toUpperCase();
+        fileNameDisplay.textContent = `${ext || 'FILE'} · ${formatFileSize(file.size)} · Ready — click Enhance Resume with AI`;
         enhanceBtn.disabled = false;
-        if (!enhanceInProgress) {
-            form.requestSubmit();
+        statusMsg.innerHTML = '<span class="status-dot"></span> <strong>' + esc(file.name) + '</strong> selected. Click <strong>Enhance Resume with AI</strong> when ready.';
+    }
+
+    function friendlyAiError(message) {
+        const msg = String(message || '').toLowerCase();
+        if (msg.includes('temporarily busy') || msg.includes('high demand') || msg.includes('unavailable') || msg.includes('503') || msg.includes('429')) {
+            return 'AI is temporarily busy. Please try again in a moment.';
         }
+        return message || 'Enhancement failed. Please try again.';
     }
 
     fileInput.addEventListener('change', () => {
         const file = fileInput.files?.[0];
         if (!file) {
-            enhanceBtn.disabled = true;
-            fileNameDisplay.textContent = 'PDF, DOC, DOCX up to 10 MB';
-            statusMsg.innerHTML = '';
+            clearSelectedFile();
             return;
         }
         setSelectedFile(file);
@@ -1878,7 +1906,7 @@
         try {
             const response = await fetch('{{ route("resume.analyze") }}', { method: 'POST', body: formData });
             const data = await response.json().catch(() => ({}));
-            if (!response.ok || !data.success) throw new Error(data.message || 'Enhancement failed');
+            if (!response.ok || !data.success) throw new Error(friendlyAiError(data.message));
             hideScanOverlay();
             document.getElementById('uploadCardEl').style.display = 'none';
             resetBtn.style.display = 'inline-flex';
@@ -1894,7 +1922,8 @@
             setTimeout(() => dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
         } catch (error) {
             hideScanOverlay();
-            statusMsg.innerHTML = `<span style="color:#ef4444;">Error: ${error.message}</span>`;
+            const friendly = friendlyAiError(error.message);
+            statusMsg.innerHTML = `<span style="display:inline-flex;align-items:center;gap:8px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;font-weight:600;">${esc(friendly)}</span>`;
             enhanceBtn.disabled = Boolean(fileInput.files?.[0]);
         } finally {
             enhanceInProgress = false;
@@ -1911,7 +1940,7 @@
         workspace.classList.remove('active');
         statusMsg.innerHTML = '';
         fileInput.value = '';
-        fileNameDisplay.textContent = 'PDF, DOC, DOCX up to 10 MB';
+        clearSelectedFile();
         currentAnalysisId = null;
         document.getElementById('editWithResumeMakerBtn')?.setAttribute('disabled', 'disabled');
         window.scrollTo({ top: 0, behavior: 'smooth' });

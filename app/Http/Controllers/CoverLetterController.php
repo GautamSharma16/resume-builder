@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CoverLetter;
 use App\Models\Resume;
 use App\Models\Template;
+use App\Services\GeminiService;
 use App\Services\PlanActivationService;
 use App\Services\PendingDownloadService;
 use App\Services\PdfConversionService;
@@ -17,6 +18,10 @@ use ZipArchive;
 
 class CoverLetterController extends Controller
 {
+    public function __construct(
+        private readonly GeminiService $gemini,
+    ) {}
+
     public function create(Request $request, TemplateRenderService $renderer)
     {
         $templates = Template::where('type', 'cover_letter')->where('is_active', true)->get();
@@ -449,43 +454,25 @@ class CoverLetterController extends Controller
 
     private function generateWithGemini(string $name, string $role, string $company, string $description, array $resume, string $skills = ''): array
     {
-        $key = config('services.gemini.key');
-        $model = config('services.gemini.model', 'gemini-flash-latest');
+        $fallbackBody = "Dear Hiring Manager,\n\nI am excited to apply for the {$role} role".($company ? " at {$company}" : '').". My background in {$skills} aligns well with the requirements, and I would welcome the opportunity to contribute measurable value.\n\nSincerely,\n{$name}";
 
-        if (!$key) {
-            return [
-                'success' => false,
-                'message' => 'Gemini API key not configured.',
-                'body' => "Dear Hiring Manager,\n\nI am excited to apply for the {$role} role" . ($company ? " at {$company}" : '') . ". My background in {$skills} aligns well with the requirements, and I would welcome the opportunity to contribute measurable value.\n\nSincerely,\n{$name}"
-            ];
-        }
-
-        $prompt = "Write a concise professional cover letter. Return only JSON: {\"body\":\"...\"}.\nName: {$name}\nRole: {$role}\nCompany: {$company}\nSkills: {$skills}\nJob Description: {$description}\nResume JSON: " . json_encode($resume);
+        $prompt = "Write a concise professional cover letter. Return only JSON: {\"body\":\"...\"}.\nName: {$name}\nRole: {$role}\nCompany: {$company}\nSkills: {$skills}\nJob Description: {$description}\nResume JSON: ".json_encode($resume);
 
         try {
-            $response = Http::timeout(60)
-                ->retry(2, 500)
-                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($key), [
-                    'contents' => [['parts' => [['text' => $prompt]]]],
-                    'generationConfig' => ['temperature' => 0.35, 'maxOutputTokens' => 1500],
-                ]);
+            $result = $this->gemini->generateContent($prompt, [
+                'temperature'     => 0.35,
+                'maxOutputTokens' => min(1500, (int) config('services.gemini.max_output_tokens', 1200)),
+            ]);
 
-            if (!$response->successful()) {
-                if ($response->status() === 429) {
-                    return ['success' => false, 'message' => 'AI Rate limit exceeded.'];
-                }
-                if ($response->status() === 503) {
-                    return ['success' => false, 'message' => 'AI service temporarily unavailable (503).'];
-                }
-                return ['success' => false, 'message' => 'AI generation failed with status ' . $response->status()];
+            if (! ($result['success'] ?? false)) {
+                return [
+                    'success' => false,
+                    'message' => $result['message'] ?? GeminiService::BUSY_MESSAGE,
+                    'body'    => $fallbackBody,
+                ];
             }
 
-            $text = Arr::get($response->json(), 'candidates.0.content.parts.0.text', '');
-
-            if (!$text) {
-                return ['success' => false, 'message' => 'Empty response from AI.'];
-            }
-
+            $text = (string) ($result['text'] ?? '');
             $json = $this->decodeGeminiJson($text);
 
             if (empty($json) || !isset($json['body'])) {

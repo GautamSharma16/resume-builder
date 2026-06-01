@@ -5,16 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Resume;
 use App\Models\ResumeAnalysis;
 use App\Models\Template;
+use App\Services\GeminiService;
 use App\Services\PlanActivationService;
 use App\Services\PendingDownloadService;
 use App\Services\PdfConversionService;
 use App\Services\TemplateRenderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Http;
-
 class ResumeBuilderController extends Controller
 {
+    public function __construct(
+        private readonly GeminiService $gemini,
+    ) {}
+
     public function index(TemplateRenderService $renderer)
     {
         $resumes = Resume::where('user_id', auth()->id())
@@ -550,51 +553,24 @@ class ResumeBuilderController extends Controller
 
     private function callGeminiForText(string $prompt): string
     {
-        $key = config('services.gemini.key');
-        $model = config('services.gemini.model', 'gemini-flash-latest');
+        $result = $this->gemini->generateContent($prompt, [
+            'temperature'     => 0.94,
+            'topP'            => 0.92,
+            'topK'            => 40,
+            'maxOutputTokens' => 260,
+            'timeout'         => 45,
+        ]);
 
-        if (! $key) {
+        if (! ($result['success'] ?? false)) {
             return '';
         }
 
-        try {
-             $response = Http::timeout(45)
-                ->retry(1, 400)
-                ->post(
-                    "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=".urlencode($key),
-                    [
-                        'contents' => [
-                            ['parts' => [['text' => $prompt]]],
-                        ],
-                        'generationConfig' => [
-                            'temperature' => 0.94,
-                            'topP' => 0.92,
-                            'topK' => 40,
-                            'maxOutputTokens' => 260,
-                        ],
-                    ]
-                );
+        $text = (string) ($result['text'] ?? '');
+        $text = preg_replace('/```(?:text|markdown)?/i', '', $text);
+        $text = str_replace('```', '', $text);
+        $text = preg_replace('/^\s*[-*]\s*/m', '', $text);
 
-            if (! $response->successful()) {
-                \Log::warning('Resume maker AI text failed', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-
-                return '';
-            }
-
-            $text = (string) Arr::get($response->json(), 'candidates.0.content.parts.0.text', '');
-            $text = preg_replace('/```(?:text|markdown)?/i', '', $text);
-            $text = str_replace('```', '', $text);
-            $text = preg_replace('/^\s*[-*]\s*/m', '', $text);
-
-            return trim($text);
-        } catch (\Throwable $e) {
-            \Log::warning('Resume maker AI text exception: '.$e->getMessage());
-
-            return '';
-        }
+        return trim($text);
     }
 
     private function buildLocalAiText(string $context, array $resume, string $existingText): string

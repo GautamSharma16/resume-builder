@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Utf8Sanitizer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -38,5 +39,32 @@ class ResumeAnalysis extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (ResumeAnalysis $model): void {
+            foreach ([
+                'resume_json',
+                'analysis_json',
+                'improved_resume_json',
+                'extracted_text',
+                'job_role',
+                'job_description',
+                'original_filename',
+            ] as $attribute) {
+                if (! $model->isDirty($attribute)) {
+                    continue;
+                }
+
+                $value = $model->{$attribute};
+
+                if (is_array($value)) {
+                    $model->{$attribute} = Utf8Sanitizer::jsonSafe($value);
+                } elseif (is_string($value)) {
+                    $model->{$attribute} = Utf8Sanitizer::cleanString($value);
+                }
+            }
+        });
     }
 }

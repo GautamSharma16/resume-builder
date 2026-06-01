@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Template;
 use App\Models\ResumeAnalysis;
+use App\Support\Utf8Sanitizer;
+use App\Services\GeminiService;
 use App\Services\PlanActivationService;
 use App\Services\PdfConversionService;
 use App\Services\ResumeParseOrchestrator;
+use App\Services\ResumeNormalizerService;
 use App\Services\ResumeSchema;
 use App\Services\ResumeSectionValidatorService;
 use App\Services\TemplateRenderService;
@@ -22,6 +25,10 @@ use ZipArchive;
 class ResumeController extends Controller
 {
     private const MAX_PARSE_PAGES = 4;
+
+    public function __construct(
+        private readonly GeminiService $gemini,
+    ) {}
 
     // ─────────────────────────────────────────────
     // VIEWS
@@ -159,7 +166,7 @@ class ResumeController extends Controller
                 ];
 
                 if ($isAutofill) {
-                    return response()->json([
+                    return response()->json(Utf8Sanitizer::jsonSafe([
                         'success'          => true,
                         'analysis_id'      => null,
                         'parser_source'    => $parseSource,
@@ -171,7 +178,7 @@ class ResumeController extends Controller
                         'suggestions'      => $analysis['suggestions'],
                         'improved_resume'  => $improvedResume,
                         'standard_resume'  => $standardJson,
-                    ]);
+                    ]));
                 }
             } elseif ($parseSource === 'affinda' && ! empty($parseResult['builder'])) {
                 $builderBase = $this->finalizeParsedResume($parseResult['builder'], true, $text);
@@ -226,7 +233,7 @@ class ResumeController extends Controller
                         ];
 
                         if ($isAutofill) {
-                            return response()->json($payload);
+                            return response()->json(Utf8Sanitizer::jsonSafe($payload));
                         }
 
                         $improvedResume = $payload['improved_resume'];
@@ -254,7 +261,7 @@ class ResumeController extends Controller
                     );
 
                     if ($isAutofill) {
-                        return response()->json([
+                        return response()->json(Utf8Sanitizer::jsonSafe([
                             'success'          => true,
                             'analysis_id'      => null,
                             'parser_source'    => 'gemini',
@@ -265,10 +272,14 @@ class ResumeController extends Controller
                             'suggestions'      => Arr::get($analysis, 'suggestions', []),
                             'improved_resume'  => $improvedResume,
                             'standard_resume'  => $improvedResume,
-                        ]);
+                        ]));
                     }
                 }
             }
+
+            $improvedResume = Utf8Sanitizer::jsonSafe($this->normalizeResume($improvedResume ?? []));
+            $standardJson   = Utf8Sanitizer::jsonSafe($this->normalizeResume($standardJson ?? ResumeSchema::empty()));
+            $analysis       = Utf8Sanitizer::jsonSafe(is_array($analysis) ? $analysis : []);
 
             $record = ResumeAnalysis::create([
                 'user_id'              => $request->user()?->id,
@@ -285,7 +296,7 @@ class ResumeController extends Controller
                 'improved_resume_json' => $improvedResume,
             ]);
 
-            return response()->json([
+            return response()->json(Utf8Sanitizer::jsonSafe([
                 'success'          => true,
                 'analysis_id'      => $record->id,
                 'is_paid'          => false,
@@ -298,7 +309,7 @@ class ResumeController extends Controller
                 'suggestions'      => Arr::get($analysis, 'suggestions', []),
                 'improved_resume'  => $record->improved_resume_json,
                 'standard_resume'  => $standardJson,
-            ]);
+            ]));
 
         } catch (ValidationException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
@@ -574,13 +585,6 @@ class ResumeController extends Controller
         ?string $extraInstruction = null,
         array   $parsedHints = []
     ): array {
-        $key   = config('services.gemini.key');
-        $model = config('services.gemini.model', 'gemini-2.0-flash');
-
-        if (!$key) {
-            return ['success' => false, 'message' => 'Gemini API key not configured.'];
-        }
-
         $extra = $extraInstruction ? "\n\nSPECIAL INSTRUCTION: {$extraInstruction}" : '';
 
         $hintsJson = !empty($parsedHints)
@@ -695,7 +699,7 @@ PROMPT;
 
         $prompt .= "\n" . mb_substr($rawText, 0, 16000);
 
-        return $this->callGemini($prompt, [], 4000);
+        return $this->callGemini($prompt, [], $this->geminiMaxTokens());
     }
 
     /**
@@ -707,13 +711,6 @@ PROMPT;
         ?string $jobDescription,
         array   $parsedHints = []
     ): array {
-        $key   = config('services.gemini.key');
-        $model = config('services.gemini.model', 'gemini-2.0-flash');
-
-        if (! $key) {
-            return ['success' => false, 'message' => 'Gemini API key not configured.'];
-        }
-
         $hintsJson = ! empty($parsedHints)
             ? json_encode($this->normalizeResume($parsedHints), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
             : '{}';
@@ -794,56 +791,48 @@ PROMPT;
 
         $prompt .= "\n".mb_substr($rawText, 0, 18000);
 
-        return $this->callGemini($prompt, $parsedHints, 8192);
+        return $this->callGemini($prompt, $parsedHints, $this->geminiMaxTokens());
+    }
+
+    private function geminiMaxTokens(): int
+    {
+        return max(1200, (int) config('services.gemini.max_output_tokens', 2200));
     }
 
     /**
-     * Central Gemini HTTP call.
+     * Central Gemini HTTP call with model fallback.
      */
-    private function callGemini(string $prompt, array $fallbackResume = [], int $maxTokens = 3500): array
+    private function callGemini(string $prompt, array $fallbackResume = [], ?int $maxTokens = null): array
     {
-        $key   = config('services.gemini.key');
-        $model = config('services.gemini.model', 'gemini-2.0-flash');
+        $maxTokens ??= $this->geminiMaxTokens();
 
         try {
-            $response = Http::timeout(45)
-                ->retry(2, 800)
-                ->post(
-                    "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key=" . urlencode($key),
-                    [
-                        'contents'         => [['parts' => [['text' => $prompt]]]],
-                        'generationConfig' => [
-                            'temperature'     => 0.05,
-                            'topP'            => 0.75,
-                            'maxOutputTokens' => $maxTokens,
-                        ],
-                    ]
-                );
+            $result = $this->gemini->generateContent($prompt, [
+                'maxOutputTokens' => $maxTokens,
+                'temperature'     => (float) config('services.gemini.temperature', 0.2),
+                'timeout'         => 90,
+                'responseMimeType'=> 'application/json',
+            ]);
 
-            if (!$response->successful()) {
-                $err = $response->json();
-                $msg = Arr::get($err, 'error.message', 'Gemini API Error ' . $response->status());
-
-                if ($response->status() === 429) {
-                    return ['success' => false, 'message' => 'AI rate limit exceeded. Please retry in a minute.'];
-                }
-                return ['success' => false, 'message' => $msg];
+            if (! ($result['success'] ?? false)) {
+                return [
+                    'success' => false,
+                    'message' => $result['message'] ?? GeminiService::BUSY_MESSAGE,
+                ];
             }
 
-            $text = Arr::get($response->json(), 'candidates.0.content.parts.0.text', '');
-
-            if (!$text) {
-                return ['success' => false, 'message' => 'Empty response from AI.'];
-            }
-
+            $text = (string) ($result['text'] ?? '');
             $data = $this->decodeGeminiJson($text);
 
-            if (empty($data) || !isset($data['improved_resume'])) {
+            if (empty($data) || ! isset($data['improved_resume'])) {
+                \Log::warning('Gemini parse: unable to decode JSON payload', [
+                    'text_preview' => mb_substr(Utf8Sanitizer::cleanString($text), 0, 1200),
+                ]);
                 return ['success' => false, 'message' => 'Could not parse AI response.'];
             }
 
             $improved = Arr::get($data, 'improved_resume');
-            if (!is_array($improved) || empty(array_filter($improved))) {
+            if (! is_array($improved) || empty(array_filter($improved))) {
                 $improved = $fallbackResume;
             }
             $improved = $this->postProcessGeminiResume($improved);
@@ -857,10 +846,10 @@ PROMPT;
                 'suggestions'      => array_values($data['suggestions'] ?? []),
                 'improved_resume'  => $this->normalizeResume($improved),
             ];
+        } catch (\Throwable $e) {
+            \Log::error('Gemini Exception: '.$e->getMessage());
 
-        } catch (\Exception $e) {
-            \Log::error('Gemini Exception: ' . $e->getMessage());
-            return ['success' => false, 'message' => 'AI connection error: ' . $e->getMessage()];
+            return ['success' => false, 'message' => GeminiService::BUSY_MESSAGE];
         }
     }
 
@@ -1398,6 +1387,8 @@ PROMPT;
 
     private function cleanText(string $text): string
     {
+        $text = Utf8Sanitizer::cleanString($text);
+
         // Normalize line endings
         $text = preg_replace('/\r\n|\r/', "\n", $text);
         $text = str_replace("\t", ' ', (string) $text);
@@ -1422,7 +1413,7 @@ PROMPT;
         $text  = implode("\n", $lines);
         $text = preg_replace('/\n{3,}/', "\n\n", $text);
 
-        return trim((string) $text);
+        return Utf8Sanitizer::cleanString(trim((string) $text));
     }
 
     /**
@@ -2327,32 +2318,69 @@ PROMPT;
 
     private function decodeGeminiJson(string $text): array
     {
-        if (!$text) return [];
+        if (! $text) return [];
 
         $candidate = trim($text);
-        $candidate = preg_replace('/```(?:json)?/i', '', $candidate);
+        $candidate = preg_replace('/^```(?:json)?\s*/i', '', $candidate) ?? $candidate;
+        $candidate = preg_replace('/\s*```$/', '', $candidate) ?? $candidate;
         $candidate = str_replace('```', '', $candidate);
-
-        $start = strpos($candidate, '{');
-        $end   = strrpos($candidate, '}');
-
-        if ($start !== false && $end !== false && $end > $start) {
-            $candidate = substr($candidate, $start, $end - $start + 1);
-        }
+        $candidate = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $candidate) ?? $candidate;
+        $candidate = trim($candidate);
 
         $decoded = json_decode($candidate, true);
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-            return $decoded;
-        }
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) return $decoded;
 
-        if (preg_match('/\{.*?\}/s', $candidate, $m)) {
-            $decoded = json_decode($m[0], true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $decoded;
-            }
+        $object = $this->extractBalancedJsonObject($candidate);
+        if ($object !== '') {
+            $decoded = json_decode($object, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) return $decoded;
         }
 
         return [];
+    }
+
+    private function extractBalancedJsonObject(string $text): string
+    {
+        $start = strpos($text, '{');
+        if ($start === false) return '';
+
+        $depth = 0;
+        $inString = false;
+        $escape = false;
+        $len = strlen($text);
+
+        for ($i = $start; $i < $len; $i++) {
+            $ch = $text[$i];
+
+            if ($escape) {
+                $escape = false;
+                continue;
+            }
+
+            if ($ch === '\\') {
+                $escape = true;
+                continue;
+            }
+
+            if ($ch === '"') {
+                $inString = ! $inString;
+                continue;
+            }
+
+            if ($inString) {
+                continue;
+            }
+
+            if ($ch === '{') $depth++;
+            if ($ch === '}') {
+                $depth--;
+                if ($depth === 0) {
+                    return substr($text, $start, $i - $start + 1);
+                }
+            }
+        }
+
+        return '';
     }
 
     /**
@@ -2376,6 +2404,17 @@ PROMPT;
             ? $this->normalizeResume(Arr::get($geminiAnalysis, 'improved_resume', []))
             : [];
 
+        if (! Arr::get($geminiAnalysis, 'success', true)) {
+            \Log::warning('Hybrid autofill: Gemini unavailable, using Affinda/local fallback', [
+                'message'      => Arr::get($geminiAnalysis, 'message'),
+                'affinda_has_content' => $this->resumeHasContent($affindaBuilder),
+            ]);
+        } elseif (! $this->resumeHasContent($geminiBuilder)) {
+            \Log::info('Hybrid autofill: Gemini returned empty/low-content resume payload', [
+                'affinda_has_content' => $this->resumeHasContent($affindaBuilder),
+            ]);
+        }
+
         $builder = [];
         $source  = $parseSource;
 
@@ -2384,6 +2423,8 @@ PROMPT;
             if ($this->resumeHasContent($geminiBuilder)) {
                 $builder = $this->mergeAffindaPrimary($affindaBuilder, $geminiBuilder);
                 $source  = 'affinda+gemini';
+            } else {
+                \Log::info('Hybrid autofill: keeping Affinda-only payload because Gemini had no usable fields.');
             }
         } elseif ($this->resumeHasContent($geminiBuilder)) {
             $builder = $geminiBuilder;
@@ -2733,7 +2774,7 @@ PROMPT;
             return (string) $value;
         }
         if (is_string($value)) {
-            return trim($value);
+            return Utf8Sanitizer::cleanString(trim($value));
         }
         if (is_array($value)) {
             $parts = [];
@@ -2747,7 +2788,7 @@ PROMPT;
             return trim(implode($separator, $parts));
         }
 
-        return trim((string) $value);
+        return Utf8Sanitizer::cleanString(trim((string) $value));
     }
 
     /**
@@ -2965,7 +3006,7 @@ PROMPT;
             $normalized['primary_color_customized'] = filter_var($resume['primary_color_customized'] ?? true, FILTER_VALIDATE_BOOLEAN);
         }
 
-        return $normalized;
+        return Utf8Sanitizer::jsonSafe($normalized);
     }
 
     private function looksLikeJobTitle(string $value): bool

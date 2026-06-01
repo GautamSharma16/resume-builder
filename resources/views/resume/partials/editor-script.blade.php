@@ -16,6 +16,14 @@
         .replace(/&lt;(\/?)(strong|b|em|i|u)&gt;/gi, '<$1$2>')
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/__(.*?)__/g, '<u>$1</u>');
+    const friendlyAiMessage = (message) => {
+        const msg = String(message || '').toLowerCase();
+        if (msg.includes('temporarily busy') || msg.includes('high demand') || msg.includes('unavailable') || msg.includes('503') || msg.includes('429') || msg.includes('resource_exhausted')) {
+            return 'AI is temporarily busy. Please try again in a moment.';
+        }
+        return message || 'Something went wrong. Please try again.';
+    };
+
     const notify = (message, type = 'info') => {
         if (statusEl) {
             statusEl.textContent = message;
@@ -1565,8 +1573,9 @@
                     notify('Resume autofill completed successfully.', 'info');
                 }
             } catch (err) {
-                if (autofillStatusEl) { autofillStatusEl.textContent = err.response?.data?.message || err.message || 'Could not read this file. Try a text-based PDF or DOCX.'; autofillStatusEl.style.color = '#c0392b'; }
-                notify(err.response?.data?.message || err.message || 'Could not read this file. Try a text-based PDF or DOCX.', 'error');
+                const uploadErr = friendlyAiMessage(err.response?.data?.message || err.message);
+                if (autofillStatusEl) { autofillStatusEl.textContent = uploadErr; autofillStatusEl.style.color = '#c0392b'; }
+                notify(uploadErr, 'error');
             } finally {
                 uploadInProgress = false;
                 if (typeof window.hideResumeScanOverlay === 'function') {
