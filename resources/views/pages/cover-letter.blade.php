@@ -527,6 +527,23 @@
         margin-bottom: 32px;
         overflow: hidden;
     }
+    .preview-fallback {
+        min-height: 1123px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 3rem;
+        text-align: center;
+        color: var(--muted);
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+    }
+    .preview-fallback strong {
+        display: block;
+        font-size: 1.1rem;
+        color: var(--navy);
+        margin-bottom: 0.5rem;
+    }
 
     /* Loading Overlay (same scan loader as Enhance CV) */
     .loading-overlay {
@@ -1206,14 +1223,25 @@
         const isAuthenticated = @json(auth()->check());
         const plansUrl = @json(route('plans'));
         const tplHtml = @json($templates->mapWithKeys(fn($t) => [$t->id => $t->html]));
+        const renderedTplHtml = @json($renderedTemplates);
         const tplNames = @json($templates->mapWithKeys(fn($t) => [$t->id => $t->name]));
 
         function scaleTemplatePickers() {
             document.querySelectorAll('.template-thumb, .modal-thumb').forEach((thumb) => {
                 const scaler = thumb.querySelector('.template-scaler, .modal-scaler');
                 if (!scaler) return;
-                const scale = Math.min(thumb.clientWidth / 794, thumb.clientHeight / 1123) * 0.995;
+                const width = thumb.clientWidth || thumb.offsetWidth || 0;
+                const height = thumb.clientHeight || thumb.offsetHeight || 0;
+                if (width <= 0 || height <= 0) return;
+                const scale = Math.max(0.05, Math.min(width / 794, height / 1123) * 0.995);
                 scaler.style.transform = `translateX(-50%) scale(${scale})`;
+            });
+        }
+        function scheduleTemplatePickerScale() {
+            requestAnimationFrame(() => {
+                scaleTemplatePickers();
+                setTimeout(scaleTemplatePickers, 60);
+                setTimeout(scaleTemplatePickers, 180);
             });
         }
         
@@ -1331,10 +1359,29 @@
                     .join('');
         };
         const bodyToEditorHtml = (input) => normalizeBodyHtml(input);
+        const previewFallbackHtml = (message = 'Preview unavailable right now.') => `
+            <div class="preview-fallback">
+                <strong>Template preview unavailable</strong>
+                <p>${esc(message)}</p>
+            </div>
+        `;
+        function schedulePreviewScale() {
+            requestAnimationFrame(() => {
+                scalePreview();
+                setTimeout(scalePreview, 60);
+                setTimeout(scalePreview, 180);
+            });
+        }
 
         function render() {
-            if (!state.templateId) return;
-            let html = tplHtml[state.templateId] || '';
+            const content = $('cl-content');
+            if (!content) return;
+            if (!state.templateId) {
+                content.innerHTML = previewFallbackHtml('Choose a template to see your cover letter preview.');
+                return;
+            }
+
+            let html = String(tplHtml[state.templateId] || '').trim();
             state.body = enforceSignatureBreak(state.body);
             const bodyHtml = normalizeBodyHtml(state.body);
             const tokens = {
@@ -1349,6 +1396,13 @@
                 body: bodyHtml
             };
 
+            if (!html) {
+                const fallbackHtml = String(renderedTplHtml[state.templateId] || '').trim();
+                content.innerHTML = fallbackHtml || previewFallbackHtml('We could not load this template. Please try another template.');
+                schedulePreviewScale();
+                return;
+            }
+
             html = html.replace(/<p>\s*(\{\{\s*body\s*\}\}|\[\[\s*body\s*\]\])\s*<\/p>/gi, '$1');
 
             Object.entries(tokens).forEach(([key, val]) => {
@@ -1361,7 +1415,11 @@
             html = html.replace(/[•|·]\s*$/g, '');
             html = html.replace(/^\s*[•|·]\s*/g, '');
 
-            $('cl-content').innerHTML = html;
+            if (!html.trim()) {
+                content.innerHTML = previewFallbackHtml('This template did not return any visible content.');
+            } else {
+                content.innerHTML = html;
+            }
             
             const badge = $('resume-status-badge');
             if (badge) {
@@ -1369,7 +1427,7 @@
             }
             
             // Re-sync scroll height for better mobile experience
-            setTimeout(scalePreview, 50);
+            schedulePreviewScale();
         }
 
         function scalePreview() {
@@ -1465,6 +1523,11 @@
                 $(id).style.display = (id === 'step-' + stepId) ? 'block' : 'none';
                 if (id === 'step-build' && id === 'step-' + stepId) $(id).style.display = 'flex';
             });
+            if (stepId === 'build') {
+                schedulePreviewScale();
+            } else if (stepId === 'pick') {
+                scheduleTemplatePickerScale();
+            }
             window.scrollTo(0,0);
         };
 
@@ -1484,6 +1547,7 @@
         $('btn-change-tmpl').addEventListener('click', () => {
             setActiveModalTemplate(state.templateId);
             $('tmpl-modal').classList.add('open');
+            scheduleTemplatePickerScale();
         });
 
         function setActiveModalTemplate(id) {
@@ -1561,9 +1625,7 @@
             $('toggle-preview')?.classList.add('active');
             
             // Multiple triggers to handle layout transitions
-            scalePreview();
-            setTimeout(scalePreview, 50);
-            setTimeout(scalePreview, 300);
+            schedulePreviewScale();
         });
 
         // Ensure proper display on init
@@ -1571,7 +1633,7 @@
             if (window.innerWidth <= 1024) {
                 document.querySelector('.builder-preview')?.classList.add('hidden-mobile');
             }
-            setTimeout(scalePreview, 500);
+            setTimeout(schedulePreviewScale, 500);
         }
         initResponsive();
         initQuill();
@@ -1721,12 +1783,11 @@
         });
 
         window.addEventListener('resize', () => {
-            scalePreview();
-            scaleTemplatePickers();
+            schedulePreviewScale();
+            scheduleTemplatePickerScale();
         });
         document.addEventListener('DOMContentLoaded', () => {
-            scaleTemplatePickers();
-            setTimeout(scaleTemplatePickers, 100);
+            scheduleTemplatePickerScale();
         });
     })();
 </script>
