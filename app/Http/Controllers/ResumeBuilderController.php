@@ -719,6 +719,7 @@ class ResumeBuilderController extends Controller
             'last_name' => $this->toText($resume['last_name'] ?? ''),
             'job_title' => $this->toText($resume['job_title'] ?? ''),
             'designation' => $this->toText($resume['designation'] ?? ''),
+            'desired_job_role' => $this->toText($resume['desired_job_role'] ?? ''),
             'linkedin' => $this->toText($resume['linkedin'] ?? ''),
             'portfolio' => $this->toText($resume['portfolio'] ?? $resume['link'] ?? ''),
             'link' => $this->toText($resume['link'] ?? $resume['portfolio'] ?? ''),

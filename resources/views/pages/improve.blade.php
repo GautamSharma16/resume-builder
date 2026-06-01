@@ -1272,7 +1272,7 @@
         <div class="upload-card" id="uploadCardEl">
             <div class="upload-card-header">
                 <h3>Upload Your Resume</h3>
-                <p>We'll analyze and enhance it with AI instantly</p>
+                <p>Upload your resume — AI will parse and enhance it in one step</p>
             </div>
             <div class="upload-card-body">
                 <form id="resumeForm">
@@ -1303,8 +1303,8 @@
                         <span class="format-pill">Max 10 MB</span>
                     </div>
                     <div class="upload-actions">
-                        <button type="submit" id="enhanceBtn" class="btn-enhance">
-                                                        Enhance with AI
+                        <button type="submit" id="enhanceBtn" class="btn-enhance" disabled>
+                            Enhance with AI
                         </button>
                         <button type="button" id="resetBtn" class="btn-reset">
                             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -1529,7 +1529,7 @@
     <div class="scan-card">
         <div class="scan-header">
             <h2>AI is Scanning...</h2>
-            <p id="scanStageLabel">Analysing and improving your resume</p>
+            <p id="scanStageLabel">Uploading…</p>
         </div>
         <div class="scan-paper" aria-hidden="true">
             <div class="scan-paper-head"></div>
@@ -1544,9 +1544,9 @@
             <div class="scan-progress-fill" id="scanProgressFill"></div>
         </div>
         <div class="scan-steps">
-            <div class="scan-step" id="scanStep1"><div class="scan-dot"></div>Parsing your resume...</div>
-            <div class="scan-step" id="scanStep2"><div class="scan-dot"></div>Optimising ATS keywords...</div>
-            <div class="scan-step" id="scanStep3"><div class="scan-dot"></div>Building your template preview...</div>
+            <div class="scan-step" id="scanStep1"><div class="scan-dot"></div>Uploading…</div>
+            <div class="scan-step" id="scanStep2"><div class="scan-dot"></div>Parsing resume…</div>
+            <div class="scan-step" id="scanStep3"><div class="scan-dot"></div>Extracting experience…</div>
         </div>
     </div>
 </div>
@@ -1604,16 +1604,19 @@
     const resumeCreateRoute = "{{ route('resume.create') }}";
 
     let currentAnalysisId = null;
+    let enhanceInProgress = false;
     let resumeData = { name: '', designation: '', job_title: '', summary: '', skills: [], experience: [], education: [], projects: [], certifications: [], achievements: [], social_links: [] };
     let selectedTemplateId = Object.keys(resumeTemplates)[0] || null;
 
-    // ── Scan animation ──
-    const stages = [
-        { label: 'Parsing your resume...', step: 0, pct: 25 },
-        { label: 'Optimising ATS keywords...', step: 1, pct: 62 },
-        { label: 'Building your template preview...', step: 2, pct: 90 },
-        { label: 'Finalising your enhanced resume...', step: -1, pct: 100 }
+    // ── Scan animation (single enhance flow) ──
+    const enhanceStages = [
+        { label: 'Uploading…', step: 0, pct: 18 },
+        { label: 'Reading your resume…', step: 0, pct: 42 },
+        { label: 'Enhancing with AI…', step: 1, pct: 72 },
+        { label: 'Building your preview…', step: 2, pct: 92 },
+        { label: 'Ready', step: -1, pct: 100 },
     ];
+    let activeScanStages = enhanceStages;
 
     function showScanOverlay() {
         if (scanOverlay && scanOverlay.parentElement !== document.body) document.body.appendChild(scanOverlay);
@@ -1636,8 +1639,8 @@
         if (fill) fill.style.width = '0%';
         items.forEach(i => { if (i) i.className = 'scan-step'; });
         function nextStage() {
-            if (stageIdx >= stages.length) return;
-            const s = stages[stageIdx++];
+            if (stageIdx >= activeScanStages.length) return;
+            const s = activeScanStages[stageIdx++];
             if (stageLabel) stageLabel.textContent = s.label;
             if (fill) fill.style.width = s.pct + '%';
             if (s.step >= 0) {
@@ -1647,7 +1650,7 @@
             } else {
                 items.forEach(i => { if (!i) return; i.classList.remove('active'); i.classList.add('done'); });
             }
-            setTimeout(nextStage, stageIdx === 1 ? 600 : (stageIdx < stages.length ? 900 : 400));
+            setTimeout(nextStage, stageIdx === 1 ? 600 : (stageIdx < activeScanStages.length ? 900 : 400));
         }
         nextStage();
     }
@@ -1849,27 +1852,57 @@
         renderTemplatePreview(normalizedData);
     }
 
-    // ── Form submit ──
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const file = fileInput.files[0];
+    function setSelectedFile(file) {
         if (!file) {
-            statusMsg.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:999px;padding:8px 12px;font-weight:700;">Please upload your resume first.</span>';
+            enhanceBtn.disabled = true;
+            fileNameDisplay.textContent = 'PDF, DOC, DOCX up to 10 MB';
+            statusMsg.innerHTML = '';
             return;
         }
+        fileNameDisplay.textContent = file.name;
+        enhanceBtn.disabled = false;
+        if (!enhanceInProgress) {
+            form.requestSubmit();
+        }
+    }
+
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files?.[0];
+        if (!file) {
+            enhanceBtn.disabled = true;
+            fileNameDisplay.textContent = 'PDF, DOC, DOCX up to 10 MB';
+            statusMsg.innerHTML = '';
+            return;
+        }
+        setSelectedFile(file);
+    });
+
+    // ── Form submit: parse + enhance in one request ──
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = fileInput.files?.[0];
+        if (!file) {
+            statusMsg.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:999px;padding:8px 12px;font-weight:700;">Please upload a resume file first.</span>';
+            return;
+        }
+        if (enhanceInProgress) return;
+
+        enhanceInProgress = true;
         enhanceBtn.disabled = true;
-        statusMsg.innerHTML = '<span class="status-dot"></span> AI is processing your resume...';
+        statusMsg.innerHTML = '<span class="status-dot"></span> Enhancing your resume with AI…';
+        activeScanStages = enhanceStages;
         await showScanOverlay();
+
         const formData = new FormData();
         formData.append('resume', file);
         formData.append('job_role', document.getElementById('jobRoleInput')?.value || '');
         formData.append('_token', '{{ csrf_token() }}');
+
         try {
             const response = await fetch('{{ route("resume.analyze") }}', { method: 'POST', body: formData });
             const data = await response.json().catch(() => ({}));
-            if (!response.ok || !data.success) throw new Error(data.message || 'Analysis failed');
+            if (!response.ok || !data.success) throw new Error(data.message || 'Enhancement failed');
             hideScanOverlay();
-            // Collapse hero to just the actions row
             document.getElementById('uploadCardEl').style.display = 'none';
             resetBtn.style.display = 'inline-flex';
             enhanceBtn.style.display = 'none';
@@ -1881,13 +1914,13 @@
             document.getElementById('editWithResumeMakerBtn')?.removeAttribute('disabled');
             statusMsg.innerHTML = '<span class="status-dot"></span> Resume enhanced successfully!';
             improveAgainBtn.disabled = false;
-            // Scroll to results
             setTimeout(() => dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
         } catch (error) {
             hideScanOverlay();
             statusMsg.innerHTML = `<span style="color:#ef4444;">Error: ${error.message}</span>`;
+            enhanceBtn.disabled = Boolean(fileInput.files?.[0]);
         } finally {
-            enhanceBtn.disabled = false;
+            enhanceInProgress = false;
         }
     });
 
@@ -1896,7 +1929,7 @@
         document.getElementById('uploadCardEl').style.display = 'block';
         resetBtn.style.display = 'none';
         enhanceBtn.style.display = 'inline-flex';
-        enhanceBtn.disabled = false;
+        enhanceBtn.disabled = true;
         dashboard.classList.remove('active');
         workspace.classList.remove('active');
         statusMsg.innerHTML = '';
@@ -1983,18 +2016,16 @@
     closeTemplateBtn?.addEventListener('click', () => templatePopup?.classList.remove('open'));
     templatePopup?.addEventListener('click', e => { if (e.target === templatePopup) templatePopup.classList.remove('open'); });
 
-    // ── File input ──
     dropzone.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', e => {
-        if (e.target.files[0]) fileNameDisplay.textContent = e.target.files[0].name;
-    });
     dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.borderColor = 'var(--blue)'; });
     dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = 'rgba(37,99,235,0.25)'; });
     dropzone.addEventListener('drop', e => {
         e.preventDefault();
         const dt = e.dataTransfer.files;
-        if (dt.length) { fileInput.files = dt; fileNameDisplay.textContent = dt[0].name; }
+        if (!dt.length) return;
+        fileInput.files = dt;
         dropzone.style.borderColor = 'rgba(37,99,235,0.25)';
+        setSelectedFile(dt[0]);
     });
 
     // ── Edit with Resume Maker ──

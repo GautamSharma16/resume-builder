@@ -1318,7 +1318,7 @@
         <div class="scan-card">
             <div class="scan-header">
                 <h2>AI is Reading...</h2>
-                <p id="resumeScanStageLabel">Extracting resume text</p>
+                <p id="resumeScanStageLabel">Uploading…</p>
             </div>
             <div class="scan-paper" aria-hidden="true">
                 <div class="scan-paper-head"></div>
@@ -1333,9 +1333,9 @@
                 <div class="scan-progress-fill" id="resumeScanProgressFill"></div>
             </div>
             <div class="scan-steps">
-                <div class="scan-step" id="resumeScanStep1"><div class="scan-dot"></div>Extracting text from file...</div>
-                <div class="scan-step" id="resumeScanStep2"><div class="scan-dot"></div>Structuring sections...</div>
-                <div class="scan-step" id="resumeScanStep3"><div class="scan-dot"></div>Preparing your editor...</div>
+                <div class="scan-step" id="resumeScanStep1"><div class="scan-dot"></div>Uploading…</div>
+                <div class="scan-step" id="resumeScanStep2"><div class="scan-dot"></div>Parsing resume…</div>
+                <div class="scan-step" id="resumeScanStep3"><div class="scan-dot"></div>Building resume…</div>
             </div>
         </div>
     </div>
@@ -1386,16 +1386,16 @@
 
                     <div class="rp-row">
                         <div class="rp-group" data-template-field="name">
-                            <label class="rp-label">Full Name</label>
+                            <label class="rp-label">First name</label>
                             <div class="rp-input-wrap">
-                                <input id="cv-name" class="rp-input cv-field" placeholder="Jane" data-field="name">
+                                <input id="cv-name" class="rp-input cv-field" placeholder="Jane" data-field="name" autocomplete="given-name">
                                 <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
                             </div>
                         </div>
                         <div class="rp-group" data-template-field="last_name">
                             <label class="rp-label">Last name</label>
                             <div class="rp-input-wrap">
-                                <input id="cv-last-name" class="rp-input cv-field" placeholder="Smith" data-field="last_name">
+                                <input id="cv-last-name" class="rp-input cv-field" placeholder="Smith" data-field="last_name" autocomplete="family-name">
                                 <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
                             </div>
                         </div>
@@ -1406,6 +1406,13 @@
                             <label class="rp-label">Designation</label>
                             <div class="rp-input-wrap">
                                 <input id="cv-designation" class="rp-input cv-field" placeholder="e.g. Senior Product Designer" data-field="designation" data-template-field="designation,job_title">
+                                <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+                            </div>
+                        </div>
+                        <div class="rp-group" data-template-field="desired_job_role">
+                            <label class="rp-label">Desired Job Role</label>
+                            <div class="rp-input-wrap">
+                                <input id="cv-desired-job-role" class="rp-input cv-field" placeholder="e.g. Product Manager" data-field="desired_job_role">
                                 <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
                             </div>
                         </div>
@@ -1799,10 +1806,11 @@
         });
 
         const resumeScanStages = [
-            { label: 'Extracting resume text...', step: 0, pct: 28 },
-            { label: 'Structuring resume sections...', step: 1, pct: 64 },
-            { label: 'Preparing your editor...', step: 2, pct: 92 },
-            { label: 'Done', step: -1, pct: 100 },
+            { label: 'Uploading…', step: 0, pct: 18 },
+            { label: 'Parsing resume…', step: 0, pct: 42 },
+            { label: 'Extracting experience…', step: 1, pct: 68 },
+            { label: 'Building resume…', step: 2, pct: 90 },
+            { label: 'Ready', step: -1, pct: 100 },
         ];
         let resumeScanTimer = null;
         function showResumeScanOverlay() {
@@ -1845,79 +1853,8 @@
             if (resumeScanTimer) clearTimeout(resumeScanTimer);
             resumeScanTimer = null;
         }
-
-        function sanitizeImportedResume(raw) {
-            const data = (raw && typeof raw === 'object') ? raw : {};
-            const toStr = (v) => String(v ?? '').trim();
-            const toArr = (v) => Array.isArray(v) ? v : [];
-            const contact = toStr(data.contact);
-            const [cEmail = '', cMobile = ''] = contact.split('|').map(v => v.trim());
-            const normalized = {
-                ...data,
-                name: toStr(data.name),
-                last_name: toStr(data.last_name),
-                designation: toStr(data.designation || data.job_title),
-                job_title: toStr(data.designation || data.job_title),
-                email: toStr(data.email) || cEmail,
-                mobile: toStr(data.mobile) || cMobile,
-                location: toStr(data.location || data.address),
-                summary: toStr(data.summary),
-                skills: toArr(data.skills).map(v => String(v).trim()).filter(Boolean),
-                social_links: toArr(data.social_links).map(v => String(v).trim()).filter(Boolean),
-                experience: toArr(data.experience),
-                education: toArr(data.education),
-                projects: toArr(data.projects),
-                certifications: toArr(data.certifications || data.certificates),
-                certificates: toArr(data.certifications || data.certificates),
-                languages: toArr(data.languages),
-            };
-            return normalized;
-        }
-
-        document.getElementById('resume-autofill-file')?.addEventListener('change', async function() {
-            if (window.__resumeAutofillHandledByPartial) return;
-            const file = this.files?.[0];
-            if (!file) return;
-            const statusEl = document.getElementById('resume-autofill-status');
-            if (statusEl) {
-                statusEl.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; vertical-align: middle; margin-right: 6px; margin-top: -2px;"><circle cx="12" cy="12" r="10" stroke-dasharray="30 10"></circle></svg> Reading your resume with AI…';
-                statusEl.style.color = 'var(--blue)';
-            }
-            showResumeScanOverlay();
-
-            try {
-                const fd = new FormData();
-                fd.append('resume', file);
-                fd.append('mode', 'autofill');
-                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-                const analyzeUrl = document.getElementById('create-cv-app').dataset.analyzeUrl;
-                const res = await fetch(analyzeUrl, {
-                    method: 'POST',
-                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest' },
-                    body: fd
-                });
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok || !data.success) throw new Error(data.message || 'Could not import this resume.');
-
-                const normalized = sanitizeImportedResume(data.improved_resume || {});
-                if (typeof applyResumeData === 'function') applyResumeData(normalized);
-                if (window.setResumeMakerSource) window.setResumeMakerSource('upload');
-                document.getElementById('rp-onboarding-view').style.display = 'none';
-                document.getElementById('rp-builder-view').classList.add('visible');
-                if (statusEl) {
-                    const fieldCount = [
-                        normalized.name, normalized.email, normalized.mobile, normalized.location, normalized.summary
-                    ].filter(Boolean).length + normalized.skills.length;
-                    statusEl.textContent = fieldCount < 3
-                        ? 'Imported with limited data. Please review and fill missing details.'
-                        : '';
-                }
-            } catch(err) {
-                if (statusEl) { statusEl.textContent = err.message || 'Could not read this file.'; statusEl.style.color = '#dc2626'; }
-            } finally {
-                hideResumeScanOverlay();
-            }
-        });
+        window.showResumeScanOverlay = showResumeScanOverlay;
+        window.hideResumeScanOverlay = hideResumeScanOverlay;
 
         function currentResumePayload(options = {}) {
             const aiContext = options.context || '';
@@ -1934,6 +1871,7 @@
                 last_name: read('cv-last-name'),
                 designation: read('cv-designation'),
                 job_title: read('cv-designation'),
+                desired_job_role: read('cv-desired-job-role'),
                 email: read('cv-email'),
                 mobile: read('cv-mobile'),
                 location: read('cv-location'),
