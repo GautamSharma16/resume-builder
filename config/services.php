@@ -40,6 +40,15 @@ return [
         'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
     ],
 
+    'affinda' => [
+        'key' => env('AFFINDA_API_KEY'),
+        'base_url' => env('AFFINDA_BASE_URL', 'https://api.affinda.com/v3'),
+        'organization' => env('AFFINDA_ORGANIZATION'),
+        'workspace' => env('AFFINDA_WORKSPACE'),
+        'document_type' => env('AFFINDA_DOCUMENT_TYPE'),
+        'timeout' => (int) env('AFFINDA_TIMEOUT', 120),
+    ],
+
     'razorpay' => [
         'key' => env('RAZORPAY_KEY_ID'),
         'secret' => env('RAZORPAY_KEY_SECRET'),

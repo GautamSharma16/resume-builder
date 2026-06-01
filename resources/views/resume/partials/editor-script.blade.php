@@ -68,6 +68,9 @@
     };
     const looksLikeCompany = (line = '') => /\b(inc|llc|ltd|pvt|technologies|technology|solutions|systems|labs|corp)\b/i.test(line);
     const looksLikeUrl = (line = '') => /(?:https?:\/\/|www\.|[a-z0-9-]+\.[a-z]{2,})/i.test(line);
+    const looksLikeProjectUrl = (line = '') => /^(?:https?:\/\/|www\.)\S+\.\S+$/i.test(String(line || '').trim())
+        || /^(?:github|gitlab|bitbucket)\.com\/[^\s]+$/i.test(String(line || '').trim());
+    const looksLikeTechStack = (line = '') => /\b(react|node|js|javascript|typescript|spring|boot|java|php|laravel|python|django|flask|postgres|postgresql|mysql|mongodb|sql|html|css|tailwind|bootstrap|api|rest|express|next\.?js|vue|angular)\b/i.test(line);
     const looksLikeLocation = (line = '') => /\b(remote|on[- ]?site|hybrid|india|usa|uk|delhi|mumbai|pune|bengaluru|bangalore|hyderabad|chennai|kolkata)\b/i.test(line);
     const looksLikeRole = (line = '') => /\b(intern|developer|engineer|manager|analyst|designer|consultant|lead|architect)\b/i.test(line);
     const looksLikePeriod = (line = '') => /\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}|present)\b/i.test(line);
@@ -95,13 +98,13 @@
         const base = typeof entry === 'string'
             ? { company: '', role: '', period: '', points: listify(entry, /\n+/) }
             : {
-                company: String(entry?.company ?? entry?.organization ?? ''),
-                role: String(entry?.role ?? entry?.title ?? entry?.position ?? ''),
-                period: String(entry?.period ?? entry?.duration ?? entry?.dates ?? ''),
-                points: listify(entry?.points ?? entry?.description ?? entry?.details ?? entry?.summary ?? '', /\n+/),
+                company: String(entry?.company ?? entry?.organization ?? entry?.workExperienceOrganization ?? entry?.employer ?? entry?.company_name ?? ''),
+                role: String(entry?.role ?? entry?.title ?? entry?.jobTitle ?? entry?.position ?? entry?.job_title ?? ''),
+                period: String(entry?.period ?? entry?.duration ?? entry?.dates ?? entry?.workExperienceDateRange ?? ''),
+                points: listify(entry?.points ?? entry?.highlights ?? entry?.responsibilities ?? entry?.description ?? entry?.details ?? entry?.summary ?? '', /[\n•]+/),
             };
 
-        if (!base.role && !base.company && base.points.length) {
+        if ((!base.role || !base.company || !base.period) && base.points.length) {
             const kept = [];
             base.points.forEach((line) => {
                 if (!base.company && looksLikeCompany(line)) { base.company = line; return; }
@@ -124,13 +127,34 @@
 
         return base;
     };
+    const normalizeProjectEntry = (project) => {
+        const item = typeof project === 'string'
+            ? { name: project, tech_stack: '', link: '', description: '' }
+            : {
+                name: String(project?.name ?? ''),
+                tech_stack: String(project?.tech_stack ?? project?.tech ?? ''),
+                link: String(project?.link ?? project?.url ?? ''),
+                description: toText(project?.description ?? project?.highlights ?? listify(project?.points, /\n+/).join('\n') ?? ''),
+            };
+
+        if (item.link && !looksLikeProjectUrl(item.link)) {
+            if (looksLikeTechStack(item.link)) {
+                item.tech_stack = [item.tech_stack, item.link].map(v => String(v || '').trim()).filter(Boolean).join(', ');
+            } else {
+                item.description = [item.description, item.link].map(v => String(v || '').trim()).filter(Boolean).join(' ');
+            }
+            item.link = '';
+        }
+
+        return item;
+    };
 
     /* ── Constants ── */
     const A4_W = 794;
     const A4_H = 1123;
 
     /* ── State ── */
-    const defaults = { name:'', last_name:'', job_title:'', designation:'', email:'', mobile:'', location:'', linkedin:'', portfolio:'', link:'', github:'', social_links:[], contact:'', address:'', summary:'', skills:[], experience:[], education:[], projects:[], certifications:[], languages:[], achievements:[], primary_color: '', primary_color_customized: false, profile_image: '' };
+    const defaults = { name:'', last_name:'', job_title:'', designation:'', desired_job_role:'', email:'', mobile:'', location:'', linkedin:'', portfolio:'', link:'', github:'', social_links:[], contact:'', address:'', summary:'', skills:[], experience:[], education:[], projects:[], certifications:[], languages:[], achievements:[], primary_color: '', primary_color_customized: false, profile_image: '' };
     const state = Object.assign({}, defaults, readJson('resume-initial-json', {}));
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -170,6 +194,7 @@
     let previewPage = 1;
     let previewTotalPages = 1;
     let uploadInProgress = false;
+    let uploadRequestToken = 0;
 
     if (!cvPreviewEl || !templateIdEl || !expEditorEl || !eduEditorEl || !saveBtnEl) {
         console.error('Resume maker: missing required DOM elements.'); return;
@@ -190,47 +215,148 @@
             return { degree: '', stream: '', institution: '', year: '' };
         }
         return {
-            degree: String(item.degree ?? item.course ?? ''),
-            stream: String(item.stream ?? item.field ?? item.specialization ?? ''),
-            institution: String(item.institution ?? item.school ?? item.university ?? item.college ?? ''),
-            year: String(item.year ?? item.duration ?? item.period ?? ''),
+            degree: String(item.degree ?? item.educationAccreditation ?? item.course ?? ''),
+            stream: String(item.stream ?? item.field ?? (Array.isArray(item.educationMajor) ? item.educationMajor.join(', ') : (item.educationMajor ?? '')) ?? item.specialization ?? ''),
+            institution: String(item.institution ?? item.educationOrganization ?? item.school ?? item.university ?? item.college ?? ''),
+            year: String(item.year ?? item.duration ?? item.period ?? item.educationDateRange ?? ''),
         };
     };
 
-    const normalise = (r = {}) => ({
-        name:         String(r.name ?? ''),
-        last_name:    String(r.last_name ?? ''),
-        job_title:    String(r.job_title ?? ''),
-        designation:  String(r.designation ?? ''),
+    const looksLikeJobTitle = (value = '') => {
+        const text = String(value || '').trim();
+        if (!text || text.length > 72) return false;
+        return /\b(software|developer|engineer|manager|designer|analyst|consultant|lead|architect|intern|specialist|director|officer|executive|programmer|administrator|coordinator|associate|senior|junior|trainee|devops|fullstack|full\s*stack|front\s*end|back\s*end|data\s*scientist|product\s*manager|sales|marketing|recruiter|relationship|territory|admin|qa|tester|sde|mern|mean|stack)\b/i.test(text);
+    };
+
+    const educationLooksLikeExperienceBullet = (edu = {}) => {
+        const degree = String(edu.degree || '').trim();
+        const stream = String(edu.stream || '').trim();
+        const institution = String(edu.institution || '').trim();
+        const hay = [degree, stream, institution].filter(Boolean).join(' ').toLowerCase();
+        if (!hay) return false;
+        if (/^\s*[-•*]\s*/.test(degree)) return true;
+        if (/\b(responsible for|accountable for|key deliverables|market exploration|sales targets)\b/i.test(hay)
+            && !/\b(b\.?tech|bachelor|master|bsc|msc|mba|university|college|school|institute|cgpa|gpa)\b/i.test(hay)) return true;
+        if (institution && !degree && !stream
+            && /\b(responsible|sales|manager|deliverables|exploration|development|services|clients)\b/i.test(institution)
+            && !/\b(university|college|school|institute|academy)\b/i.test(institution)) return true;
+        return /\b(developed|implemented|built|designed|created|maintained|deployed|optimized|led|managed)\b/i.test(hay)
+            && !/\b(b\.?tech|bachelor|master|bsc|msc|mba|bca|mca|diploma|ph\.?d|degree|university|college|school|institute|cgpa|gpa|12th|10th)\b/i.test(hay);
+    };
+
+    const splitMergedRoleField = (entry = {}) => {
+        const role = String(entry.role || '').trim();
+        const company = String(entry.company || '').trim();
+        if (company || !role) return entry;
+        const m = role.match(/^([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,3})\s+((?:Senior\s+|Junior\s+|Lead\s+)?(?:MERN|MEAN|Full[\s-]*Stack|Software|Frontend|Front[\s-]*End|Backend|Back[\s-]*End|Web|Mobile|DevOps|React|Node\.?js|Java|Python|PHP|\.NET).{3,90})$/i)
+            || role.match(/^([A-Z][A-Z\s]{4,40})\s+((?:Senior\s+|Junior\s+)?[A-Za-z][A-Za-z\s\/\-]{4,60}(?:Developer|Engineer|Manager|Analyst|Designer|Tester|Architect|Consultant|Intern))$/);
+        if (m) {
+            entry.role = m[2].trim();
+        }
+        return entry;
+    };
+
+    const isContactHeaderExperience = (entry = {}) => {
+        const blob = [entry.company, entry.role, ...(entry.points || [])].map(v => String(v || '')).join(' ').toLowerCase();
+        return /\b(contact|apartment|apartments|flat|golden view|email|phone|mob)\b/.test(blob)
+            && !/\b(ltd|limited|pvt|inc|developer|engineer|manager|\d{4})\b/.test(blob);
+    };
+
+    const splitIdentityFields = (name = '', lastName = '', designation = '') => {
+        let first = String(name || '').trim();
+        let last = String(lastName || '').trim();
+        let title = String(designation || '').trim();
+
+        if (!title && looksLikeJobTitle(last) && !last.includes(' ')) {
+            title = last;
+            last = '';
+        }
+        if (last.includes(' ')) {
+            const words = last.split(/\s+/);
+            for (let i = 1; i < words.length; i++) {
+                const tail = words.slice(i).join(' ');
+                if (looksLikeJobTitle(tail)) {
+                    if (!title) title = tail;
+                    last = words.slice(0, i).join(' ');
+                    break;
+                }
+            }
+        }
+        if (!last && first.includes(' ')) {
+            const words = first.split(/\s+/);
+            for (let i = 1; i < words.length; i++) {
+                const tail = words.slice(i).join(' ');
+                if (looksLikeJobTitle(tail)) {
+                    if (!title) title = tail;
+                    first = words.slice(0, i).join(' ');
+                    last = '';
+                    break;
+                }
+            }
+            if (!last && first.includes(' ')) {
+                const parts = first.split(/\s+/);
+                first = parts.shift() || '';
+                last = parts.join(' ');
+            }
+        }
+
+        return { name: first, last_name: last, designation: title, job_title: title };
+    };
+
+    const extractProfileUrls = (rawSocials = [], existing = {}) => {
+        const links = validSocials(rawSocials).map(String).map(s => s.trim()).filter(Boolean);
+        let linkedin = String(existing.linkedin ?? '').trim();
+        let github = String(existing.github ?? '').trim();
+        let portfolio = String(existing.portfolio ?? existing.link ?? '').trim();
+        const pull = (re, current) => {
+            if (current) return current;
+            const idx = links.findIndex(u => re.test(u));
+            return idx === -1 ? '' : links.splice(idx, 1)[0];
+        };
+        linkedin = pull(/linkedin\.com/i, linkedin);
+        github = pull(/github\.com/i, github);
+        portfolio = pull(/(?:behance\.net|dribbble\.com|portfolio|about\.me)/i, portfolio);
+        return { linkedin, github, portfolio, social_links: links };
+    };
+
+    const normalise = (r = {}) => {
+        const profiles = extractProfileUrls(r.social_links, r);
+        const identity = splitIdentityFields(
+            String(r.name ?? ''),
+            String(r.last_name ?? ''),
+            String(r.designation ?? r.job_title ?? '')
+        );
+        return {
+        name:         identity.name,
+        last_name:    identity.last_name,
+        job_title:    identity.designation,
+        designation:  identity.designation,
+        desired_job_role: String(r.desired_job_role ?? ''),
         email:        String(r.email ?? ''),
         mobile:       String(r.mobile ?? r.contact ?? ''),
         location:     String(r.location ?? r.address ?? ''),
-        linkedin:     String(r.linkedin ?? ''),
-        portfolio:    String(r.portfolio ?? r.link ?? ''),
-        link:         String(r.link ?? r.portfolio ?? ''),
-        github:       String(r.github ?? ''),
-        social_links: validSocials(r.social_links),
+        linkedin:     String(r.linkedin ?? '').trim() || profiles.linkedin,
+        portfolio:    String(r.portfolio ?? r.link ?? '').trim() || profiles.portfolio,
+        link:         String(r.link ?? r.portfolio ?? '').trim() || profiles.portfolio,
+        github:       String(r.github ?? '').trim() || profiles.github,
+        social_links: profiles.social_links,
         contact:      String(r.contact ?? ''),
         address:      String(r.address ?? ''),
         summary:      String(r.summary ?? ''),
         skills:       listify(r.skills, /[\n,;|]+/),
-        experience:   ensureArray(r.experience).map(normalizeExperienceEntry),
-        education: ensureArray(r.education).map(educationToObject).filter(e => e.degree || e.stream || e.institution || e.year),
+        experience:   ensureArray(r.experience)
+            .map(normalizeExperienceEntry)
+            .map(splitMergedRoleField)
+            .filter(e => !isContactHeaderExperience(e)),
+        education: ensureArray(r.education)
+            .map(educationToObject)
+            .filter(e => (e.degree || e.stream || e.institution || e.year) && !educationLooksLikeExperienceBullet(e)),
         projects:  (() => {
             const rawProjects = ensureArray(r.projects);
             if (rawProjects.every(p => typeof p === 'string') && rawProjects.length > 3) {
                 return stitchProjectStrings(rawProjects);
             }
-            return rawProjects.map(p =>
-                typeof p === 'string'
-                    ? { name: p, tech_stack: '', link: '', description: '' }
-                    : {
-                        name: String(p?.name ?? ''),
-                        tech_stack: String(p?.tech_stack ?? p?.tech ?? ''),
-                        link: String(p?.link ?? p?.url ?? ''),
-                        description: toText(p?.description ?? p?.highlights ?? listify(p?.points, /\n+/).join('\n') ?? ''),
-                    }
-            );
+            return rawProjects.map(normalizeProjectEntry);
         })(),
         certifications: ensureArray(r.certifications ?? r.certificates).map(c =>
             typeof c === 'string' ? { name: c, description: '' } : { name: String(c?.name ?? ''), description: String(c?.description ?? '') }
@@ -244,12 +370,14 @@
         primary_color: String(r.primary_color ?? ''),
         primary_color_customized: Boolean(r.primary_color_customized ?? (r.primary_color && r.primary_color !== '#2563eb')),
         profile_image: String(r.profile_image ?? ''),
-    });
+    };
+    };
 
     Object.assign(state, normalise(state));
 
     const ensureDefaults = () => {
         if (!state.experience.length) state.experience.push({ company:'', role:'', period:'', points:[''] });
+        else state.experience.forEach((e) => { if (!Array.isArray(e.points) || !e.points.length) e.points = ['']; });
         if (!state.education.length)  state.education.push({ degree:'', stream:'', institution:'', year:'' });
         if (!state.projects.length)   state.projects.push({ name:'', tech_stack:'', link:'', description:'' });
         if (!state.certifications.length) state.certifications.push({ name:'', description:'' });
@@ -265,12 +393,18 @@
 
     /* ── Legacy sync ── */
     function syncLegacy() {
-        state.contact = [state.email, state.mobile, ...state.social_links].filter(Boolean).join(' | ');
+        state.contact = [state.email, state.mobile, state.linkedin, state.github, ...state.social_links]
+            .filter(Boolean)
+            .join(' | ');
         state.address = state.location || '';
     }
 
     function fullName() {
         return [state.name, state.last_name].map(part => String(part || '').trim()).filter(Boolean).join(' ');
+    }
+    function renderAll() {
+        renderEditor();
+        renderTemplatePreview();
     }
 
     /* ── Render helpers ── */
@@ -399,26 +533,27 @@
     function renderTemplateHtml(template) {
         syncLegacy();
         let output = String(template?.html || '');
+        output = stripDemoResumeContent(output);
         if (!hasResumePlaceholders(output)) {
             output = editableTemplateShell();
         }
         const hasProjectsToken = /\{\{\s*projects\s*\}\}/.test(output) || output.includes('[[projects]]');
         const values = {
-            name:         esc(fullName() || state.name || 'Alex Johnson'),
+            name:         esc(fullName() || state.name || ''),
             last_name:    esc(state.last_name || ''),
-            job_title:    esc(state.job_title || 'Senior Product Designer'),
+            job_title:    esc(state.job_title || ''),
             designation:  esc(state.designation || state.job_title || ''),
-            email:        esc(state.email || 'alex@example.com'),
-            mobile:       esc(state.mobile || '+91 98765 43210'),
-            location:     esc(state.location || 'Mumbai, India'),
-            contact:      esc(state.contact || [state.email, state.mobile].filter(Boolean).join(' | ') || 'alex@example.com | +91 98765 43210'),
-            address:      esc(state.address || state.location || 'Mumbai, India'),
+            email:        esc(state.email || ''),
+            mobile:       esc(state.mobile || ''),
+            location:     esc(state.location || ''),
+            contact:      esc(state.contact || [state.email, state.mobile].filter(Boolean).join(' | ')),
+            address:      esc(state.address || state.location || ''),
             summary:      state.summary ? (/<[a-z][\s\S]*>/i.test(state.summary) ? state.summary : rich(state.summary)) : '',
             social_links: esc(state.social_links.join(' | ')),
             linkedin:     esc(state.linkedin || ''),
             portfolio:    esc(state.portfolio || state.link || state.social_links[0] || ''),
             link:         esc(state.link || state.portfolio || ''),
-            skills:       state.skills.length ? renderSkills() : '<span class="tpl-badge">Leadership</span><span class="tpl-badge">React</span><span class="tpl-badge">Python</span><span class="tpl-badge">Product Strategy</span>',
+            skills:       state.skills.length ? renderSkills() : '',
             experience:   state.experience.some(e => e.company || e.role || e.period || e.points.some(Boolean)) ? renderExperience() : '',
             education:    state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ? renderList(state.education) : '',
             projects:     state.projects.some(p => p?.name || typeof p === 'string') ? renderList(state.projects) : '',
@@ -504,6 +639,28 @@
     }
 
     /* ── Preview ── */
+    function stripDemoResumeContent(html) {
+        const hasRealData = fullName() || state.email || state.mobile || state.summary || state.skills.length
+            || state.experience.some(e => e.company || e.role || e.period || e.points.some(Boolean))
+            || state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year)
+            || state.projects.some(p => p?.name || p?.description || p?.tech_stack || p?.tech || p?.link);
+
+        if (!hasRealData) return html;
+
+        return String(html || '')
+            .replace(/Companyvista Inc/gi, '')
+            .replace(/my\.companyvista\.com/gi, '')
+            .replace(/MERN Stack Developer Intern/gi, '')
+            .replace(/Feb 2024\s*[–-]\s*Present/gi, '')
+            .replace(/TrimNet\s*[—-]\s*URL Shortener/gi, '')
+            .replace(/https?:\/\/trimnet\.vercel\.app/gi, '')
+            .replace(/Frontend:\s*React\.js[^<\n]*/gi, '')
+            .replace(/Backend:\s*Node\.js[^<\n]*/gi, '')
+            .replace(/Databases:\s*MongoDB[^<\n]*/gi, '')
+            .replace(/Tools\s*&\s*Technologies:[^<\n]*/gi, '')
+            .replace(/AI\s*&\s*Modern Dev:[^<\n]*/gi, '');
+    }
+
     function renderBasicPreview() {
         const primaryColor = state.primary_color || '#2563eb';
         const header = [state.email, state.mobile, state.location].filter(Boolean).join(' · ');
@@ -766,6 +923,7 @@
         $('cv-name').value     = state.name || '';
         if ($('cv-last-name')) $('cv-last-name').value = state.last_name || '';
         if ($('cv-designation')) $('cv-designation').value = state.designation || state.job_title || '';
+        if ($('cv-desired-job-role')) $('cv-desired-job-role').value = state.desired_job_role || '';
         $('cv-email').value    = state.email || '';
         $('cv-mobile').value   = state.mobile || '';
         $('cv-location').value = state.location || '';
@@ -979,10 +1137,16 @@
         const hasExplicitTokens = tokens.size > 0;
         if (tokens.has('certificates')) tokens.add('certifications');
         if (tokens.has('certifications')) tokens.add('certificates');
+        
+        const alwaysShowContactFields = new Set([
+            'name', 'last_name', 'designation', 'job_title', 'email', 'mobile', 'location',
+            'contact', 'address', 'desired_job_role', 'linkedin', 'github', 'social_links', 'portfolio', 'link',
+        ]);
         document.querySelectorAll('[data-template-field]').forEach((node) => {
             const required = String(node.getAttribute('data-template-field') || '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
             if (!required.length) return;
-            node.style.display = (!hasExplicitTokens || required.some(token => tokens.has(token))) ? '' : 'none';
+            const forceShow = required.some(token => alwaysShowContactFields.has(token));
+            node.style.display = (forceShow || !hasExplicitTokens || required.some(token => tokens.has(token))) ? '' : 'none';
         });
         document.querySelectorAll('[data-template-section]').forEach((node) => {
             const required = String(node.getAttribute('data-template-section') || '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
@@ -1046,10 +1210,17 @@
         if (onboarding) onboarding.style.display = 'none';
         if (builder) builder.classList.add('visible');
         const keepColor = { primary_color: state.primary_color, primary_color_customized: state.primary_color_customized };
-        Object.assign(state, defaults, normalise(resume));
+        Object.assign(state, defaults);
+        Object.assign(state, normalise(resume));
         Object.assign(state, keepColor);
+        syncLegacy();
         ensureDefaults();
-        renderEditor();
+        renderAll();
+        // If TinyMCE isn't initialized yet, init and re-render to populate rich fields
+        if (typeof tinymce !== 'undefined' && !tinymce.get('cv-summary') && typeof initTinyMCE === 'function') {
+            initTinyMCE();
+            setTimeout(() => renderAll(), 300);
+        }
         applyColorSelection(state.primary_color_customized ? state.primary_color : '');
         goToStep(1);
     };
@@ -1140,13 +1311,13 @@
     $('remove-image-btn')?.addEventListener('click', () => { state.profile_image = ''; renderEditor(); renderTemplatePreview(); });
     $('cv-image-overlay')?.addEventListener('click', () => { $('cv-image-input')?.click(); });
 
-    expEditorEl.addEventListener('input', e => {
+        expEditorEl.addEventListener('input', e => {
         const block = e.target.closest('[data-exp]');
         if (!block) return;
         const i = Number(block.dataset.exp);
         const k = e.target.dataset.k;
         state.experience[i][k] = k === 'points'
-            ? (/<[a-z][\s\S]*>/i.test(e.target.value) ? [e.target.value] : e.target.value.split('\n').map(x => x.trim()).filter(Boolean))
+            ? (/<[a-z][\s\S]*>/i.test(e.target.value) ? [e.target.value] : listify(e.target.value, /[\n•]+/))
             : e.target.value;
         renderTemplatePreview();
     });
@@ -1333,6 +1504,7 @@
 
         const doAutofill = async () => {
             if (uploadInProgress) return;
+            const requestToken = ++uploadRequestToken;
             const file = autofillFileEl.files?.[0];
             if (!file) {
                 if (autofillStatusEl) { autofillStatusEl.textContent = 'Please choose a file first.'; autofillStatusEl.style.color = '#c0392b'; }
@@ -1347,10 +1519,12 @@
                     autofillBtnEl.disabled = true;
                     autofillBtnEl.style.opacity = '.6';
                 }
-                if (autofillStatusEl) { autofillStatusEl.textContent = 'Reading your resume with AI…'; autofillStatusEl.style.color = ''; }
+                if (autofillStatusEl) { autofillStatusEl.textContent = 'Uploading and parsing your resume…'; autofillStatusEl.style.color = ''; }
                 const fd = new FormData();
                 fd.append('resume', file);
                 fd.append('mode', 'autofill');
+                const desiredJobRole = $('cv-desired-job-role')?.value?.trim() || '';
+                if (desiredJobRole) fd.append('job_role', desiredJobRole);
                 let data;
                 if (window.axios) {
                     const res = await window.axios.post(app.dataset.analyzeUrl, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -1365,13 +1539,34 @@
                     data = await res.json().catch(() => ({}));
                     if (!res.ok) { const error = new Error(data.message || 'Could not import this resume.'); error.response = { data }; throw error; }
                 }
+                console.log('upload response', data);
                 if (!data.success) throw new Error(data.message || 'Could not import this resume.');
+                if (requestToken !== uploadRequestToken) return;
+                console.log('parsed resume', data.improved_resume);
                 applyResumeData(data.improved_resume || {});
                 source = 'upload';
                 setSourceState('upload');
-                if (autofillStatusEl) autofillStatusEl.textContent = '✓ Resume imported — edit freely, preview updates live.';
+                if (autofillStatusEl) {
+                    const sourceLabel = (data.parser_source === 'affinda+gemini')
+                        ? 'Affinda + AI'
+                        : (data.parser_source === 'affinda'
+                            ? 'Affinda'
+                            : (data.parser_source === 'gemini' || data.parser_source === 'gemini+local'
+                                ? 'AI'
+                                : 'local parser'));
+                    autofillStatusEl.textContent = data.ai_unavailable
+                        ? 'Imported with local parsing — please review all fields.'
+                        : `✓ Resume imported (${sourceLabel}) — edit freely, preview updates live.`;
+                    autofillStatusEl.style.color = data.ai_unavailable ? '#b45309' : '#15803d';
+                }
+                if (data.ai_unavailable && data.message) {
+                    notify(data.message, 'info');
+                } else {
+                    notify('Resume autofill completed successfully.', 'info');
+                }
             } catch (err) {
                 if (autofillStatusEl) { autofillStatusEl.textContent = err.response?.data?.message || err.message || 'Could not read this file. Try a text-based PDF or DOCX.'; autofillStatusEl.style.color = '#c0392b'; }
+                notify(err.response?.data?.message || err.message || 'Could not read this file. Try a text-based PDF or DOCX.', 'error');
             } finally {
                 uploadInProgress = false;
                 if (typeof window.hideResumeScanOverlay === 'function') {
