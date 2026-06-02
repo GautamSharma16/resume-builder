@@ -12,6 +12,7 @@ use App\Services\ResumeParseOrchestrator;
 use App\Services\ResumeNormalizerService;
 use App\Services\ResumeSchema;
 use App\Services\ResumeSectionValidatorService;
+use App\Services\StructuredResumeExtractionService;
 use App\Services\TemplateRenderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,7 @@ class ResumeController extends Controller
 
     public function __construct(
         private readonly GeminiService $gemini,
+        private readonly StructuredResumeExtractionService $structuredExtractor,
     ) {}
 
     // ─────────────────────────────────────────────
@@ -225,7 +227,10 @@ class ResumeController extends Controller
         } catch (\Exception $e) {
             \Log::error('Resume Analysis Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
 
-            return response()->json(['success' => false, 'message' => 'Analysis failed: ' . $e->getMessage()], 500);
+            // Provide helpful error messages based on error type
+            $message = $this->getHelpfulErrorMessage($e);
+
+            return response()->json(['success' => false, 'message' => $message], 500);
         } finally {
             if ($prevLimit > 0) {
                 @set_time_limit($prevLimit);
@@ -2612,6 +2617,53 @@ PROMPT;
             'gemini', 'gemini+local' => ['Resume imported with AI extraction — Affinda was unavailable.'],
             default          => ['Resume imported with local parsing — review all fields before saving.'],
         };
+    }
+
+    /**
+     * Convert raw exceptions into helpful user-facing error messages
+     */
+    private function getHelpfulErrorMessage(\Exception $e): string
+    {
+        $message = $e->getMessage();
+
+        // Gemini API rate limit
+        if (str_contains($message, '429') || str_contains($message, 'quota') || str_contains($message, 'rate')) {
+            return 'AI service is temporarily rate-limited. Please try again in a few moments.';
+        }
+
+        // Affinda API 404 or invalid configuration
+        if (str_contains($message, '404') || str_contains($message, 'not found')) {
+            return 'Resume parsing service is misconfigured. Please contact support. (Code: 404)';
+        }
+
+        // Timeout
+        if (str_contains($message, 'timeout') || str_contains($message, 'Maximum execution')) {
+            return 'Resume processing took too long. Try uploading a smaller or simpler resume.';
+        }
+
+        // File not readable
+        if (str_contains($message, 'not readable') || str_contains($message, 'permission denied')) {
+            return 'Could not read the uploaded file. Ensure it is a valid PDF, DOC, or DOCX document.';
+        }
+
+        // File extraction failed
+        if (str_contains($message, 'extract') || str_contains($message, 'parse')) {
+            return 'The resume could not be read. Ensure it is a text-based PDF (not an image/scan) or valid DOCX.';
+        }
+
+        // Generic API errors
+        if (str_contains($message, 'connection') || str_contains($message, 'network')) {
+            return 'Network error occurred. Please check your connection and try again.';
+        }
+
+        // Invalid JSON responses
+        if (str_contains($message, 'JSON') || str_contains($message, 'decode')) {
+            return 'Service returned invalid data. This is usually temporary. Please try again.';
+        }
+
+        // Default: return generic message but log the actual one
+        \Log::warning('Unhelpful error passed through: ' . $message);
+        return 'Resume upload failed. Please try a different file or contact support.';
     }
 
     /**
