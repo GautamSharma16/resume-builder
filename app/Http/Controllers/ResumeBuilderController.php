@@ -708,7 +708,7 @@ class ResumeBuilderController extends Controller
             'social_links' => [],
             'certifications' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
             'certificates' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
-            'languages' => $this->normalizeLanguages($resume['languages'] ?? []),
+            'languages' => $this->normalizeLanguages($resume['languages'] ?? $resume['language'] ?? $resume['language_skills'] ?? $resume['language_proficiency'] ?? []),
             'achievements' => $this->normalizeNamedItems($resume['achievements'] ?? []),
             'profile_image' => $this->toText($resume['profile_image'] ?? ''),
         ]);

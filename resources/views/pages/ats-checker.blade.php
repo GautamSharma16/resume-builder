@@ -90,6 +90,7 @@
     const drop = document.getElementById('atsDrop');
     const submit = document.getElementById('atsSubmit');
     const status = document.getElementById('atsStatus');
+    const AI_FAILURE_MESSAGE = "We're unable to process your request right now. Please try again after some time.";
     const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
     const list = (id, items) => { document.getElementById(id).innerHTML = (items || []).length ? items.map(i => `<li>${esc(i)}</li>`).join('') : '<li>No issues found.</li>'; };
     drop.addEventListener('click', () => file.click());
@@ -103,7 +104,7 @@
         try {
             const res = await fetch('{{ route('resume.analyze') }}', { method:'POST', body:fd, headers:{ 'Accept':'application/json' } });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok || !data.success) throw new Error(data.message || 'Could not analyze this resume.');
+            if (!res.ok || !data.success) throw new Error(AI_FAILURE_MESSAGE);
             const score = Math.max(0, Math.min(100, Number(data.score || 0)));
             document.getElementById('atsResults').classList.add('active');
             document.getElementById('atsScore').textContent = score;
@@ -115,7 +116,7 @@
             document.getElementById('atsKeywords').innerHTML = (data.missing_keywords || []).length ? data.missing_keywords.map(k => `<span class="kw">${esc(k)}</span>`).join('') : '<span class="text-slate-500 text-sm">No major missing keywords detected.</span>';
             status.textContent = 'Analysis complete.';
         } catch (error) {
-            status.textContent = error.message;
+            status.textContent = AI_FAILURE_MESSAGE;
         } finally {
             submit.disabled = false;
         }

@@ -16,12 +16,13 @@
         .replace(/&lt;(\/?)(strong|b|em|i|u)&gt;/gi, '<$1$2>')
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/__(.*?)__/g, '<u>$1</u>');
+    const AI_FAILURE_MESSAGE = "We're unable to process your request right now. Please try again after some time.";
+    const RESUME_UPLOAD_SUCCESS_MESSAGE = 'Resume uploaded successfully. Please review all the extracted information before proceeding.';
     const friendlyAiMessage = (message) => {
-        const msg = String(message || '').toLowerCase();
-        if (msg.includes('temporarily busy') || msg.includes('high demand') || msg.includes('unavailable') || msg.includes('503') || msg.includes('429') || msg.includes('resource_exhausted')) {
-            return 'AI is temporarily busy. Please try again in a moment.';
-        }
-        return message || 'Something went wrong. Please try again.';
+        return AI_FAILURE_MESSAGE;
+    };
+    const showAiFailureAlert = () => {
+        window.alert(AI_FAILURE_MESSAGE);
     };
 
     const notify = (message, type = 'info') => {
@@ -829,20 +830,32 @@
            Temporarily reset any transform, measure, then restore.
         ─────────────────────────────────────────────────────────── */
         const prevTransform = sheet.style.transform;
+        const prevMinHeight = sheet.style.minHeight;
+        const prevHeight = sheet.style.height;
         sheet.style.transform = 'none';
-        const rawH = Math.max(sheet.scrollHeight || 0, A4_H);
+        sheet.style.minHeight = '0';
+        sheet.style.height = 'auto';
+        const rawH = Math.max(
+            sheet.scrollHeight || 0,
+            sheet.getBoundingClientRect().height || 0,
+            A4_H
+        );
+        const pageHeight = Math.max(A4_H, Math.round(sheet.getBoundingClientRect().width / (A4_W / A4_H)) || A4_H);
+        const pageTolerance = 2;
         sheet.style.transform = prevTransform;
+        sheet.style.minHeight = prevMinHeight;
+        sheet.style.height = prevHeight;
 
         /* Page count */
-        previewTotalPages = Math.max(1, Math.ceil(rawH / A4_H));
+        previewTotalPages = Math.max(1, Math.ceil(Math.max(0, rawH - pageTolerance) / pageHeight));
         previewPage       = Math.min(Math.max(1, previewPage), previewTotalPages);
 
         /* Y offset for current page (un-scaled px) */
-        const offsetY = (previewPage - 1) * A4_H;
+        const offsetY = (previewPage - 1) * pageHeight;
 
         /* Scaled dimensions of a single A4 page */
         const scaledW = Math.round(A4_W * scale);
-        const scaledH = Math.round(A4_H * scale);
+        const scaledH = Math.round(pageHeight * scale);
 
         /* ── Style inner sheet ── */
         sheet.style.width           = A4_W + 'px';
@@ -1595,20 +1608,15 @@
                             : (data.parser_source === 'gemini' || data.parser_source === 'gemini+local'
                                 ? 'AI'
                                 : 'local parser'));
-                    autofillStatusEl.textContent = data.ai_unavailable
-                        ? 'Imported with local parsing — please review all fields.'
-                        : `✓ Resume imported (${sourceLabel}) — edit freely, preview updates live.`;
+                    autofillStatusEl.textContent = RESUME_UPLOAD_SUCCESS_MESSAGE;
                     autofillStatusEl.style.color = data.ai_unavailable ? '#b45309' : '#15803d';
                 }
-                if (data.ai_unavailable && data.message) {
-                    notify(data.message, 'info');
-                } else {
-                    notify('Resume autofill completed successfully.', 'info');
-                }
+                notify(RESUME_UPLOAD_SUCCESS_MESSAGE, 'info');
             } catch (err) {
                 const uploadErr = friendlyAiMessage(err.response?.data?.message || err.message);
                 if (autofillStatusEl) { autofillStatusEl.textContent = uploadErr; autofillStatusEl.style.color = '#c0392b'; }
                 notify(uploadErr, 'error');
+                showAiFailureAlert();
             } finally {
                 uploadInProgress = false;
                 if (typeof window.hideResumeScanOverlay === 'function') {

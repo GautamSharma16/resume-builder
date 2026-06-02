@@ -499,11 +499,6 @@
             padding: 0.5in;
         }
 
-        .tpl-resume {
-            page-break-after: avoid;
-            page-break-inside: avoid;
-        }
-
         .tpl-carded section {
             break-inside: avoid;
         }

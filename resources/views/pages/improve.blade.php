@@ -1613,7 +1613,11 @@
 
     let currentAnalysisId = null;
     let enhanceInProgress = false;
-    let resumeData = { name: '', designation: '', job_title: '', summary: '', skills: [], experience: [], education: [], projects: [], certifications: [], achievements: [], social_links: [] };
+    const AI_FAILURE_MESSAGE = "We're unable to process your request right now. Please try again after some time.";
+    const showAiFailureAlert = () => {
+        window.alert(AI_FAILURE_MESSAGE);
+    };
+    let resumeData = { name: '', designation: '', job_title: '', summary: '', skills: [], experience: [], education: [], projects: [], certifications: [], languages: [], achievements: [], social_links: [] };
     let selectedTemplateId = Object.keys(resumeTemplates)[0] || null;
 
     // ── Scan animation (single enhance flow) ──
@@ -1690,7 +1694,13 @@
         document.getElementById('weaknessesList').innerHTML = (data.weaknesses || []).map(w => `<li style="margin-bottom:0.3rem;">${w}</li>`).join('');
         document.getElementById('suggestionsList').innerHTML = (data.suggestions || []).map(s => `<li style="margin-bottom:0.3rem;">${s}</li>`).join('');
         const kwDiv = document.getElementById('keywordsContainer');
-        kwDiv.innerHTML = (data.keywords || data.missing_keywords || []).map(k => `<span class="keyword-pill">${k}</span>`).join('');
+        const keywords = [...ensureArray(data.keywords), ...ensureArray(data.missing_keywords)]
+            .map(k => String(k ?? '').trim())
+            .filter(Boolean)
+            .filter((k, i, arr) => arr.findIndex(x => x.toLowerCase() === k.toLowerCase()) === i);
+        const keywordCard = kwDiv?.closest('.insight-card');
+        if (kwDiv) kwDiv.innerHTML = keywords.map(k => `<span class="keyword-pill">${esc(k)}</span>`).join('');
+        if (keywordCard) keywordCard.style.display = keywords.length ? '' : 'none';
         document.getElementById('formattingList').innerHTML = (data.formatting_issues || [
             'Use standard headings that ATS parsers recognize.',
             'Avoid dense paragraphs; keep achievements scannable.',
@@ -1706,7 +1716,11 @@
     }
 
     const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-    const ensureArray = v => Array.isArray(v) ? v : [];
+    const ensureArray = v => {
+        if (Array.isArray(v)) return v;
+        if (typeof v === 'string') return v.split(/[\n,;|]+/).map(item => item.trim()).filter(Boolean);
+        return [];
+    };
     const TEMPLATE_PAGE_WIDTH = 794;
     const TEMPLATE_PAGE_HEIGHT = 1123;
 
@@ -1741,10 +1755,11 @@
             return Object.values(item).some(value => String(value ?? '').trim() !== '');
         }).map(item => {
             if (typeof item === 'string') return `<li>${esc(item)}</li>`;
-            const name = esc(item?.name || item?.degree || item?.title || '');
-            const meta = esc(item?.institution || item?.tech || item?.company || item?.stream || '');
-            const desc = esc(item?.description || item?.year || item?.duration || item?.period || item?.details || '');
-            return `<li>${name ? `<strong>${name}</strong>` : ''}${meta ? ` ${meta}` : ''}${desc ? `<span class="tpl-description">${desc}</span>` : ''}</li>`;
+            const isLanguage = Object.prototype.hasOwnProperty.call(item, 'level') || Object.prototype.hasOwnProperty.call(item, 'proficiency') || Object.prototype.hasOwnProperty.call(item, 'language');
+            const name = esc(item?.name || item?.language || item?.degree || item?.title || '');
+            const meta = esc(isLanguage ? (item?.level || item?.proficiency || '') : (item?.institution || item?.tech || item?.tech_stack || item?.company || item?.stream || ''));
+            const desc = esc(isLanguage ? '' : (item?.description || item?.year || item?.duration || item?.period || item?.details || ''));
+            return `<li>${name ? `<strong>${name}</strong>` : ''}${meta ? `<span class="tpl-description">${meta}</span>` : ''}${desc ? `<span class="tpl-description">${desc}</span>` : ''}</li>`;
         }).join('');
 
         return rendered ? `<ul>${rendered}</ul>` : '';
@@ -1786,14 +1801,17 @@
             experience: ensureArray(data.experience),
             education: ensureArray(data.education),
             projects: ensureArray(data.projects),
-            certifications: ensureArray(data.certifications),
+            certifications: ensureArray(data.certifications || data.certificates),
+            languages: ensureArray(data.languages || data.language || data.language_skills || data.language_proficiency),
             achievements: ensureArray(data.achievements),
             social_links: ensureArray(data.social_links),
         };
+        const displayName = [normalized.name, normalized.last_name].map(v => String(v || '').trim()).filter(Boolean).join(' ') || normalized.name || 'Your Name';
         const contact = [normalized.email, normalized.mobile, normalized.location].filter(Boolean).join(' | ');
         let html = template.html || '';
         const values = {
-            name: esc(normalized.name || 'Your Name'),
+            name: esc(displayName),
+            last_name: esc(normalized.last_name || ''),
             designation: esc(normalized.designation || ''),
             job_title: esc(normalized.job_title || ''),
             email: esc(normalized.email || ''), mobile: esc(normalized.mobile || ''),
@@ -1807,12 +1825,14 @@
             education: renderListForTemplate(normalized.education),
             projects: renderListForTemplate(normalized.projects),
             certifications: renderListForTemplate(normalized.certifications),
+            certificates: renderListForTemplate(normalized.certifications),
+            languages: renderListForTemplate(normalized.languages),
             achievements: renderListForTemplate(normalized.achievements),
         };
         const hasProjectsToken = /\{\{\s*projects\s*\}\}/i.test(html) || /\[\[\s*projects\s*\]\]/i.test(html);
         Object.entries(values).forEach(([key, val]) => { html = replaceToken(html, key, val); });
 
-        ['experience', 'education', 'projects', 'certifications', 'languages', 'achievements'].forEach((key) => {
+        ['experience', 'education', 'projects', 'certifications', 'certificates', 'languages', 'achievements'].forEach((key) => {
             if (!values[key] || values[key] === '<ul></ul>') {
                 html = html
                     .replace(new RegExp(`<section[^>]*>\\s*<h[1-6][^>]*>\\s*${key}s?\\s*<\\/h[1-6]>\\s*(?:<ul[^>]*>\\s*<\\/ul>|<div[^>]*>\\s*<\\/div>|<p[^>]*>\\s*<\\/p>|)\\s*<\\/section>`, 'gi'), '')
@@ -1852,9 +1872,10 @@
             experience: Array.isArray(data.experience) ? data.experience : [],
             education:  Array.isArray(data.education)  ? data.education  : [],
             projects:   Array.isArray(data.projects)   ? data.projects   : [],
-            certifications: Array.isArray(data.certifications) ? data.certifications : [],
-            achievements: Array.isArray(data.achievements) ? data.achievements : [],
-            social_links: Array.isArray(data.social_links) ? data.social_links : [],
+            certifications: ensureArray(data.certifications || data.certificates),
+            languages: ensureArray(data.languages || data.language || data.language_skills || data.language_proficiency),
+            achievements: ensureArray(data.achievements),
+            social_links: ensureArray(data.social_links),
         };
         resumeData = normalizedData;
         renderTemplatePreview(normalizedData);
@@ -1892,7 +1913,7 @@
         if (msg.includes('temporarily busy') || msg.includes('high demand') || msg.includes('unavailable') || msg.includes('503') || msg.includes('429')) {
             return 'AI is temporarily busy. Please try again in a moment.';
         }
-        return message || 'Enhancement failed. Please try again.';
+        return AI_FAILURE_MESSAGE;
     }
 
     fileInput.addEventListener('change', () => {
@@ -1928,7 +1949,7 @@
         try {
             const response = await fetch('{{ route("resume.analyze") }}', { method: 'POST', body: formData });
             const data = await response.json().catch(() => ({}));
-            if (!response.ok || !data.success) throw new Error(friendlyAiError(data.message));
+            if (!response.ok || !data.success) throw new Error(AI_FAILURE_MESSAGE);
             hideScanOverlay();
             document.getElementById('uploadCardEl').style.display = 'none';
             resetBtn.style.display = 'inline-flex';
@@ -1936,7 +1957,7 @@
             dashboard.classList.add('active');
             workspace.classList.add('active');
             populateInsights(data);
-            fillEditor(data.improved_resume);
+            fillEditor(data.improved_resume || data.standard_resume || {});
             currentAnalysisId = data.analysis_id;
             document.getElementById('editWithResumeMakerBtn')?.removeAttribute('disabled');
             statusMsg.innerHTML = '<span class="status-dot"></span> Resume enhanced successfully!';
@@ -1944,8 +1965,9 @@
             setTimeout(() => dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
         } catch (error) {
             hideScanOverlay();
-            const friendly = friendlyAiError(error.message);
+            const friendly = AI_FAILURE_MESSAGE;
             statusMsg.innerHTML = `<span style="display:inline-flex;align-items:center;gap:8px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:10px 14px;font-weight:600;">${esc(friendly)}</span>`;
+            showAiFailureAlert();
             enhanceBtn.disabled = Boolean(fileInput.files?.[0]);
         } finally {
             enhanceInProgress = false;
@@ -1991,14 +2013,15 @@
             });
             const data = await response.json().catch(() => ({}));
             hideScanOverlay();
-            if (!response.ok || !data.success) throw new Error(data.message || 'Improvement failed');
+            if (!response.ok || !data.success) throw new Error(AI_FAILURE_MESSAGE);
             currentAnalysisId = data.analysis_id || currentAnalysisId;
             populateInsights(data);
-            fillEditor(data.improved_resume);
+            fillEditor(data.improved_resume || {});
             statusMsg.innerHTML = '<span class="status-dot"></span> Resume refined!';
         } catch (error) {
             hideScanOverlay();
-            statusMsg.innerHTML = `<span style="color:#ef4444;">${error.message || 'Improvement failed'}</span>`;
+            statusMsg.innerHTML = `<span style="color:#ef4444;">${AI_FAILURE_MESSAGE}</span>`;
+            showAiFailureAlert();
         } finally {
             improveAgainBtn.disabled = false;
         }

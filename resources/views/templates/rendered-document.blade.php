@@ -193,8 +193,6 @@
                 max-height: none !important;
                 overflow: visible !important;
             }
-            .tpl-resume section,
-            .tpl-cover section,
             .tpl-resume article,
             .tpl-cover article,
             .tpl-role,

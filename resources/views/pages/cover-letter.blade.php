@@ -1265,6 +1265,7 @@
         const $ = id => document.getElementById(id);
         const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         const nl2br = v => esc(v).replace(/\n/g, '<br>');
+        const AI_FAILURE_MESSAGE = "We're unable to process your request right now. Please try again after some time.";
         function notify(message, type = 'info') {
             let toast = document.getElementById('cl-toast');
             if (!toast) {
@@ -1706,6 +1707,9 @@
 
                 const data = await response.json();
                 if (data.success) {
+                    if (data.used_fallback) {
+                        notify(AI_FAILURE_MESSAGE, 'error');
+                    }
                     state.id = data.cover_letter_id || state.id;
                     if (data.letter) {
                         const oldId = state.id;
@@ -1716,10 +1720,10 @@
                     switchStep('build');
                     render();
                 } else {
-                    notify(data.message || 'Generation failed.', 'error');
+                    notify(AI_FAILURE_MESSAGE, 'error');
                 }
             } catch (err) {
-                notify('Connection error.', 'error');
+                notify(AI_FAILURE_MESSAGE, 'error');
             } finally {
                 hideCoverScanOverlay();
             }

@@ -1932,6 +1932,10 @@
             return payload;
         }
 
+        const AI_FAILURE_MESSAGE = "We're unable to process your request right now. Please try again after some time.";
+        const showResumeAiFailureAlert = () => {
+            window.alert(AI_FAILURE_MESSAGE);
+        };
         const resumeAiInFlight = new WeakSet();
         const resumeAiHistory = window.__resumeAiHistory || (window.__resumeAiHistory = {});
         const resumeAiState = window.__resumeAiState || (window.__resumeAiState = {});
@@ -2095,7 +2099,7 @@
                     })
                 });
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok || !data.text) throw new Error(data.message || 'AI generation failed.');
+                if (!res.ok || !data.text) throw new Error(AI_FAILURE_MESSAGE);
                 const generatedPlainText = normalizeAiHistoryEntry(data.text);
 
                 if (activeEditor) {
@@ -2122,7 +2126,8 @@
                     targetEl.value = orig;
                 }
                 console.error('AI generate failed:', e);
-                notifyResumeAi(e.message || 'AI generation failed. Please try again.', 'error');
+                notifyResumeAi(AI_FAILURE_MESSAGE, 'error');
+                showResumeAiFailureAlert();
                 if (triggerButton) {
                     triggerButton.textContent = 'Try Again';
                     setTimeout(() => { triggerButton.innerHTML = btnOriginalHtml; }, 1300);
