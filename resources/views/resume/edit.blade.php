@@ -418,8 +418,8 @@
                                 <input id="cv-location" class="rp-input cv-field" placeholder="City, Country" data-field="location">
                             </div>
                             <div class="field-group" style="grid-column: span 2;">
-                                <label class="field-label">Social Links (comma separated)</label>
-                                <input id="cv-social" class="rp-input cv-field" data-field="social_links">
+                                <label class="field-label">Portfolio URL</label>
+                                <input id="cv-portfolio" class="rp-input cv-field" data-field="portfolio">
                             </div>
                         </div>
                     </div>

@@ -695,7 +695,7 @@ class ResumeBuilderController extends Controller
             'last_name' => $this->toText($resume['last_name'] ?? ''),
             'job_title' => $this->toText($resume['job_title'] ?? ''),
             'designation' => $this->toText($resume['designation'] ?? ''),
-            'desired_job_role' => $this->toText($resume['desired_job_role'] ?? ''),
+            'desired_job_role' => '',
             'linkedin' => $this->toText($resume['linkedin'] ?? ''),
             'portfolio' => $this->toText($resume['portfolio'] ?? $resume['link'] ?? ''),
             'link' => $this->toText($resume['link'] ?? $resume['portfolio'] ?? ''),
@@ -705,10 +705,7 @@ class ResumeBuilderController extends Controller
             'experience' => $this->normalizeNestedItems($resume['experience'] ?? []),
             'education' => $this->normalizeEducation($resume['education'] ?? []),
             'projects' => $this->normalizeNestedItems($resume['projects'] ?? []),
-            'social_links' => array_values(array_filter(
-                $this->normalizeArray($resume['social_links'] ?? []),
-                fn ($link) => ! preg_match('/(linkedin\.com\/in\/(?:alex|you)|github\.com\/(?:alex|you))/i', $link)
-            )),
+            'social_links' => [],
             'certifications' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
             'certificates' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
             'languages' => $this->normalizeLanguages($resume['languages'] ?? []),

@@ -184,12 +184,6 @@ class ResumeNormalizerService
             ];
         }
 
-        $social = array_values(array_filter([
-            $standard['linkedin'] ?? '',
-            $standard['github'] ?? '',
-            $standard['website'] ?? '',
-        ]));
-
         return [
             'name'             => $firstName,
             'last_name'        => $lastName,
@@ -203,7 +197,7 @@ class ResumeNormalizerService
             'github'           => $this->scalar($standard['github'] ?? ''),
             'portfolio'        => $this->scalar($standard['website'] ?? ''),
             'link'             => $this->scalar($standard['website'] ?? ''),
-            'social_links'     => $social,
+            'social_links'     => [],
             'summary'          => $this->scalar($standard['summary'] ?? ''),
             'skills'           => array_values(array_filter(array_map(fn ($s) => $this->scalar($s), $standard['skills'] ?? []))),
             'experience'       => $experience,

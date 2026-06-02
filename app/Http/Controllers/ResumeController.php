@@ -3082,7 +3082,122 @@ PROMPT;
             $out = $this->enrichLanguagesFromRawText($out, $rawText);
         }
 
+        return $this->dedupeFinalResumePayload($out);
+    }
+
+    private function dedupeFinalResumePayload(array $resume): array
+    {
+        $resume = $this->normalizeResume($resume);
+        $resume['desired_job_role'] = '';
+
+        foreach (['skills', 'social_links'] as $field) {
+            $resume[$field] = $this->uniqueNormalizedStrings($resume[$field] ?? []);
+        }
+
+        $resume['experience'] = $this->uniqueNormalizedRows(
+            $resume['experience'] ?? [],
+            fn (array $row): string => implode(' ', [
+                $row['company'] ?? '',
+                $row['role'] ?? '',
+                $row['period'] ?? '',
+                implode(' ', is_array($row['points'] ?? null) ? $row['points'] : []),
+            ])
+        );
+        $resume['education'] = $this->uniqueNormalizedRows(
+            $resume['education'] ?? [],
+            fn (array $row): string => implode(' ', [$row['degree'] ?? '', $row['stream'] ?? '', $row['institution'] ?? '', $row['year'] ?? ''])
+        );
+        $resume['projects'] = $this->uniqueNormalizedRows(
+            $resume['projects'] ?? [],
+            fn (array $row): string => implode(' ', [$row['name'] ?? '', $row['tech_stack'] ?? $row['tech'] ?? '', $row['link'] ?? '', $row['description'] ?? ''])
+        );
+        foreach (['certifications', 'certificates', 'languages', 'achievements'] as $field) {
+            $resume[$field] = $this->uniqueNormalizedRows(
+                $resume[$field] ?? [],
+                fn (array $row): string => implode(' ', array_map(fn ($v) => is_scalar($v) ? (string) $v : $this->scalarString($v), $row))
+            );
+        }
+
+        $portfolio = $this->normalizeProfileUrl($resume['portfolio'] ?? $resume['link'] ?? '');
+        $linkedin = $this->normalizeProfileUrl($resume['linkedin'] ?? '');
+        $github = $this->normalizeProfileUrl($resume['github'] ?? '');
+        foreach ($resume['social_links'] as $url) {
+            $url = $this->normalizeProfileUrl($url);
+            if ($linkedin === '' && preg_match('/linkedin\.com/i', $url)) {
+                $linkedin = $url;
+            } elseif ($github === '' && preg_match('/github\.com/i', $url)) {
+                $github = $url;
+            } elseif ($portfolio === '' && ! preg_match('/linkedin\.com/i', $url)) {
+                $portfolio = $url;
+            }
+        }
+
+        $resume['linkedin'] = $linkedin;
+        $resume['github'] = $github;
+        $resume['portfolio'] = $portfolio;
+        $resume['link'] = $portfolio;
+        $resume['social_links'] = [];
+
+        return $resume;
+    }
+
+    private function uniqueNormalizedStrings(mixed $items): array
+    {
+        $out = [];
+        $seen = [];
+        foreach (is_array($items) ? $items : [$items] as $item) {
+            $value = $this->scalarString($item);
+            $key = $this->normalizedDuplicateKey($value);
+            if ($key === '' || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $value;
+        }
+
         return $out;
+    }
+
+    private function uniqueNormalizedRows(mixed $rows, callable $keyFn): array
+    {
+        $out = [];
+        $seen = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            $row = is_array($row) ? $row : ['name' => $this->scalarString($row)];
+            $key = $this->normalizedDuplicateKey($keyFn($row));
+            if ($key === '' || isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = $row;
+        }
+
+        return array_values($out);
+    }
+
+    private function normalizedDuplicateKey(string $value): string
+    {
+        $value = strip_tags($value);
+        $value = preg_replace('/https?:\/\/(?:www\.)?/i', '', $value) ?? $value;
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return mb_strtolower(trim($value));
+    }
+
+    private function normalizeProfileUrl(mixed $value): string
+    {
+        $url = $this->scalarString($value);
+        if ($url === '') {
+            return '';
+        }
+        if (preg_match('/^(?:https?:\/\/|mailto:|tel:)/i', $url)) {
+            return $url;
+        }
+        if (preg_match('/^(?:www\.|[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s,;]*)?$/i', $url)) {
+            return 'https://'.$url;
+        }
+
+        return $url;
     }
 
     private function ensureSkillsFilled(array $resume, string $text): array
@@ -3442,7 +3557,7 @@ PROMPT;
             }
         }
 
-        $desiredJobRole = $this->scalarString($resume['desired_job_role'] ?? '');
+        $desiredJobRole = '';
 
         $linkedin  = $this->scalarString($resume['linkedin'] ?? '');
         $github    = $this->scalarString($resume['github'] ?? '');
@@ -3459,7 +3574,7 @@ PROMPT;
             if ($github === '' && preg_match('/github\.com/i', $url)) {
                 $github = $url;
             }
-            if ($portfolio === '' && preg_match('/(?:behance|dribbble|portfolio|\.me\/|about\.me)/i', $url)
+            if ($portfolio === '' && preg_match('/(?:behance|dribbble|portfolio|github\.io|\.me\/|about\.me|website)/i', $url)
                 && ! preg_match('/linkedin\.com|github\.com/i', $url)) {
                 $portfolio = $url;
             }
@@ -3502,7 +3617,7 @@ PROMPT;
             'github'     => $github,
             'portfolio'    => $portfolio,
             'link'         => $portfolio,
-            'social_links' => $socialLinks,
+            'social_links' => [],
             'summary'      => $this->scalarString($resume['summary'] ?? ''),
             'profile_image'=> $this->scalarString($resume['profile_image'] ?? ''),
             'skills'       => $this->normalizeStringList($resume['skills'] ?? []),

@@ -427,8 +427,8 @@ class ResumeSectionValidatorService
         $normalizer = app(ResumeNormalizerService::class);
         $builder    = $normalizer->toBuilderFormat($standard);
 
-        $builder['desired_job_role'] = $original['desired_job_role'] ?? '';
-        $builder['social_links']     = $original['social_links'] ?? $builder['social_links'] ?? [];
+        $builder['desired_job_role'] = '';
+        $builder['social_links']     = [];
 
         return $builder;
     }

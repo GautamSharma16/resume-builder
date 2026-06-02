@@ -1111,7 +1111,7 @@
                 min-width: 0 !important;
                 background: transparent !important;
                 display: block !important;
-                overflow: visible !important;
+                overflow: hidden !important;
             }
 
             /* Form panel spacing for fixed dock */
@@ -1401,18 +1401,11 @@
                         </div>
                     </div>
 
-                    <div class="rp-row">
+                    <div class="rp-row full">
                         <div class="rp-group" data-template-field="designation,job_title">
                             <label class="rp-label">Designation</label>
                             <div class="rp-input-wrap">
                                 <input id="cv-designation" class="rp-input cv-field" placeholder="e.g. Senior Product Designer" data-field="designation" data-template-field="designation,job_title">
-                                <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
-                            </div>
-                        </div>
-                        <div class="rp-group" data-template-field="desired_job_role">
-                            <label class="rp-label">Desired Job Role</label>
-                            <div class="rp-input-wrap">
-                                <input id="cv-desired-job-role" class="rp-input cv-field" placeholder="e.g. Product Manager" data-field="desired_job_role">
                                 <span class="rp-valid"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
                             </div>
                         </div>
@@ -1445,12 +1438,11 @@
                     </div>
 
                     <div class="rp-row full">
-                        <div class="rp-group" data-template-field="social_links,portfolio,link">
-                            <label class="rp-label">Social Links <span class="rp-hint">(comma separated)</span></label>
+                        <div class="rp-group" data-template-field="portfolio,link">
+                            <label class="rp-label">Portfolio URL</label>
                             <div class="rp-input-wrap">
-                                <input id="cv-social" class="rp-input cv-field" placeholder="Other portfolio or website links" data-field="social_links">
+                                <input id="cv-portfolio" class="rp-input cv-field" placeholder="https://your-portfolio.com" data-field="portfolio">
                             </div>
-                            <p class="rp-hint">Imported links are shown only when found in your resume. Add or remove any link here before continuing.</p>
                         </div>
                     </div>
                     
@@ -1871,13 +1863,14 @@
                 last_name: read('cv-last-name'),
                 designation: read('cv-designation'),
                 job_title: read('cv-designation'),
-                desired_job_role: read('cv-desired-job-role'),
                 email: read('cv-email'),
                 mobile: read('cv-mobile'),
                 location: read('cv-location'),
                 linkedin: read('cv-linkedin'),
                 github: read('cv-github'),
-                social_links: read('cv-social').split(',').map(v => v.trim()).filter(Boolean),
+                portfolio: read('cv-portfolio'),
+                link: read('cv-portfolio'),
+                social_links: [],
                 summary: read('cv-summary'),
                 skills: read('cv-skills').split(',').map(v => v.trim()).filter(Boolean),
                 experience: Array.from(document.querySelectorAll('[data-exp]')).map(block => {

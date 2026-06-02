@@ -45,13 +45,40 @@
             toast.style.transform = 'translateY(0)';
         });
         clearTimeout(toast._timer);
+        clearTimeout(toast._removeTimer);
         toast._timer = setTimeout(() => {
             toast.style.opacity = '0';
             toast.style.transform = 'translateY(10px)';
-        }, 2800);
+            toast._removeTimer = setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 260);
+        }, type === 'error' ? 4800 : 3600);
     };
     window.resumeMakerNotify = notify;
     const toList = (v) => String(v).split(',').map(x => x.trim()).filter(Boolean);
+    const normalizeDedupeKey = (value = '') => String(value || '')
+        .toLowerCase()
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/https?:\/\/(?:www\.)?/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const uniqueByNormalized = (items = [], keyFn = (item) => item) => {
+        const seen = new Set();
+        return ensureArray(items).filter((item) => {
+            const key = normalizeDedupeKey(keyFn(item));
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    };
+    const normalizeUrl = (value = '') => {
+        const url = String(value || '').trim();
+        if (!url) return '';
+        if (/^(?:https?:\/\/|mailto:|tel:)/i.test(url)) return url;
+        if (/^(?:www\.|[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s,;]*)?$/i.test(url)) return 'https://' + url;
+        return url;
+    };
+    const isPortfolioUrl = (url = '') => /(?:portfolio|behance\.net|dribbble\.com|github\.io|about\.me|\.me\/|personal|website)/i.test(String(url || ''));
     const validSocials = (items) => ensureArray(items)
         .map(String)
         .map(item => item.trim())
@@ -315,7 +342,7 @@
         const links = validSocials(rawSocials).map(String).map(s => s.trim()).filter(Boolean);
         let linkedin = String(existing.linkedin ?? '').trim();
         let github = String(existing.github ?? '').trim();
-        let portfolio = String(existing.portfolio ?? existing.link ?? '').trim();
+        let portfolio = normalizeUrl(String(existing.portfolio ?? existing.link ?? existing.website ?? '').trim());
         const pull = (re, current) => {
             if (current) return current;
             const idx = links.findIndex(u => re.test(u));
@@ -323,8 +350,12 @@
         };
         linkedin = pull(/linkedin\.com/i, linkedin);
         github = pull(/github\.com/i, github);
-        portfolio = pull(/(?:behance\.net|dribbble\.com|portfolio|about\.me)/i, portfolio);
-        return { linkedin, github, portfolio, social_links: links };
+        portfolio = pull(/(?:behance\.net|dribbble\.com|portfolio|github\.io|about\.me|\.me\/)/i, portfolio);
+        if (!portfolio) {
+            const idx = links.findIndex(u => !/linkedin\.com/i.test(u));
+            if (idx !== -1) portfolio = links.splice(idx, 1)[0];
+        }
+        return { linkedin: normalizeUrl(linkedin), github: normalizeUrl(github), portfolio: normalizeUrl(portfolio), social_links: [] };
     };
 
     const normalise = (r = {}) => {
@@ -339,7 +370,7 @@
         last_name:    identity.last_name,
         job_title:    identity.designation,
         designation:  identity.designation,
-        desired_job_role: String(r.desired_job_role ?? ''),
+        desired_job_role: '',
         email:        String(r.email ?? ''),
         mobile:       String(r.mobile ?? r.contact ?? ''),
         location:     String(r.location ?? r.address ?? ''),
@@ -347,34 +378,36 @@
         portfolio:    String(r.portfolio ?? r.link ?? '').trim() || profiles.portfolio,
         link:         String(r.link ?? r.portfolio ?? '').trim() || profiles.portfolio,
         github:       String(r.github ?? '').trim() || profiles.github,
-        social_links: profiles.social_links,
+        social_links: [],
         contact:      String(r.contact ?? ''),
         address:      String(r.address ?? ''),
         summary:      String(r.summary ?? ''),
-        skills:       listify(r.skills, /[\n,;|]+/),
+        skills:       uniqueByNormalized(listify(r.skills, /[\n,;|]+/)),
         experience:   ensureArray(r.experience)
             .map(normalizeExperienceEntry)
             .map(splitMergedRoleField)
-            .filter(e => !isContactHeaderExperience(e)),
+            .filter(e => !isContactHeaderExperience(e))
+            .filter((e, i, arr) => i === arr.findIndex(x => normalizeDedupeKey([x.company, x.role, x.period, ...(x.points || [])].join(' ')) === normalizeDedupeKey([e.company, e.role, e.period, ...(e.points || [])].join(' ')))),
         education: ensureArray(r.education)
             .map(educationToObject)
-            .filter(e => (e.degree || e.stream || e.institution || e.year) && !educationLooksLikeExperienceBullet(e)),
+            .filter(e => (e.degree || e.stream || e.institution || e.year) && !educationLooksLikeExperienceBullet(e))
+            .filter((e, i, arr) => i === arr.findIndex(x => normalizeDedupeKey([x.degree, x.stream, x.institution, x.year].join(' ')) === normalizeDedupeKey([e.degree, e.stream, e.institution, e.year].join(' ')))),
         projects:  (() => {
             const rawProjects = ensureArray(r.projects);
             if (rawProjects.every(p => typeof p === 'string') && rawProjects.length > 3) {
-                return stitchProjectStrings(rawProjects);
+                return uniqueByNormalized(stitchProjectStrings(rawProjects), p => [p.name, p.tech_stack, p.link, p.description].join(' '));
             }
-            return rawProjects.map(normalizeProjectEntry);
+            return uniqueByNormalized(rawProjects.map(normalizeProjectEntry), p => [p.name, p.tech_stack, p.link, p.description].join(' '));
         })(),
-        certifications: ensureArray(r.certifications ?? r.certificates).map(c =>
+        certifications: uniqueByNormalized(ensureArray(r.certifications ?? r.certificates).map(c =>
             typeof c === 'string' ? { name: c, description: '' } : { name: String(c?.name ?? ''), description: String(c?.description ?? '') }
-        ),
-        languages: ensureArray(r.languages).map(l =>
+        ), c => [c.name, c.description].join(' ')),
+        languages: uniqueByNormalized(ensureArray(r.languages).map(l =>
             typeof l === 'string' ? { name: l, level: '' } : { name: String(l?.name ?? l?.language ?? ''), level: String(l?.level ?? l?.proficiency ?? '') }
-        ),
-        achievements: ensureArray(r.achievements).map(a =>
+        ), l => [l.name, l.level].join(' ')),
+        achievements: uniqueByNormalized(ensureArray(r.achievements).map(a =>
             typeof a === 'string' ? { name: a, description: '' } : { name: String(a?.name ?? ''), description: String(a?.description ?? '') }
-        ),
+        ), a => [a.name, a.description].join(' ')),
         primary_color: String(r.primary_color ?? ''),
         primary_color_customized: Boolean(r.primary_color_customized ?? (r.primary_color && r.primary_color !== '#2563eb')),
         profile_image: String(r.profile_image ?? ''),
@@ -401,7 +434,7 @@
 
     /* ── Legacy sync ── */
     function syncLegacy() {
-        state.contact = [state.email, state.mobile, state.linkedin, state.github, ...state.social_links]
+        state.contact = [state.email, state.mobile, state.linkedin, state.github, state.portfolio || state.link]
             .filter(Boolean)
             .join(' | ');
         state.address = state.location || '';
@@ -557,9 +590,9 @@
             contact:      esc(state.contact || [state.email, state.mobile].filter(Boolean).join(' | ')),
             address:      esc(state.address || state.location || ''),
             summary:      state.summary ? (/<[a-z][\s\S]*>/i.test(state.summary) ? state.summary : rich(state.summary)) : '',
-            social_links: esc(state.social_links.join(' | ')),
+            social_links: esc([state.linkedin, state.github, state.portfolio || state.link].filter(Boolean).join(' | ')),
             linkedin:     esc(state.linkedin || ''),
-            portfolio:    esc(state.portfolio || state.link || state.social_links[0] || ''),
+            portfolio:    esc(state.portfolio || state.link || ''),
             link:         esc(state.link || state.portfolio || ''),
             skills:       state.skills.length ? renderSkills() : '',
             experience:   state.experience.some(e => e.company || e.role || e.period || e.points.some(Boolean)) ? renderExperience() : '',
@@ -596,8 +629,8 @@
                 'name': values.name, 'last_name': values.last_name, 'job_title': values.job_title,
                 'designation': values.designation, 'email': values.email, 'mobile': values.mobile,
                 'location': values.location, 'summary': values.summary,
-                'linkedin': values.linkedin || state.social_links[0] || '',
-                'portfolio': values.portfolio, 'link': values.link, 'github': state.social_links[1] || '',
+                'linkedin': values.linkedin || '',
+                'portfolio': values.portfolio, 'link': values.link, 'github': state.github || '',
                 'certifications': values.certifications, 'certificates': values.certificates, 'languages': values.languages
             };
             Object.entries(bladeMap).forEach(([k, v]) => {
@@ -672,7 +705,7 @@
     function renderBasicPreview() {
         const primaryColor = state.primary_color || '#2563eb';
         const header = [state.email, state.mobile, state.location].filter(Boolean).join(' · ');
-        const socials = state.social_links.join(' · ');
+        const socials = [state.linkedin, state.github, state.portfolio || state.link].filter(Boolean).join(' · ');
         const projectsHtml = state.projects.filter(Boolean).map(p => {
             const name = typeof p === 'string' ? p : (p?.name || '');
             const desc = typeof p === 'string' ? '' : (p?.description || '');
@@ -899,7 +932,7 @@
             Boolean(state.email),
             Boolean(state.mobile),
             Boolean(state.location),
-            state.social_links.length > 0,
+            Boolean(state.portfolio || state.link || state.linkedin || state.github),
             state.skills.length >= 4,
             String(state.summary || '').trim().split(/\s+/).filter(Boolean).length >= 45,
             state.experience.some(e => e.company && e.role && e.points.filter(Boolean).length >= 2),
@@ -931,13 +964,12 @@
         $('cv-name').value     = state.name || '';
         if ($('cv-last-name')) $('cv-last-name').value = state.last_name || '';
         if ($('cv-designation')) $('cv-designation').value = state.designation || state.job_title || '';
-        if ($('cv-desired-job-role')) $('cv-desired-job-role').value = state.desired_job_role || '';
         $('cv-email').value    = state.email || '';
         $('cv-mobile').value   = state.mobile || '';
         $('cv-location').value = state.location || '';
         if ($('cv-linkedin')) $('cv-linkedin').value = state.linkedin || '';
         if ($('cv-github')) $('cv-github').value = state.github || '';
-        $('cv-social').value   = (state.social_links || []).join(', ') || '';
+        if ($('cv-portfolio')) $('cv-portfolio').value = state.portfolio || state.link || '';
         if ($('cv-summary')) {
             $('cv-summary').value = state.summary || '';
             if (typeof tinymce !== 'undefined' && tinymce.get('cv-summary')) {
@@ -1148,7 +1180,7 @@
         
         const alwaysShowContactFields = new Set([
             'name', 'last_name', 'designation', 'job_title', 'email', 'mobile', 'location',
-            'contact', 'address', 'desired_job_role', 'linkedin', 'github', 'social_links', 'portfolio', 'link',
+            'contact', 'address', 'linkedin', 'github', 'portfolio', 'link',
         ]);
         document.querySelectorAll('[data-template-field]').forEach((node) => {
             const required = String(node.getAttribute('data-template-field') || '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
@@ -1301,8 +1333,9 @@
     document.querySelectorAll('.cv-field').forEach(input => {
         input.addEventListener('input', e => {
             const f = e.target.dataset.field;
-            state[f] = ['skills','social_links'].includes(f) ? toList(e.target.value) : e.target.value;
+            state[f] = ['skills'].includes(f) ? toList(e.target.value) : e.target.value;
             if (f === 'designation') state.job_title = e.target.value;
+            if (f === 'portfolio') state.link = e.target.value;
             renderTemplatePreview();
         });
     });
@@ -1531,8 +1564,8 @@
                 const fd = new FormData();
                 fd.append('resume', file);
                 fd.append('mode', 'autofill');
-                const desiredJobRole = $('cv-desired-job-role')?.value?.trim() || '';
-                if (desiredJobRole) fd.append('job_role', desiredJobRole);
+                const currentRole = $('cv-designation')?.value?.trim() || '';
+                if (currentRole) fd.append('job_role', currentRole);
                 let data;
                 if (window.axios) {
                     const res = await window.axios.post(app.dataset.analyzeUrl, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
