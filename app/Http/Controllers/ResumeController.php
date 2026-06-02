@@ -63,6 +63,12 @@ class ResumeController extends Controller
 
     public function analyze(Request $request, ResumeParseOrchestrator $parseOrchestrator): JsonResponse
     {
+        $prevLimit = (int) ini_get('max_execution_time');
+        // Upload parse can include OCR/text extraction + Affinda + Gemini.
+        if ($prevLimit > 0 && $prevLimit < 240) {
+            @set_time_limit(240);
+        }
+
         try {
             $validated = $request->validate([
                 'resume'      => ['required_unless:mode,enhance', 'nullable', 'file', 'mimes:pdf,doc,docx,ppt,pptx', 'max:10240'],
@@ -220,6 +226,10 @@ class ResumeController extends Controller
             \Log::error('Resume Analysis Error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
 
             return response()->json(['success' => false, 'message' => 'Analysis failed: ' . $e->getMessage()], 500);
+        } finally {
+            if ($prevLimit > 0) {
+                @set_time_limit($prevLimit);
+            }
         }
     }
 
@@ -229,6 +239,11 @@ class ResumeController extends Controller
 
     public function improveAgain(Request $request): JsonResponse
     {
+        $prevLimit = (int) ini_get('max_execution_time');
+        if ($prevLimit > 0 && $prevLimit < 180) {
+            @set_time_limit(180);
+        }
+
         try {
             $validated = $request->validate([
                 'analysis_id' => ['required', 'integer', 'exists:resume_analyses,id'],
@@ -274,6 +289,10 @@ class ResumeController extends Controller
 
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        } finally {
+            if ($prevLimit > 0) {
+                @set_time_limit($prevLimit);
+            }
         }
     }
 
@@ -1778,7 +1797,8 @@ PROMPT;
 
     private function detectSections(string $text): array
     {
-        $headingRegex = '/^(?:([A-Z][A-Z\s&]{2,58})|([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,4}):?)\s*$/m';
+        // Heading lines can appear as: "EXPERIENCE", "Work Experience", "1. Experience", "• Experience", "PROJECTS:"
+        $headingRegex = '/^\s*(?:[-•*]\s*)?(?:\d+[\.\)]\s*)?(?:(?:([A-Z][A-Z\s&]{2,58}))|(?:([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,4}):?))\s*$/m';
 
         preg_match_all($headingRegex, $text, $matches, PREG_OFFSET_CAPTURE);
 
@@ -1831,13 +1851,36 @@ PROMPT;
 
     private function isExperienceCompanyLine(string $line): bool
     {
-        return (bool) preg_match(
+        $line = trim($line);
+        if ($line === '') {
+            return false;
+        }
+
+        if ((bool) preg_match(
             '/\b(LTD|LIMITED|PVT\.?|INC|LLC|CORP|CORPORATION|TELESERVICES|CELLULAR|SERVICES|SOLUTIONS|SYSTEMS)\b/i',
             $line
-        ) || (
+        )) {
+            return true;
+        }
+
+        if (
             (bool) preg_match('/^[A-Z0-9][A-Z0-9\s&.\'-]{4,}$/u', $line)
             && ! preg_match('/\b(manager|deliverables|responsible|summary|skills?|education)\b/i', $line)
-        );
+        ) {
+            return true;
+        }
+
+        // Title-case company names like "Google", "Infosys", "Tata Consultancy Services".
+        if (
+            (bool) preg_match('/^[A-Z][A-Za-z0-9&.\'-]+(?:\s+[A-Z][A-Za-z0-9&.\'-]+){0,5}$/u', $line)
+            && ! preg_match('/\b(summary|skills?|experience|education|projects?|languages?)\b/i', $line)
+            && ! $this->isExperienceRoleLine($line)
+            && mb_strlen($line) <= 70
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     private function isExperienceRoleLine(string $line): bool
@@ -1865,6 +1908,24 @@ PROMPT;
                     continue;
                 }
             }
+            if (preg_match('/^\s*(?:key\s+responsibilit(?:y|ies)|responsibilit(?:y|ies)|duties)\s*:?\s*$/iu', $line)) {
+                continue;
+            }
+
+            if (preg_match('/^(.+?)\s+\bat\b\s+(.+)$/iu', $line, $m)
+                && $this->isExperienceRoleLine(trim($m[1]))
+                && $this->isExperienceCompanyLine(trim($m[2]))) {
+                if ($current) {
+                    $entries[] = $current;
+                }
+                $current = [
+                    'company' => trim($m[2]),
+                    'role'    => trim($m[1]),
+                    'period'  => '',
+                    'points'  => [],
+                ];
+                continue;
+            }
 
             if ($this->isExperienceCompanyLine($line)) {
                 if ($current) {
@@ -1878,10 +1939,19 @@ PROMPT;
                 $current['role'] = trim((string) preg_replace('/\s*key\s+deliverables\s*:?\s*$/iu', '', $line));
                 continue;
             }
+            if ($current && $current['company'] === '' && $this->isExperienceCompanyLine($line)) {
+                $current['company'] = $line;
+                continue;
+            }
 
             $hasPeriod  = (bool) preg_match('/\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|\d{4}|present)\b/i', $line);
             $isBullet   = (bool) preg_match('/^\s*(?:[-*•◦▪▸]|\d+\.)\s+/u', $line);
             $isShortish = mb_strlen($line) <= 120;
+            if ($current && trim((string) ($current['period'] ?? '')) === '' && $hasPeriod
+                && preg_match('/((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*\d{4}\s*(?:-|to|–|—)\s*(?:present|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)?\s*\d{4}))/iu', $line, $pmOnly)) {
+                $current['period'] = trim($pmOnly[1]);
+                continue;
+            }
 
             $looksLikeTitle = $isShortish && ! $isBullet && (
                 $hasPeriod ||
@@ -1993,7 +2063,12 @@ PROMPT;
 
         foreach ($lines as $line) {
             $isBullet = (bool) preg_match('/^\s*[-*•◦▪▸]\s+/u', $line);
-            $isUrl    = (bool) preg_match('/(?:https?:\/\/|www\.)\S+/i', $line);
+            // Match:
+            //  - http(s)://...
+            //  - www....
+            //  - bare domains like "example.com/" (common in portfolios)
+            $isUrl = (bool) preg_match('/(?:https?:\/\/|www\.)\S+/i', $line)
+                || (bool) preg_match('/\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s,;]*)?\b/i', $line);
 
             if (!$isBullet && !$isUrl && mb_strlen($line) < 130) {
                 if ($current !== null) $projects[] = $current;
@@ -2046,18 +2121,38 @@ PROMPT;
     {
         if (!$text) return [];
 
-        $lines = array_filter(array_map('trim', preg_split('/\R|[,;•]/', $text)));
+        $known = [
+            'english','hindi','german','spanish','french','marathi','bengali','tamil','telugu',
+            'kannada','malayalam','punjabi','urdu','arabic','chinese','korean','japanese'
+        ];
+        $lines = array_filter(array_map('trim', preg_split('/\R|[,;•\/]/', $text)));
 
-        return array_values(array_filter(array_map(function ($line) {
+        $parsed = array_values(array_filter(array_map(function ($line) use ($known) {
             $line = trim(preg_replace('/^[-*•◦▪▸\d.]+\s*/u', '', $line));
+            $line = trim((string) preg_replace('/^\s*languages?\s*:?\s*/iu', '', $line));
             if (!$line) return null;
 
             if (preg_match('/^(.+?)\s*(?:–|-|:|\()\s*(.+?)\)?$/', $line, $m)) {
-                return ['name' => trim($m[1]), 'level' => trim($m[2])];
+                $name = trim($m[1]);
+                $level = trim($m[2]);
+                foreach ($known as $lang) {
+                    if (preg_match('/\b'.preg_quote($lang, '/').'\b/i', $name)) {
+                        return ['name' => ucfirst($lang), 'level' => $level];
+                    }
+                }
+                return ['name' => $name, 'level' => $level];
+            }
+
+            foreach ($known as $lang) {
+                if (preg_match('/\b'.preg_quote($lang, '/').'\b/i', $line)) {
+                    return ['name' => ucfirst($lang), 'level' => ''];
+                }
             }
 
             return ['name' => $line, 'level' => ''];
         }, $lines)));
+
+        return array_values(array_unique($parsed, SORT_REGULAR));
     }
 
     // ═════════════════════════════════════════════
@@ -2658,8 +2753,9 @@ PROMPT;
 
         $sections = $this->detectSections($text);
         $expText  = trim((string) ($sections['experience'] ?? ''));
+        // Fallback: if section detection fails (common in DOC/DOCX layouts), parse from whole text.
         if ($expText === '') {
-            return $resume;
+            $expText = $text;
         }
 
         $parsed = $this->parseExperienceText($expText);
@@ -2707,6 +2803,146 @@ PROMPT;
         }
 
         $resume['experience'] = $experience;
+
+        return $resume;
+    }
+
+    private function pickNonBlank(mixed $primary, mixed $fallback): string
+    {
+        $p = $this->scalarString($primary);
+        if ($p !== '') {
+            return $p;
+        }
+
+        return $this->scalarString($fallback);
+    }
+
+    /**
+     * Recover missing identity fields from raw text (name/designation/contact/links).
+     * Never overwrites non-empty values.
+     */
+    private function enrichIdentityFromRawText(array $resume, string $text): array
+    {
+        // localParseResume does lightweight extraction without Inventing; use as a fallback source.
+        $local = $this->localParseResume($text);
+
+        $map = [
+            'name'           => $local['name'] ?? '',
+            'last_name'      => $local['last_name'] ?? '',
+            'designation'    => $local['designation'] ?? $local['job_title'] ?? '',
+            'email'          => $local['email'] ?? '',
+            'mobile'         => $local['mobile'] ?? '',
+            'location'       => $local['location'] ?? '',
+            'linkedin'       => $local['linkedin'] ?? '',
+            'github'         => $local['github'] ?? '',
+            'portfolio'      => $local['portfolio'] ?? $local['website'] ?? $local['link'] ?? '',
+            'link'           => $local['link'] ?? $local['portfolio'] ?? $local['website'] ?? '',
+            'summary'        => $local['summary'] ?? '',
+        ];
+
+        foreach ($map as $key => $fallbackVal) {
+            if ($this->scalarString($resume[$key] ?? '') === '' && $this->scalarString($fallbackVal) !== '') {
+                $resume[$key] = $this->scalarString($fallbackVal);
+            }
+        }
+
+        // Social links: if current is empty, adopt inferred; otherwise keep existing.
+        if (empty($resume['social_links'] ?? []) && ! empty($local['social_links'] ?? [])) {
+            $resume['social_links'] = array_values(array_unique(array_filter(array_merge(
+                is_array($local['social_links'] ?? null) ? $local['social_links'] : [],
+                []
+            ))));
+        }
+
+        return $resume;
+    }
+
+    private function enrichProjectsFromRawText(array $resume, string $text): array
+    {
+        $projects = is_array($resume['projects'] ?? null) ? $resume['projects'] : [];
+        $needs = $projects === [] || collect($projects)->every(fn ($p) => is_array($p) && ($this->scalarString($p['link'] ?? '') === ''));
+
+        if (! $needs) {
+            // If some projects have links missing, fill only those.
+            $anyMissingLink = collect($projects)->contains(fn ($p) => is_array($p) && ($this->scalarString($p['link'] ?? '') === ''));
+            if (! $anyMissingLink) {
+                return $resume;
+            }
+        }
+
+        $sections = $this->detectSections($text);
+        $projText = trim((string) ($sections['projects'] ?? ''));
+        $parsed = $this->parseProjectsText($projText !== '' ? $projText : $text);
+        if ($parsed === [] && $projText !== '') {
+            // Fallback when heading detection exists but parsing still failed.
+            $parsed = $this->parseProjectsText($text);
+        }
+        if ($parsed === []) {
+            return $resume;
+        }
+
+        // If we have no projects, just adopt parsed ones.
+        if ($projects === []) {
+            $resume['projects'] = $parsed;
+            return $resume;
+        }
+
+        // Otherwise, fill missing `link` and `tech_stack` by matching project name.
+        foreach ($projects as $i => $p) {
+            if (! is_array($p)) continue;
+            $needLink = $this->scalarString($p['link'] ?? '') === '';
+            $needTech = $this->scalarString($p['tech_stack'] ?? $p['tech'] ?? '') === '';
+            if (! ($needLink || $needTech)) continue;
+
+            $pName = strtolower(trim((string) ($p['name'] ?? '')));
+            foreach ($parsed as $candidate) {
+                if (! is_array($candidate)) continue;
+                $cName = strtolower(trim((string) ($candidate['name'] ?? '')));
+                if ($pName !== '' && $cName !== '' && ($cName === $pName || str_contains($cName, $pName) || str_contains($pName, $cName))) {
+                    if ($needLink) {
+                        $projects[$i]['link'] = $candidate['link'] ?? $projects[$i]['link'] ?? '';
+                    }
+                    if ($needTech) {
+                        $projects[$i]['tech_stack'] = $candidate['tech_stack'] ?? $candidate['tech'] ?? $projects[$i]['tech_stack'] ?? '';
+                    }
+                    break;
+                }
+            }
+        }
+
+        $resume['projects'] = $projects;
+        return $resume;
+    }
+
+    private function enrichLanguagesFromRawText(array $resume, string $text): array
+    {
+        $langs = is_array($resume['languages'] ?? null) ? $resume['languages'] : [];
+        if (! empty($langs)) {
+            return $resume;
+        }
+
+        // Prefer structured section if present, fallback to whitelist-based extraction.
+        $sections = $this->detectSections($text);
+        $langText = trim((string) ($sections['languages'] ?? ''));
+        $parsed = $this->parseLanguageList($langText !== '' ? $langText : $text);
+
+        $whitelist = [
+            'english','hindi','german','spanish','french','marathi','bengali','tamil','telugu','kannada','malayalam','punjabi','urdu','arabic','chinese','korean','japanese'
+        ];
+
+        $filtered = array_values(array_filter($parsed, function ($l) use ($whitelist) {
+            if (! is_array($l)) return false;
+            $name = strtolower(trim((string) ($l['name'] ?? '')));
+            if ($name === '') return false;
+            foreach ($whitelist as $w) {
+                if ($name === $w || str_starts_with($name, $w.' ')) return true;
+            }
+            return false;
+        }));
+
+        if ($filtered !== []) {
+            $resume['languages'] = $filtered;
+        }
 
         return $resume;
     }
@@ -2785,9 +3021,13 @@ PROMPT;
         }
 
         if ($rawText !== '') {
+            // Identity first so summary heuristics (designation -> summary) work.
+            $out = $this->enrichIdentityFromRawText($out, $rawText);
             $out = $this->ensureSummaryFilled($out, $rawText);
             $out = $this->ensureSkillsFilled($out, $rawText);
             $out = $this->enrichExperienceFromRawText($out, $rawText);
+            $out = $this->enrichProjectsFromRawText($out, $rawText);
+            $out = $this->enrichLanguagesFromRawText($out, $rawText);
         }
 
         return $out;
@@ -3005,8 +3245,13 @@ PROMPT;
             $description = (string) ($project['description'] ?? '');
 
             if ($link !== '' && !preg_match('/^(?:https?:\/\/|www\.)/i', $link)) {
-                $description = trim($description . ' ' . $link);
-                $link = '';
+                // Preserve bare domains like "globalgauri.com" by converting to https.
+                if (preg_match('/^(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s,;]*)?$/i', $link)) {
+                    $link = 'https://' . $link;
+                } else {
+                    $description = trim($description . ' ' . $link);
+                    $link = '';
+                }
             }
 
             $normalizedProject = [
