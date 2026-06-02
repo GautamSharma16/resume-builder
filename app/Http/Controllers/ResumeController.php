@@ -79,26 +79,26 @@ class ResumeController extends Controller
 
             if ($isEnhanceOnly) {
                 $record = $this->findAuthorizedAnalysis($request, (int) $request->input('analysis_id'));
-                $builderBase = $this->postProcessGeminiResume(
-                    $this->normalizeResume($record->improved_resume_json ?? [])
-                );
+                $builderBase = $this->normalizeResume($record->improved_resume_json ?? []);
                 $text = $record->extracted_text ?: $this->resumeToText($builderBase);
 
-                $analysis = $this->geminiParseAndAnalyze(
+                $geminiReview = $this->geminiReviewAffindaAndFill(
+                    $builderBase,
                     $text,
                     $jobRole ?: $record->job_role,
-                    $jobDescription ?: $record->job_description,
-                    'Enhance wording and ATS fit. Do not restructure or drop experience, education, or project entries. Keep all employers and dates.',
-                    $builderBase
+                    $jobDescription ?: $record->job_description
                 );
 
-                if (! Arr::get($analysis, 'success', true)) {
-                    $analysis = $this->localAtsAnalysis($builderBase, $jobRole, $jobDescription);
-                }
+                $improvedResume = Arr::get($geminiReview, 'success', true) && $this->resumeHasContent(Arr::get($geminiReview, 'improved_resume', []))
+                    ? $this->finalizeParsedResume(
+                        $this->mergeAffindaPrimary($builderBase, Arr::get($geminiReview, 'improved_resume', [])),
+                        true,
+                        $text
+                    )
+                    : $this->finalizeParsedResume($builderBase, true, $text);
 
-                $improvedResume = $this->postProcessGeminiResume(
-                    $this->mergeAffindaPrimary($builderBase, Arr::get($analysis, 'improved_resume', []))
-                );
+                $analysis = $this->localAtsAnalysis($improvedResume, $jobRole ?: $record->job_role, $jobDescription ?: $record->job_description);
+                $analysis['improved_resume'] = $improvedResume;
 
                 $record->update([
                     'job_role'             => $jobRole ?: $record->job_role,
@@ -143,138 +143,41 @@ class ResumeController extends Controller
             $standardJson = $parseResult['standard'] ?? ResumeSchema::empty();
             $parserMessage = $parseResult['message'] ?? null;
 
-            $analysis       = null;
-            $improvedResume = null;
+            // 3. Affinda → normalize → Gemini review/fill → safe merge (all upload modes)
+            $hybrid         = $this->buildHybridAutofillResume($parseResult, $text, $jobRole, $jobDescription);
+            $improvedResume = $hybrid['builder'];
+            $parseSource    = $hybrid['source'];
+            $standardJson   = $hybrid['standard'] ?? $standardJson;
 
-            // Autofill / parse: Affinda + Gemini together (Affinda structure, Gemini fills gaps)
-            if ($isAutofill || $isParseOnly) {
-                $hybrid         = $this->buildHybridAutofillResume($parseResult, $text, $jobRole, $jobDescription);
-                $improvedResume = $hybrid['builder'];
-                $parseSource    = $hybrid['source'];
-                $standardJson   = $hybrid['standard'];
+            if ($isAutofill) {
+                return response()->json(Utf8Sanitizer::jsonSafe([
+                    'success'          => true,
+                    'analysis_id'      => null,
+                    'parser_source'    => $parseSource,
+                    'parser_message'   => $parserMessage,
+                    'score'            => 0,
+                    'strengths'        => [],
+                    'weaknesses'       => [],
+                    'missing_keywords' => [],
+                    'suggestions'      => $this->hybridAutofillSuggestions($parseSource),
+                    'improved_resume'  => $improvedResume,
+                    'standard_resume'  => $standardJson,
+                ]));
+            }
 
+            if ($isParseOnly) {
                 $analysis = [
                     'success'          => true,
                     'score'            => 0,
                     'strengths'        => [],
                     'weaknesses'       => [],
                     'missing_keywords' => [],
-                    'suggestions'      => $isParseOnly
-                        ? ['Resume parsed with Affinda + AI. Click Enhance with AI to optimize for ATS.']
-                        : ['Resume imported with Affinda + AI — review fields before saving.'],
+                    'suggestions'      => $this->hybridAutofillSuggestions($parseSource),
                     'improved_resume'  => $improvedResume,
                 ];
-
-                if ($isAutofill) {
-                    return response()->json(Utf8Sanitizer::jsonSafe([
-                        'success'          => true,
-                        'analysis_id'      => null,
-                        'parser_source'    => $parseSource,
-                        'parser_message'   => $parserMessage,
-                        'score'            => 0,
-                        'strengths'        => [],
-                        'weaknesses'       => [],
-                        'missing_keywords' => [],
-                        'suggestions'      => $analysis['suggestions'],
-                        'improved_resume'  => $improvedResume,
-                        'standard_resume'  => $standardJson,
-                    ]));
-                }
-            } elseif ($parseSource === 'affinda' && ! empty($parseResult['builder'])) {
-                $builderBase = $this->finalizeParsedResume($parseResult['builder'], true, $text);
-
-                $analysis = $this->geminiParseAndAnalyze(
-                    $text,
-                    $jobRole,
-                    $jobDescription,
-                    'Enhance wording and ATS fit. Do not restructure or drop experience, education, or project entries. Keep all employers and dates.',
-                    $builderBase
-                );
-
-                if (! Arr::get($analysis, 'success', true)) {
-                    $analysis = $this->localAtsAnalysis($builderBase, $jobRole, $jobDescription);
-                }
-
-                $improvedResume = $this->finalizeParsedResume(
-                    $this->mergeAffindaPrimary($builderBase, Arr::get($analysis, 'improved_resume', [])),
-                    true,
-                    $text
-                );
-                $analysis['improved_resume'] = $improvedResume;
             } else {
-                // 3. Fallback: Gemini structured extraction + local hints
-                $localResumeForHints = $this->localParseResume($text);
-
-                $extractOnly = $isAutofill || $isParseOnly;
-
-                $analysis = $extractOnly
-                    ? $this->geminiExtractAndAutofill($text, $jobRole, $jobDescription, $localResumeForHints)
-                    : $this->geminiParseAndAnalyze($text, $jobRole, $jobDescription, null, $localResumeForHints);
-
-                if (! Arr::get($analysis, 'success', true)) {
-                    $localResume = $this->localParseResume($text);
-
-                    if ($extractOnly) {
-                        $payload = [
-                            'success'          => true,
-                            'analysis_id'      => null,
-                            'parser_source'    => 'local',
-                            'ai_unavailable'   => true,
-                            'message'          => Arr::get($analysis, 'message', 'Affinda and AI unavailable – imported using local parsing.'),
-                            'score'            => 0,
-                            'strengths'        => [],
-                            'weaknesses'       => [],
-                            'missing_keywords' => [],
-                            'suggestions'      => $isParseOnly
-                                ? ['Parsed with local fallback. You can still run Enhance with AI.']
-                                : ['Review imported fields — parsing used local fallback.'],
-                            'improved_resume'  => $this->postProcessGeminiResume($localResume),
-                            'standard_resume'  => $localResume,
-                        ];
-
-                        if ($isAutofill) {
-                            return response()->json(Utf8Sanitizer::jsonSafe($payload));
-                        }
-
-                        $improvedResume = $payload['improved_resume'];
-                        $analysis       = [
-                            'success'          => true,
-                            'score'            => 0,
-                            'strengths'        => [],
-                            'weaknesses'       => [],
-                            'missing_keywords' => [],
-                            'suggestions'      => $payload['suggestions'],
-                            'improved_resume'  => $improvedResume,
-                        ];
-                        $parseSource = 'local';
-                    } else {
-                        $analysis = $this->localAtsAnalysis($localResume, $jobRole, $jobDescription);
-                        $parseSource = 'local';
-                        $improvedResume = $this->postProcessGeminiResume($this->normalizeResume(Arr::get($analysis, 'improved_resume', [])));
-                    }
-                } else {
-                    $parseSource = 'gemini';
-                    $improvedResume = $this->finalizeParsedResume(
-                        $this->normalizeResume(Arr::get($analysis, 'improved_resume', [])),
-                        false,
-                        $text
-                    );
-
-                    if ($isAutofill) {
-                        return response()->json(Utf8Sanitizer::jsonSafe([
-                            'success'          => true,
-                            'analysis_id'      => null,
-                            'parser_source'    => 'gemini',
-                            'score'            => 0,
-                            'strengths'        => [],
-                            'weaknesses'       => [],
-                            'missing_keywords' => [],
-                            'suggestions'      => Arr::get($analysis, 'suggestions', []),
-                            'improved_resume'  => $improvedResume,
-                            'standard_resume'  => $improvedResume,
-                        ]));
-                    }
-                }
+                $analysis = $this->localAtsAnalysis($improvedResume, $jobRole, $jobDescription);
+                $analysis['improved_resume'] = $improvedResume;
             }
 
             $improvedResume = Utf8Sanitizer::jsonSafe($this->normalizeResume($improvedResume ?? []));
@@ -697,7 +600,7 @@ PARSE_HINTS_JSON:
 
 PROMPT;
 
-        $prompt .= "\n" . mb_substr($rawText, 0, 16000);
+        $prompt .= "\n" . mb_substr($rawText, 0, 12000);
 
         return $this->callGemini($prompt, [], $this->geminiMaxTokens());
     }
@@ -752,14 +655,8 @@ STRICT RULES:
 10. linkedin, github, portfolio: extract dedicated URLs when present; also include them in social_links.
 11. Use PARSE_HINTS_JSON only to disambiguate noisy text — prefer RESUME_TEXT when they conflict.
 
-Return STRICT JSON only (no markdown):
-
+Return STRICT JSON only (no markdown), with this exact top-level shape:
 {
-  "score": 0,
-  "strengths": [],
-  "weaknesses": [],
-  "missing_keywords": [],
-  "suggestions": [],
   "improved_resume": {
     "name": "",
     "last_name": "",
@@ -789,14 +686,14 @@ PARSE_HINTS_JSON:
 RESUME_TEXT:
 PROMPT;
 
-        $prompt .= "\n".mb_substr($rawText, 0, 18000);
+        $prompt .= "\n".mb_substr($rawText, 0, 10000);
 
         return $this->callGemini($prompt, $parsedHints, $this->geminiMaxTokens());
     }
 
     private function geminiMaxTokens(): int
     {
-        return max(1200, (int) config('services.gemini.max_output_tokens', 2200));
+        return max(8192, (int) config('services.gemini.max_output_tokens', 8192));
     }
 
     /**
@@ -824,17 +721,45 @@ PROMPT;
             $text = (string) ($result['text'] ?? '');
             $data = $this->decodeGeminiJson($text);
 
-            if (empty($data) || ! isset($data['improved_resume'])) {
-                \Log::warning('Gemini parse: unable to decode JSON payload', [
-                    'text_preview' => mb_substr(Utf8Sanitizer::cleanString($text), 0, 1200),
+            if (empty($data)) {
+                $salvaged = $this->salvageGeminiResumeFromText($text);
+                if ($salvaged !== []) {
+                    \Log::info('Gemini parse: recovered partial JSON via salvage', [
+                        'fields' => array_keys($salvaged),
+                    ]);
+                    $data = ['improved_resume' => $salvaged];
+                } else {
+                    \Log::warning('Gemini parse: unable to decode JSON payload', [
+                        'text_preview' => mb_substr(Utf8Sanitizer::cleanString($text), 0, 1200),
+                    ]);
+
+                    return ['success' => false, 'message' => 'Could not parse AI response.'];
+                }
+            }
+
+            if (! isset($data['improved_resume']) && $this->looksLikeResumeObject($data)) {
+                $data = ['improved_resume' => $data];
+            }
+
+            if (! isset($data['improved_resume'])) {
+                \Log::warning('Gemini parse: JSON decoded but improved_resume missing', [
+                    'keys' => array_slice(array_keys($data), 0, 20),
                 ]);
+
                 return ['success' => false, 'message' => 'Could not parse AI response.'];
             }
 
             $improved = Arr::get($data, 'improved_resume');
-            if (! is_array($improved) || empty(array_filter($improved))) {
+            if (! is_array($improved)) {
+                $improved = [];
+            }
+
+            if ($this->resumeHasContent($fallbackResume)) {
+                $improved = $this->mergeAffindaPrimary($fallbackResume, $improved);
+            } elseif (empty(array_filter($improved))) {
                 $improved = $fallbackResume;
             }
+
             $improved = $this->postProcessGeminiResume($improved);
 
             return [
@@ -2336,7 +2261,113 @@ PROMPT;
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) return $decoded;
         }
 
+        $repaired = $this->repairTruncatedJsonObject($candidate);
+        if ($repaired !== '') {
+            $decoded = json_decode($repaired, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) return $decoded;
+        }
+
         return [];
+    }
+
+    private function repairTruncatedJsonObject(string $text): string
+    {
+        $start = strpos($text, '{');
+        if ($start === false) {
+            return '';
+        }
+
+        $slice = substr($text, $start);
+        $slice = preg_replace('/```/u', '', $slice) ?? $slice;
+        $slice = rtrim($slice);
+
+        if (preg_match('/,\s*"([a-zA-Z_][a-zA-Z0-9_]*)"\s*$/', $slice)) {
+            $slice = preg_replace('/,\s*"([a-zA-Z_][a-zA-Z0-9_]*)"\s*$/', ',"$1": ""', $slice) ?? $slice;
+        }
+
+        if (preg_match('/:\s*"[^"]*$/', $slice)) {
+            $slice .= '"';
+        }
+
+        $slice = preg_replace('/,\s*$/', '', $slice) ?? $slice;
+
+        $openBraces = substr_count($slice, '{');
+        $closeBraces = substr_count($slice, '}');
+        if ($openBraces > $closeBraces) {
+            $slice .= str_repeat('}', $openBraces - $closeBraces);
+        }
+
+        $openBrackets = substr_count($slice, '[');
+        $closeBrackets = substr_count($slice, ']');
+        if ($openBrackets > $closeBrackets) {
+            $slice .= str_repeat(']', $openBrackets - $closeBrackets);
+        }
+
+        return $slice;
+    }
+
+    /**
+     * Recover a partial improved_resume when Gemini JSON was truncated mid-stream.
+     *
+     * @return array<string, mixed>
+     */
+    private function salvageGeminiResumeFromText(string $text): array
+    {
+        if (preg_match('/"improved_resume"\s*:\s*(\{.*)/s', $text, $match)) {
+            $inner = $this->repairTruncatedJsonObject($match[1]);
+            if ($inner !== '') {
+                $decoded = json_decode('{"improved_resume":'.$inner.'}', true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded['improved_resume'] ?? null)) {
+                    return $decoded['improved_resume'];
+                }
+            }
+        }
+
+        $repaired = $this->repairTruncatedJsonObject($text);
+        if ($repaired !== '') {
+            $decoded = json_decode($repaired, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                if (is_array($decoded['improved_resume'] ?? null)) {
+                    return $decoded['improved_resume'];
+                }
+                if ($this->looksLikeResumeObject($decoded)) {
+                    return $decoded;
+                }
+            }
+        }
+
+        $resume = [];
+        $scalarFields = [
+            'name', 'last_name', 'designation', 'desired_job_role', 'email', 'mobile',
+            'location', 'linkedin', 'github', 'portfolio', 'link', 'summary',
+        ];
+
+        foreach ($scalarFields as $field) {
+            if (preg_match('/"'.preg_quote($field, '/').'"\s*:\s*"((?:[^"\\\\]|\\\\.)*)"/s', $text, $m)) {
+                $resume[$field] = stripcslashes($m[1]);
+            }
+        }
+
+        if (preg_match('/"skills"\s*:\s*\[(.*?)\]/s', $text, $m)) {
+            if (preg_match_all('/"((?:[^"\\\\]|\\\\.)*)"/', $m[1], $skills)) {
+                $resume['skills'] = array_values(array_filter(array_map(
+                    fn ($s) => stripcslashes($s),
+                    $skills[1] ?? []
+                )));
+            }
+        }
+
+        return array_filter($resume, fn ($v) => $v !== '' && $v !== []);
+    }
+
+    private function looksLikeResumeObject(array $data): bool
+    {
+        $keys = ['name', 'last_name', 'designation', 'email', 'skills', 'experience', 'education', 'projects'];
+        $hits = 0;
+        foreach ($keys as $k) {
+            if (array_key_exists($k, $data)) $hits++;
+        }
+        return $hits >= 4;
     }
 
     private function extractBalancedJsonObject(string $text): string
@@ -2395,67 +2426,164 @@ PROMPT;
         ?string $jobDescription
     ): array {
         $affindaBuilder = is_array($parseResult['builder'] ?? null) ? $parseResult['builder'] : [];
-        $standardJson    = $parseResult['standard'] ?? ResumeSchema::empty();
-        $parseSource     = $parseResult['source'] ?? 'pending_fallback';
+        $standardJson   = $parseResult['standard'] ?? ResumeSchema::empty();
+        $parseSource    = $parseResult['source'] ?? 'pending_fallback';
+        $affindaReady   = $parseSource === 'affinda' && $this->resumeHasContent($affindaBuilder);
 
-        $hints = $this->resumeHasContent($affindaBuilder) ? $affindaBuilder : [];
-        $geminiAnalysis = $this->geminiExtractAndAutofill($extractedText, $jobRole, $jobDescription, $hints);
-        $geminiBuilder  = Arr::get($geminiAnalysis, 'success', true)
+        $localHints = $this->postProcessGeminiResume($this->localParseResume($extractedText));
+
+        if ($affindaReady) {
+            $geminiAnalysis = $this->geminiReviewAffindaAndFill($affindaBuilder, $extractedText, $jobRole, $jobDescription);
+            $geminiPatch = Arr::get($geminiAnalysis, 'improved_resume', []);
+            $geminiOk    = Arr::get($geminiAnalysis, 'success', true)
+                && (is_array($geminiPatch) && array_filter($geminiPatch) !== []);
+
+            if (! $geminiOk) {
+                \Log::warning('Hybrid autofill: Affinda review pass failed, running full Gemini extract', [
+                    'message' => Arr::get($geminiAnalysis, 'message'),
+                ]);
+                $geminiAnalysis = $this->geminiExtractAndAutofill(
+                    $extractedText,
+                    $jobRole,
+                    $jobDescription,
+                    $this->mergeAffindaPrimary($affindaBuilder, $localHints)
+                );
+            }
+        } else {
+            $hints = $this->resumeHasContent($affindaBuilder)
+                ? $this->mergeAffindaPrimary($affindaBuilder, $localHints)
+                : $localHints;
+
+            $geminiAnalysis = $this->geminiExtractAndAutofill($extractedText, $jobRole, $jobDescription, $hints);
+        }
+
+        $geminiBuilder = Arr::get($geminiAnalysis, 'success', true)
             ? $this->normalizeResume(Arr::get($geminiAnalysis, 'improved_resume', []))
             : [];
 
         if (! Arr::get($geminiAnalysis, 'success', true)) {
-            \Log::warning('Hybrid autofill: Gemini unavailable, using Affinda/local fallback', [
-                'message'      => Arr::get($geminiAnalysis, 'message'),
-                'affinda_has_content' => $this->resumeHasContent($affindaBuilder),
-            ]);
-        } elseif (! $this->resumeHasContent($geminiBuilder)) {
-            \Log::info('Hybrid autofill: Gemini returned empty/low-content resume payload', [
-                'affinda_has_content' => $this->resumeHasContent($affindaBuilder),
+            \Log::warning('Hybrid autofill: Gemini unavailable', [
+                'message'             => Arr::get($geminiAnalysis, 'message'),
+                'affinda_has_content' => $affindaReady,
             ]);
         }
 
         $builder = [];
         $source  = $parseSource;
 
-        if ($parseSource === 'affinda' && $this->resumeHasContent($affindaBuilder)) {
-            $builder = $affindaBuilder;
-            if ($this->resumeHasContent($geminiBuilder)) {
-                $builder = $this->mergeAffindaPrimary($affindaBuilder, $geminiBuilder);
-                $source  = 'affinda+gemini';
-            } else {
-                \Log::info('Hybrid autofill: keeping Affinda-only payload because Gemini had no usable fields.');
-            }
+        if ($affindaReady) {
+            $builder = $this->resumeHasContent($geminiBuilder)
+                ? $this->mergeAffindaPrimary($affindaBuilder, $geminiBuilder)
+                : $affindaBuilder;
+            $source = $this->resumeHasContent($geminiBuilder) ? 'affinda+gemini' : 'affinda';
         } elseif ($this->resumeHasContent($geminiBuilder)) {
             $builder = $geminiBuilder;
             $source  = 'gemini';
-        } elseif (! empty($affindaBuilder)) {
+        } elseif ($this->resumeHasContent($affindaBuilder)) {
             $builder = $affindaBuilder;
             $source  = 'affinda';
         }
 
-        if ($this->resumeHasContent($geminiBuilder) && $source === 'pending_fallback') {
-            $builder = $geminiBuilder;
-            $source  = 'gemini';
-        }
-
         if (! $this->resumeHasContent($builder)) {
-            $local   = $this->postProcessGeminiResume($this->localParseResume($extractedText));
             $builder = $this->resumeHasContent($geminiBuilder)
-                ? $this->mergeAffindaPrimary($geminiBuilder, $local)
-                : ($this->resumeHasContent($local) ? $local : $geminiBuilder);
-            $source = $this->resumeHasContent($geminiBuilder)
-                ? ($this->resumeHasContent($local) ? 'gemini+local' : 'gemini')
-                : 'local';
+                ? $this->mergeAffindaPrimary($geminiBuilder, $localHints)
+                : ($this->resumeHasContent($localHints) ? $localHints : $geminiBuilder);
+            $source = match (true) {
+                $this->resumeHasContent($geminiBuilder) && $this->resumeHasContent($localHints) => 'gemini+local',
+                $this->resumeHasContent($geminiBuilder) => 'gemini',
+                default => 'local',
+            };
         }
 
-        $builder = $this->finalizeParsedResume($builder, str_starts_with((string) $source, 'affinda'), $extractedText);
+        $fromAffinda = str_starts_with((string) $source, 'affinda');
+        $builder     = $this->finalizeParsedResume($builder, $fromAffinda, $extractedText);
+        $standardJson = app(ResumeNormalizerService::class)->fromBuilderFormat($builder);
 
         return [
             'builder'  => $builder,
             'source'   => $source,
             'standard' => $standardJson,
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function hybridAutofillSuggestions(string $parseSource): array
+    {
+        return match ($parseSource) {
+            'affinda+gemini' => ['Resume imported with Affinda + AI review — fields filled and verified.'],
+            'affinda'        => ['Resume imported with Affinda — AI review was skipped or unavailable.'],
+            'gemini', 'gemini+local' => ['Resume imported with AI extraction — Affinda was unavailable.'],
+            default          => ['Resume imported with local parsing — review all fields before saving.'],
+        };
+    }
+
+    /**
+     * Gemini second-pass review for Affinda output.
+     * Keeps Affinda as source of truth and only fills missing/incomplete fields.
+     */
+    private function geminiReviewAffindaAndFill(
+        array $affindaBuilder,
+        string $rawText,
+        string $jobRole,
+        ?string $jobDescription
+    ): array {
+        $normalized = $this->normalizeResume($affindaBuilder);
+        $resumeJson = json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $roleHint = trim($jobRole) !== '' ? $jobRole : 'General';
+        $jdHint = $this->scalarString($jobDescription);
+        $jdText = $jdHint !== '' ? $jdHint : 'N/A';
+
+        $prompt = <<<PROMPT
+Review this parsed resume.
+
+Rules:
+- Preserve all existing fields.
+- Do not remove entries.
+- Do not merge entries.
+- Fill missing fields from RAW_TEXT only.
+- Fix wrong section placement when clear from RAW_TEXT.
+- Improve grammar and summary quality.
+- Return JSON only.
+
+MUST NOT:
+- Remove experience/company entries.
+- Reduce company count.
+- Remove education rows.
+- Delete skills.
+- Overwrite correct existing values.
+
+MERGE POLICY:
+- Existing non-empty values are source of truth.
+- Fill blanks with stronger values from RAW_TEXT.
+
+TARGET_ROLE:
+{$roleHint}
+
+JOB_DESCRIPTION:
+{$jdText}
+
+PARSED_RESUME_JSON:
+{$resumeJson}
+
+Return STRICT JSON only:
+{
+  "improved_resume": { }
+}
+
+IMPORTANT OUTPUT SIZE RULE:
+- Include ONLY fields you add, fix, or improve.
+- OMIT keys that are already correct in PARSED_RESUME_JSON.
+- For sections (experience, education, projects, skills, summary, linkedin, github, portfolio, social_links), include a section ONLY if you are adding rows/items or filling blanks.
+- Do NOT repeat unchanged Affinda values.
+
+RAW_TEXT:
+PROMPT;
+
+        $prompt .= "\n" . mb_substr($rawText, 0, 10000);
+
+        return $this->callGemini($prompt, $normalized, $this->geminiMaxTokens());
     }
 
     private function ensureSummaryFilled(array $resume, string $text): array
@@ -2485,9 +2613,129 @@ PROMPT;
         $fromRegex = $this->extractSummaryFromText($text);
         if ($fromRegex !== '') {
             $resume['summary'] = $fromRegex;
+
+            return $resume;
+        }
+
+        $designation = $this->scalarString($resume['designation'] ?? $resume['job_title'] ?? '');
+        $skills      = is_array($resume['skills'] ?? null) ? $resume['skills'] : [];
+        if ($designation !== '' && count($skills) >= 4) {
+            $resume['summary'] = sprintf(
+                '%s with strengths in %s.',
+                $designation,
+                implode(', ', array_slice(array_map(fn ($s) => $this->scalarString($s), $skills), 0, 8))
+            );
         }
 
         return $resume;
+    }
+
+    /**
+     * Fill empty experience periods and bullet lists from the raw experience section.
+     */
+    private function enrichExperienceFromRawText(array $resume, string $text): array
+    {
+        $experience = is_array($resume['experience'] ?? null) ? $resume['experience'] : [];
+        if ($experience === []) {
+            return $resume;
+        }
+
+        $needsEnrich = false;
+        foreach ($experience as $exp) {
+            if (! is_array($exp)) {
+                continue;
+            }
+            $points = array_filter($exp['points'] ?? [], fn ($p) => trim((string) $p) !== '');
+            if ($points === [] || trim((string) ($exp['period'] ?? '')) === '') {
+                $needsEnrich = true;
+                break;
+            }
+        }
+
+        if (! $needsEnrich) {
+            return $resume;
+        }
+
+        $sections = $this->detectSections($text);
+        $expText  = trim((string) ($sections['experience'] ?? ''));
+        if ($expText === '') {
+            return $resume;
+        }
+
+        $parsed = $this->parseExperienceText($expText);
+        if ($parsed === []) {
+            return $resume;
+        }
+
+        foreach ($experience as $i => $exp) {
+            if (! is_array($exp)) {
+                continue;
+            }
+
+            $company = strtolower(trim((string) ($exp['company'] ?? '')));
+            $role    = strtolower(trim((string) ($exp['role'] ?? '')));
+
+            foreach ($parsed as $pj) {
+                if (! is_array($pj)) {
+                    continue;
+                }
+
+                $pCompany = strtolower(trim((string) ($pj['company'] ?? '')));
+                $pRole    = strtolower(trim((string) ($pj['role'] ?? '')));
+
+                $companyMatch = $company !== '' && $pCompany !== ''
+                    && (str_contains($pCompany, $company) || str_contains($company, $pCompany));
+                $roleMatch = $role !== '' && $pRole !== ''
+                    && (str_contains($pRole, $role) || str_contains($role, $pRole));
+
+                if (! $companyMatch && ! $roleMatch) {
+                    continue;
+                }
+
+                if (trim((string) ($exp['period'] ?? '')) === '' && trim((string) ($pj['period'] ?? '')) !== '') {
+                    $experience[$i]['period'] = trim((string) $pj['period']);
+                }
+
+                $points = array_filter($exp['points'] ?? [], fn ($p) => trim((string) $p) !== '');
+                $pjPts  = array_filter($pj['points'] ?? [], fn ($p) => trim((string) $p) !== '');
+                if ($points === [] && $pjPts !== []) {
+                    $experience[$i]['points'] = array_values($pjPts);
+                }
+
+                break;
+            }
+        }
+
+        $resume['experience'] = $experience;
+
+        return $resume;
+    }
+
+    private function isExperienceRowEducationLike(array $exp): bool
+    {
+        $company = trim((string) ($exp['company'] ?? ''));
+        $role    = trim((string) ($exp['role'] ?? ''));
+        $period  = trim((string) ($exp['period'] ?? ''));
+        $blob    = strtolower(implode(' ', array_filter([$company, $role, $period])));
+
+        if ($blob === '') {
+            return false;
+        }
+
+        if (preg_match('/\b(intern|developer|engineer|manager|analyst|consultant|designer|executive)\b/i', $role)
+            && ! preg_match('/\b(b\.?\s*sc|b\.?\s*tech|m\.?\s*sc|12th|10th)\b/i', $role)) {
+            return false;
+        }
+
+        if (preg_match('/\b(b\.?\s*sc\.?|b\.?\s*tech\.?|m\.?\s*tech\.?|m\.?\s*sc\.?|bca|mca|mba|diploma|intermediate|hsc|ssc)\b/i', $blob)) {
+            return true;
+        }
+
+        if (preg_match('/\b(12th|10th|high\s+school|secondary|senior\s+secondary)\b/i', $blob)) {
+            return true;
+        }
+
+        return $company === '' && preg_match('/\b(b\.?\s*sc|b\.?\s*tech|m\.?\s*sc|12th|10th)\b/i', $role);
     }
 
     private function extractSummaryFromText(string $text): string
@@ -2522,17 +2770,11 @@ PROMPT;
     }
 
     /**
-     * Final autofill payload — Affinda/hybrid uses validator only; Gemini-only uses postProcess + validator.
+     * Final autofill payload — structure repair, validator, then raw-text gap fill.
      */
     private function finalizeParsedResume(array $resume, bool $fromAffinda, string $rawText = ''): array
     {
-        $resume = $this->normalizeResume($resume);
-
-        if ($fromAffinda) {
-            $resume = $this->relocateWorkLikeEducationRows($resume);
-        } else {
-            $resume = $this->postProcessGeminiResume($resume);
-        }
+        $resume = $this->postProcessGeminiResume($this->normalizeResume($resume));
 
         $sanitized = app(ResumeSectionValidatorService::class)->sanitizeBuilder($resume);
 
@@ -2542,7 +2784,38 @@ PROMPT;
             $out = $sanitized;
         }
 
-        return $rawText !== '' ? $this->ensureSummaryFilled($out, $rawText) : $out;
+        if ($rawText !== '') {
+            $out = $this->ensureSummaryFilled($out, $rawText);
+            $out = $this->ensureSkillsFilled($out, $rawText);
+            $out = $this->enrichExperienceFromRawText($out, $rawText);
+        }
+
+        return $out;
+    }
+
+    private function ensureSkillsFilled(array $resume, string $text): array
+    {
+        $skills = is_array($resume['skills'] ?? null) ? $resume['skills'] : [];
+        if (count($skills) >= 3) {
+            return $resume;
+        }
+
+        $sections = $this->detectSections($text);
+        if (! empty($sections['skills'])) {
+            $fromSection = $this->normalizeStringList($sections['skills'], 80);
+            if (count($fromSection) >= 3) {
+                $resume['skills'] = array_values(array_unique(array_merge($skills, $fromSection)));
+
+                return $resume;
+            }
+        }
+
+        $inferred = $this->inferSkillsFromText($text);
+        if ($inferred !== []) {
+            $resume['skills'] = array_values(array_unique(array_merge($skills, $inferred)));
+        }
+
+        return $resume;
     }
 
     /**
@@ -2678,19 +2951,13 @@ PROMPT;
             if (! is_array($exp)) {
                 continue;
             }
-            $blob = strtolower(implode(' ', array_filter([
-                (string) ($exp['company'] ?? ''),
-                (string) ($exp['role'] ?? ''),
-                implode(' ', $exp['points'] ?? []),
-            ])));
-            if (preg_match('/\b(b\.?tech|m\.?tech|bsc|msc|mba|bca|mca|diploma|university|college|school|cgpa|gpa|12th|10th)\b/i', $blob)
-                && ! preg_match('/\b(intern|developer|engineer|manager|analyst|consultant)\b/i', $blob)) {
+            if ($this->isExperienceRowEducationLike($exp)) {
                 $resume['education'] = is_array($resume['education'] ?? null) ? $resume['education'] : [];
                 $resume['education'][] = [
-                    'degree'      => (string) ($exp['role'] ?? $exp['company'] ?? ''),
+                    'degree'      => trim((string) ($exp['role'] ?? $exp['company'] ?? '')),
                     'stream'      => '',
-                    'institution' => (string) ($exp['company'] ?? ''),
-                    'year'        => (string) ($exp['period'] ?? ''),
+                    'institution' => trim((string) ($exp['company'] ?? '')),
+                    'year'        => trim((string) ($exp['period'] ?? '')),
                 ];
                 continue;
             }
@@ -3261,7 +3528,9 @@ PROMPT;
 
         $primarySummary = $this->scalarString($primary['summary'] ?? '');
         $geminiSummary  = $this->scalarString($gemini['summary'] ?? '');
-        if (mb_strlen($geminiSummary) > mb_strlen($primarySummary) + 20) {
+        if ($primarySummary === '' && $geminiSummary !== '') {
+            $merged['summary'] = $geminiSummary;
+        } elseif ($geminiSummary !== '' && mb_strlen($geminiSummary) > mb_strlen($primarySummary) + 20) {
             $merged['summary'] = $geminiSummary;
         } else {
             $merged['summary'] = $pick($primarySummary, $geminiSummary);
@@ -3274,36 +3543,143 @@ PROMPT;
             ))));
         }
 
-        foreach (['experience', 'education', 'projects', 'certifications', 'languages', 'achievements'] as $section) {
-            $primaryItems  = is_array($primary[$section] ?? null) ? $primary[$section] : [];
-            $fallbackItems = is_array($gemini[$section] ?? null) ? $gemini[$section] : [];
-            $primaryScore  = $this->sectionRichnessScore($primaryItems);
-            $fallbackScore = $this->sectionRichnessScore($fallbackItems);
-
-            if ($section === 'experience' && $this->experienceSectionLooksCorrupted($primaryItems)) {
-                $merged[$section] = $fallbackScore > 0 ? $fallbackItems : $primaryItems;
-                continue;
-            }
-
-            if ($section === 'education' && $this->educationSectionLooksCorrupted($fallbackItems)) {
-                $merged[$section] = $primaryScore > 0 ? $primaryItems : [];
-                continue;
-            }
-
-            if ($primaryScore === 0) {
-                $merged[$section] = $fallbackItems;
-                continue;
-            }
-
-            if ($fallbackScore > $primaryScore * 1.2 && count($fallbackItems) >= count($primaryItems)) {
-                $merged[$section] = $fallbackItems;
-                continue;
-            }
-
-            $merged[$section] = $primaryItems;
+        foreach (['education', 'projects', 'certifications', 'languages', 'achievements'] as $section) {
+            $merged[$section] = $this->mergeSectionFillOnly(
+                is_array($primary[$section] ?? null) ? $primary[$section] : [],
+                is_array($gemini[$section] ?? null) ? $gemini[$section] : []
+            );
         }
 
+        $merged['experience'] = $this->mergeExperienceEnriched(
+            is_array($primary['experience'] ?? null) ? $primary['experience'] : [],
+            is_array($gemini['experience'] ?? null) ? $gemini['experience'] : []
+        );
+
         return $this->normalizeResume($merged);
+    }
+
+    /**
+     * Row-wise Affinda experience + Gemini bullets/periods matched by company or role.
+     */
+    private function mergeExperienceEnriched(array $primaryItems, array $geminiItems): array
+    {
+        if ($primaryItems === []) {
+            return $geminiItems;
+        }
+
+        $merged = [];
+
+        foreach ($primaryItems as $p) {
+            if (! is_array($p)) {
+                $merged[] = $p;
+                continue;
+            }
+
+            $bestGemini = null;
+            $pCompany   = strtolower(trim((string) ($p['company'] ?? '')));
+            $pRole      = strtolower(trim((string) ($p['role'] ?? '')));
+
+            foreach ($geminiItems as $g) {
+                if (! is_array($g)) {
+                    continue;
+                }
+                $gCompany = strtolower(trim((string) ($g['company'] ?? '')));
+                $gRole    = strtolower(trim((string) ($g['role'] ?? '')));
+
+                $companyMatch = $pCompany !== '' && $gCompany !== ''
+                    && (str_contains($gCompany, $pCompany) || str_contains($pCompany, $gCompany));
+                $roleMatch = $pRole !== '' && $gRole !== ''
+                    && (str_contains($gRole, $pRole) || str_contains($pRole, $gRole));
+
+                if ($companyMatch || $roleMatch) {
+                    $bestGemini = $g;
+                    break;
+                }
+            }
+
+            if ($bestGemini === null) {
+                $idx = count($merged);
+                $bestGemini = is_array($geminiItems[$idx] ?? null) ? $geminiItems[$idx] : null;
+            }
+
+            $row = $p;
+            if (is_array($bestGemini)) {
+                foreach (['company', 'role', 'period'] as $key) {
+                    if (trim((string) ($row[$key] ?? '')) === '' && trim((string) ($bestGemini[$key] ?? '')) !== '') {
+                        $row[$key] = $bestGemini[$key];
+                    }
+                }
+                $primaryPoints = array_filter($row['points'] ?? [], fn ($pt) => trim((string) $pt) !== '');
+                $geminiPoints  = array_filter($bestGemini['points'] ?? [], fn ($pt) => trim((string) $pt) !== '');
+                if ($primaryPoints === [] && $geminiPoints !== []) {
+                    $row['points'] = array_values($geminiPoints);
+                }
+            }
+
+            $merged[] = $row;
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Keep all Affinda rows and enrich row-by-row using Gemini only for blanks.
+     * Never reduces row count or drops existing values.
+     */
+    private function mergeSectionFillOnly(array $primaryItems, array $geminiItems): array
+    {
+        if ($primaryItems === []) {
+            return $geminiItems;
+        }
+
+        $merged = [];
+        $max = max(count($primaryItems), count($geminiItems));
+
+        for ($i = 0; $i < $max; $i++) {
+            $p = $primaryItems[$i] ?? null;
+            $g = $geminiItems[$i] ?? null;
+
+            if (is_array($p)) {
+                if (is_array($g)) {
+                    $row = $p;
+                    foreach ($row as $k => $v) {
+                        if (is_array($v)) {
+                            $pv = is_array($v) ? $v : [];
+                            $gv = is_array($g[$k] ?? null) ? $g[$k] : [];
+                            $row[$k] = array_values(array_unique(array_filter(array_merge($pv, $gv))));
+                        } else {
+                            $pv = $this->scalarString($v);
+                            $gv = $this->scalarString($g[$k] ?? '');
+                            $row[$k] = $pv !== '' ? $pv : $gv;
+                        }
+                    }
+                    $merged[] = $row;
+                } else {
+                    $merged[] = $p;
+                }
+                continue;
+            }
+
+            if ($this->scalarString($p) !== '') {
+                $merged[] = $p;
+                continue;
+            }
+
+            if ($g !== null) {
+                $merged[] = $g;
+            }
+        }
+
+        for ($i = count($primaryItems); $i < count($geminiItems); $i++) {
+            $extra = $geminiItems[$i] ?? null;
+            if (is_array($extra) && collect($extra)->contains(fn ($v) => $this->scalarString($v) !== '')) {
+                $merged[] = $extra;
+            } elseif ($this->scalarString($extra) !== '') {
+                $merged[] = $extra;
+            }
+        }
+
+        return $merged;
     }
 
     private function experienceSectionLooksCorrupted(array $items): bool

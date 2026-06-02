@@ -12,7 +12,6 @@ class GeminiService
     public const DEFAULT_FALLBACK_MODELS = [
         'gemini-2.5-flash',
         'gemini-2.0-flash',
-        'gemini-1.5-flash',
     ];
 
     public const BUSY_MESSAGE = 'AI is temporarily busy. Please try again in a moment.';
@@ -41,7 +40,7 @@ class GeminiService
             $generationConfig['responseMimeType'] = $options['responseMimeType'];
         }
 
-        $timeout = (int) ($options['timeout'] ?? 60);
+        $timeout = (int) ($options['timeout'] ?? 120);
         $models  = $this->modelChain();
 
         foreach ($models as $index => $model) {

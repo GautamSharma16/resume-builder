@@ -215,6 +215,120 @@ class ResumeNormalizerService
         ];
     }
 
+    /**
+     * Map Resume Builder payload back to universal schema (for API standard_resume).
+     */
+    public function fromBuilderFormat(array $builder): array
+    {
+        $standard = ResumeSchema::empty();
+
+        $firstName = trim($this->scalar($builder['name'] ?? ''));
+        $lastName  = trim($this->scalar($builder['last_name'] ?? ''));
+        if ($lastName === '' && str_contains($firstName, ' ')) {
+            $parts     = preg_split('/\s+/', $firstName, 2) ?: [];
+            $firstName = $parts[0] ?? $firstName;
+            $lastName  = $parts[1] ?? '';
+        }
+
+        $standard['name']        = $firstName;
+        $standard['last_name']     = $lastName;
+        $standard['designation'] = trim($this->scalar($builder['designation'] ?? $builder['job_title'] ?? ''));
+        $standard['email']       = $this->scalar($builder['email'] ?? '');
+        $standard['mobile']      = $this->scalar($builder['mobile'] ?? '');
+        $standard['location']    = $this->scalar($builder['location'] ?? '');
+        $standard['linkedin']    = $this->scalar($builder['linkedin'] ?? '');
+        $standard['github']      = $this->scalar($builder['github'] ?? '');
+        $standard['website']     = $this->scalar($builder['portfolio'] ?? $builder['link'] ?? $builder['website'] ?? '');
+        $standard['summary']     = $this->scalar($builder['summary'] ?? '');
+
+        $standard['skills'] = array_values(array_filter(array_map(
+            fn ($s) => $this->scalar($s),
+            is_array($builder['skills'] ?? null) ? $builder['skills'] : []
+        )));
+
+        foreach (is_array($builder['experience'] ?? null) ? $builder['experience'] : [] as $job) {
+            if (! is_array($job)) {
+                continue;
+            }
+            $points = $job['points'] ?? [];
+            if (! is_array($points)) {
+                $points = $points !== '' ? [$points] : [];
+            }
+            $points = array_values(array_filter(array_map(fn ($p) => $this->scalar($p), $points)));
+
+            $period = trim($this->scalar($job['period'] ?? ''));
+            [$start, $end, $isCurrent] = $period !== ''
+                ? $this->parseDateRangeString($period)
+                : ['', '', false];
+
+            $standard['experience'][] = [
+                'company'     => $this->scalar($job['company'] ?? ''),
+                'role'        => $this->scalar($job['role'] ?? ''),
+                'location'    => '',
+                'start_date'  => $start,
+                'end_date'    => $end,
+                'is_current'  => $isCurrent,
+                'description' => implode("\n", $points),
+                'points'      => $points,
+            ];
+        }
+
+        foreach (is_array($builder['education'] ?? null) ? $builder['education'] : [] as $edu) {
+            if (! is_array($edu)) {
+                continue;
+            }
+            $year = trim($this->scalar($edu['year'] ?? ''));
+            [$start, $end] = $year !== ''
+                ? array_slice($this->parseDateRangeString($year), 0, 2)
+                : ['', ''];
+
+            $standard['education'][] = [
+                'degree'      => $this->scalar($edu['degree'] ?? ''),
+                'field'       => $this->scalar($edu['stream'] ?? ''),
+                'institution' => $this->scalar($edu['institution'] ?? ''),
+                'start_date'  => $start,
+                'end_date'    => $end !== '' ? $end : $year,
+            ];
+        }
+
+        foreach (is_array($builder['projects'] ?? null) ? $builder['projects'] : [] as $project) {
+            if (! is_array($project)) {
+                continue;
+            }
+            $standard['projects'][] = [
+                'name'        => $this->scalar($project['name'] ?? ''),
+                'tech_stack'  => $this->scalar($project['tech_stack'] ?? $project['tech'] ?? ''),
+                'link'        => $this->scalar($project['link'] ?? ''),
+                'description' => $this->scalar($project['description'] ?? ''),
+            ];
+        }
+
+        $standard['certifications'] = array_values(array_filter(array_map(
+            fn ($c) => is_array($c) ? $this->mapNamedItem($c) : ['name' => $this->scalar($c), 'description' => ''],
+            is_array($builder['certifications'] ?? null) ? $builder['certifications'] : []
+        )));
+
+        $standard['languages'] = array_values(array_filter(array_map(function ($lang) {
+            if (! is_array($lang)) {
+                $name = $this->scalar($lang);
+
+                return $name === '' ? null : ['name' => $name, 'level' => ''];
+            }
+
+            return [
+                'name'  => $this->scalar($lang['name'] ?? ''),
+                'level' => $this->scalar($lang['level'] ?? ''),
+            ];
+        }, is_array($builder['languages'] ?? null) ? $builder['languages'] : [])));
+
+        $standard['achievements'] = array_values(array_filter(array_map(
+            fn ($a) => is_array($a) ? $this->mapNamedItem($a) : ['name' => $this->scalar($a), 'description' => ''],
+            is_array($builder['achievements'] ?? null) ? $builder['achievements'] : []
+        )));
+
+        return $standard;
+    }
+
     private function affindaFirstName(array $affinda): string
     {
         $candidate = $affinda['candidateName'] ?? [];

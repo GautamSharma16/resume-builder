@@ -73,10 +73,17 @@ class AffindaResumeParserService
                 return ['success' => false, 'message' => $message];
             }
 
-            $payload = $json['data'] ?? [];
-            $data    = is_array($payload['resume'] ?? null) ? $payload['resume'] : (is_array($payload) ? $payload : []);
+            $data = $this->extractResumeData($json);
 
-            if (! is_array($data) || empty($data)) {
+            if ($data === [] && $documentType !== '') {
+                Log::info('Affinda compact parse empty; retrying without compact', ['workspace' => $workspace]);
+                $response = $this->uploadDocument($apiKey, $baseUrl, $path, $file->getClientOriginalName(), $workspace, $documentType, false);
+                if ($response->successful() && ($response->json('meta.failed') ?? false) !== true) {
+                    $data = $this->extractResumeData($response->json());
+                }
+            }
+
+            if ($data === []) {
                 return ['success' => false, 'message' => 'Affinda returned an empty parse result.'];
             }
 
@@ -207,13 +214,17 @@ class AffindaResumeParserService
         string $path,
         string $filename,
         string $workspace,
-        string $documentType
+        string $documentType,
+        bool $compact = true
     ) {
         $payload = [
             'workspace' => $workspace,
             'wait'      => 'true',
-            'compact'   => 'true',
         ];
+
+        if ($compact) {
+            $payload['compact'] = 'true';
+        }
 
         if ($documentType !== '') {
             $payload['documentType'] = $documentType;
@@ -223,6 +234,71 @@ class AffindaResumeParserService
             ->timeout((int) config('services.affinda.timeout', 120))
             ->attach('file', file_get_contents($path), $filename)
             ->post("{$baseUrl}/documents", $payload);
+    }
+
+    /**
+     * @param  array<string, mixed>  $json
+     * @return array<string, mixed>
+     */
+    private function extractResumeData(array $json): array
+    {
+        $payload = is_array($json['data'] ?? null) ? $json['data'] : [];
+
+        if (isset($payload['resume']) && is_array($payload['resume']) && $this->payloadHasResumeSignals($payload['resume'])) {
+            return $payload['resume'];
+        }
+
+        if ($this->payloadHasResumeSignals($payload)) {
+            return $payload;
+        }
+
+        $children = $json['meta']['childDocuments'] ?? [];
+        if (is_array($children)) {
+            foreach ($children as $child) {
+                if (! is_array($child)) {
+                    continue;
+                }
+                $childData = is_array($child['data'] ?? null) ? $child['data'] : [];
+                if ($this->payloadHasResumeSignals($childData)) {
+                    return $childData;
+                }
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function payloadHasResumeSignals(array $payload): bool
+    {
+        if ($payload === []) {
+            return false;
+        }
+
+        $signals = [
+            'workExperience', 'work_experience', 'education', 'skill', 'skills',
+            'candidateName', 'candidateNameFirst', 'candidateNameLast',
+            'email', 'emails', 'phoneNumber', 'phoneNumbers',
+            'profession', 'jobTitle', 'headline', 'summary', 'objective',
+            'project', 'projects', 'certification', 'certifications',
+        ];
+
+        foreach ($signals as $key) {
+            if (! array_key_exists($key, $payload)) {
+                continue;
+            }
+            $value = $payload[$key];
+            if (is_array($value) && $value !== []) {
+                return true;
+            }
+            if (is_string($value) && trim($value) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function formatAffindaError(\Illuminate\Http\Client\Response $response): string
