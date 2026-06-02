@@ -1311,7 +1311,6 @@
                     </div>
                     <div class="upload-actions">
                         <button type="submit" id="enhanceBtn" class="btn-enhance" disabled>
-                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             Enhance Resume with AI
                         </button>
                         <button type="button" id="resetBtn" class="btn-reset">
@@ -1360,7 +1359,7 @@
                 <div class="hiw-step-num">5</div>
                 <div class="hiw-step-title">Download Resume</div>
                 <div class="hiw-step-desc">Download your final resume in PDF or Word format after payment.</div>
-                <div class="hiw-step-badge">After Payment</div>
+                
             </div>
         </div>
     </div>
@@ -1885,7 +1884,7 @@
         const ext = (file.name.split('.').pop() || '').toUpperCase();
         fileNameDisplay.textContent = `${ext || 'FILE'} · ${formatFileSize(file.size)} · Ready — click Enhance Resume with AI`;
         enhanceBtn.disabled = false;
-        statusMsg.innerHTML = '<span class="status-dot"></span> <strong>' + esc(file.name) + '</strong> selected. Click <strong>Enhance Resume with AI</strong> when ready.';
+        statusMsg.innerHTML = '<strong>' + esc(file.name);
     }
 
     function friendlyAiError(message) {
