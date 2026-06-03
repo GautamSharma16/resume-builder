@@ -19,6 +19,9 @@ class AffindaResumeParserService
      */
     public function parseUploadedFile(UploadedFile $file): array
     {
+        // AFFINDA DISABLED
+        return ['success' => false, 'message' => 'Affinda parsing is disabled.'];
+
         $apiKey = trim((string) config('services.affinda.key', ''));
         if ($apiKey === '') {
             return ['success' => false, 'message' => 'Affinda API key is not configured.'];

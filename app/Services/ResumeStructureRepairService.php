@@ -5,6 +5,7 @@ namespace App\Services;
 class ResumeStructureRepairService
 {
     /**
+     * AFFINDA DISABLED
      * Affinda-only cleanup: never replace Affinda sections with regex/rawText parsers.
      */
     public function repairAffinda(array $resume): array

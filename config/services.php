@@ -47,6 +47,7 @@ return [
         'temperature' => (float) env('GEMINI_TEMPERATURE', 0.2),
     ],
 
+    // AFFINDA DISABLED
     'affinda' => [
         'key' => env('AFFINDA_API_KEY'),
         'base_url' => env('AFFINDA_BASE_URL', 'https://api.affinda.com/v3'),

@@ -36,6 +36,11 @@
                     Cover Letter
                     <span class="absolute inset-x-4 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-600 transition-transform duration-200 {{ request()->routeIs('cover-letter') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100' }}"></span>
                 </a>
+                <a href="{{ route('plans') }}"
+                   class="group relative whitespace-nowrap rounded-full px-3.5 py-2.5 text-[15px] font-semibold leading-none tracking-[0.01em] transition duration-200 xl:px-4 xl:text-base {{ request()->routeIs('plans') || request()->routeIs('plans.*') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
+                    Pricing
+                    <span class="absolute inset-x-4 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-600 transition-transform duration-200 {{ request()->routeIs('plans') || request()->routeIs('plans.*') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100' }}"></span>
+                </a>
                 <a href="{{ route('interview') }}"
                    class="group relative whitespace-nowrap rounded-full px-3.5 py-2.5 text-[15px] font-semibold leading-none tracking-[0.01em] transition duration-200 xl:px-4 xl:text-base {{ request()->routeIs('interview') || request()->routeIs('blog.show') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
                     Interview Tips
@@ -108,6 +113,12 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                     </svg>
                     Cover Letter
+                </a>
+                <a href="{{ route('plans') }}" class="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-base font-semibold {{ request()->routeIs('plans') || request()->routeIs('plans.*') ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }} transition duration-200">
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                    Pricing
                 </a>
                 <a href="{{ route('interview') }}" class="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-base font-semibold {{ request()->routeIs('interview') || request()->routeIs('blog.show') ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }} transition duration-200">
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -20,6 +20,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
 use Razorpay\Api\Api;
+use Symfony\Component\Process\Process;
 use Throwable;
 use ZipArchive;
 
@@ -66,7 +67,7 @@ class ResumeController extends Controller
     public function analyze(Request $request, ResumeParseOrchestrator $parseOrchestrator): JsonResponse
     {
         $prevLimit = (int) ini_get('max_execution_time');
-        // Upload parse can include OCR/text extraction + Affinda + Gemini.
+        // Upload parse can include document extraction, section detection, and Gemini.
         if ($prevLimit > 0 && $prevLimit < 240) {
             @set_time_limit(240);
         }
@@ -90,7 +91,7 @@ class ResumeController extends Controller
                 $builderBase = $this->normalizeResume($record->improved_resume_json ?? []);
                 $text = $record->extracted_text ?: $this->resumeToText($builderBase);
 
-                $geminiReview = $this->geminiReviewAffindaAndFill(
+                $geminiReview = $this->geminiReviewAffindaAndFill( // AFFINDA DISABLED: legacy method name, Gemini-only review.
                     $builderBase,
                     $text,
                     $jobRole ?: $record->job_role,
@@ -99,11 +100,11 @@ class ResumeController extends Controller
 
                 $improvedResume = Arr::get($geminiReview, 'success', true) && $this->resumeHasContent(Arr::get($geminiReview, 'improved_resume', []))
                     ? $this->finalizeParsedResume(
-                        $this->mergeAffindaPrimary($builderBase, Arr::get($geminiReview, 'improved_resume', [])),
-                        true,
+                        $this->mergeAffindaPrimary($builderBase, Arr::get($geminiReview, 'improved_resume', [])), // AFFINDA DISABLED: legacy merge name.
+                        false,
                         $text
                     )
-                    : $this->finalizeParsedResume($builderBase, true, $text);
+                    : $this->finalizeParsedResume($builderBase, false, $text);
 
                 $analysis = $this->localAtsAnalysis($improvedResume, $jobRole ?: $record->job_role, $jobDescription ?: $record->job_description);
                 $analysis['improved_resume'] = $improvedResume;
@@ -113,7 +114,7 @@ class ResumeController extends Controller
                     'job_description'      => $jobDescription ?: $record->job_description,
                     'resume_json'          => $improvedResume,
                     'analysis_json'        => array_merge($analysis, [
-                        'parser_source' => Arr::get($record->analysis_json, 'parser_source', 'affinda'),
+                        'parser_source' => Arr::get($record->analysis_json, 'parser_source', 'gemini'),
                     ]),
                     'improved_resume_json' => $improvedResume,
                 ]);
@@ -122,7 +123,7 @@ class ResumeController extends Controller
                     'success'          => true,
                     'analysis_id'      => $record->id,
                     'is_paid'          => false,
-                    'parser_source'    => Arr::get($record->analysis_json, 'parser_source', 'affinda'),
+                    'parser_source'    => Arr::get($record->analysis_json, 'parser_source', 'gemini'),
                     'score'            => (int) Arr::get($analysis, 'score', 0),
                     'strengths'        => Arr::get($analysis, 'strengths', []),
                     'weaknesses'       => Arr::get($analysis, 'weaknesses', []),
@@ -145,13 +146,13 @@ class ResumeController extends Controller
                 ]);
             }
 
-            // 2. Affinda extraction (primary)
-            $parseResult  = $parseOrchestrator->extractFromUpload($file);
+            // 2. Document extraction -> section detection -> Gemini extraction.
+            $parseResult  = $parseOrchestrator->extractFromUpload($file, $text);
             $parseSource  = $parseResult['source'];
             $standardJson = $parseResult['standard'] ?? ResumeSchema::empty();
             $parserMessage = $parseResult['message'] ?? null;
 
-            // 3. Affinda → normalize → Gemini review/fill → safe merge (all upload modes)
+            // 3. Gemini result -> normalize -> autofill payload (all upload modes).
             $hybrid         = $this->buildHybridAutofillResume($parseResult, $text, $jobRole, $jobDescription);
             $improvedResume = $hybrid['builder'];
             $parseSource    = $hybrid['source'];
@@ -835,6 +836,11 @@ PROMPT;
         }
 
         try {
+            $pythonText = $this->extractTextViaPythonStack($path, 'pdf');
+            if ($this->scoreExtractedText($pythonText) >= 20) {
+                return $pythonText;
+            }
+
             $config = new \Smalot\PdfParser\Config();
             $config->setRetainImageContent(false);
             $config->setIgnoreEncryption(true);
@@ -960,6 +966,11 @@ PROMPT;
 
     private function extractTextFromDocx(string $path): string
     {
+        $pythonText = $this->extractTextViaPythonStack($path, 'docx');
+        if ($this->scoreExtractedText($pythonText) >= 20) {
+            return $pythonText;
+        }
+
         if (!class_exists('ZipArchive')) {
             $lo = $this->extractViaLibreOffice($path);
             if ($lo !== '') return $this->cleanDocText($lo);
@@ -996,6 +1007,40 @@ PROMPT;
         $content = preg_replace('/\n{3,}/', "\n\n", $content);
 
         return trim($content);
+    }
+
+    private function extractTextViaPythonStack(string $path, string $kind): string
+    {
+        $script = base_path('scripts/extract_resume_text.py');
+        if (! is_file($script) || ! class_exists(Process::class)) {
+            return '';
+        }
+
+        foreach (['python', 'python3', 'py'] as $binary) {
+            try {
+                $process = new Process([$binary, $script, $kind, $path]);
+                $process->setTimeout(90);
+                $process->run();
+
+                if (! $process->isSuccessful()) {
+                    continue;
+                }
+
+                $payload = json_decode(trim($process->getOutput()), true);
+                $text = is_array($payload) ? trim((string) ($payload['text'] ?? '')) : '';
+                if ($text !== '') {
+                    \Log::info('Resume document extraction used Python stack', [
+                        'kind' => $kind,
+                        'engine' => $payload['engine'] ?? 'python',
+                    ]);
+                    return $text;
+                }
+            } catch (\Throwable $e) {
+                continue;
+            }
+        }
+
+        return '';
     }
 
     private function extractTextFromDoc(string $path): string
@@ -2515,7 +2560,7 @@ PROMPT;
     }
 
     /**
-     * Affinda + Gemini hybrid autofill (Resume Maker upload & Enhance CV parse step).
+     * Gemini-first autofill (Resume Maker upload & Enhance CV parse step).
      *
      * @return array{builder:array,source:string,standard:array}
      */
@@ -2525,36 +2570,16 @@ PROMPT;
         string $jobRole,
         ?string $jobDescription
     ): array {
-        $affindaBuilder = is_array($parseResult['builder'] ?? null) ? $parseResult['builder'] : [];
         $standardJson   = $parseResult['standard'] ?? ResumeSchema::empty();
-        $parseSource    = $parseResult['source'] ?? 'pending_fallback';
-        $affindaReady   = $parseSource === 'affinda' && $this->resumeHasContent($affindaBuilder);
+        $parseSource    = $parseResult['source'] ?? 'gemini';
+        $parsedBuilder  = is_array($parseResult['builder'] ?? null) ? $this->normalizeResume($parseResult['builder']) : [];
 
         $localHints = $this->postProcessGeminiResume($this->localParseResume($extractedText));
 
-        if ($affindaReady) {
-            $geminiAnalysis = $this->geminiReviewAffindaAndFill($affindaBuilder, $extractedText, $jobRole, $jobDescription);
-            $geminiPatch = Arr::get($geminiAnalysis, 'improved_resume', []);
-            $geminiOk    = Arr::get($geminiAnalysis, 'success', true)
-                && (is_array($geminiPatch) && array_filter($geminiPatch) !== []);
-
-            if (! $geminiOk) {
-                \Log::warning('Hybrid autofill: Affinda review pass failed, running full Gemini extract', [
-                    'message' => Arr::get($geminiAnalysis, 'message'),
-                ]);
-                $geminiAnalysis = $this->geminiExtractAndAutofill(
-                    $extractedText,
-                    $jobRole,
-                    $jobDescription,
-                    $this->mergeAffindaPrimary($affindaBuilder, $localHints)
-                );
-            }
+        if ($this->resumeHasContent($parsedBuilder)) {
+            $geminiAnalysis = ['success' => true, 'improved_resume' => $parsedBuilder];
         } else {
-            $hints = $this->resumeHasContent($affindaBuilder)
-                ? $this->mergeAffindaPrimary($affindaBuilder, $localHints)
-                : $localHints;
-
-            $geminiAnalysis = $this->geminiExtractAndAutofill($extractedText, $jobRole, $jobDescription, $hints);
+            $geminiAnalysis = $this->geminiExtractAndAutofill($extractedText, $jobRole, $jobDescription, $localHints);
         }
 
         $geminiBuilder = Arr::get($geminiAnalysis, 'success', true)
@@ -2564,29 +2589,21 @@ PROMPT;
         if (! Arr::get($geminiAnalysis, 'success', true)) {
             \Log::warning('Hybrid autofill: Gemini unavailable', [
                 'message'             => Arr::get($geminiAnalysis, 'message'),
-                'affinda_has_content' => $affindaReady,
+                'parser_source'       => $parseSource,
             ]);
         }
 
         $builder = [];
         $source  = $parseSource;
 
-        if ($affindaReady) {
-            $builder = $this->resumeHasContent($geminiBuilder)
-                ? $this->mergeAffindaPrimary($affindaBuilder, $geminiBuilder)
-                : $affindaBuilder;
-            $source = $this->resumeHasContent($geminiBuilder) ? 'affinda+gemini' : 'affinda';
-        } elseif ($this->resumeHasContent($geminiBuilder)) {
+        if ($this->resumeHasContent($geminiBuilder)) {
             $builder = $geminiBuilder;
             $source  = 'gemini';
-        } elseif ($this->resumeHasContent($affindaBuilder)) {
-            $builder = $affindaBuilder;
-            $source  = 'affinda';
         }
 
         if (! $this->resumeHasContent($builder)) {
             $builder = $this->resumeHasContent($geminiBuilder)
-                ? $this->mergeAffindaPrimary($geminiBuilder, $localHints)
+                ? $this->mergeAffindaPrimary($geminiBuilder, $localHints) // AFFINDA DISABLED: legacy merge helper name.
                 : ($this->resumeHasContent($localHints) ? $localHints : $geminiBuilder);
             $source = match (true) {
                 $this->resumeHasContent($geminiBuilder) && $this->resumeHasContent($localHints) => 'gemini+local',
@@ -2595,8 +2612,7 @@ PROMPT;
             };
         }
 
-        $fromAffinda = str_starts_with((string) $source, 'affinda');
-        $builder     = $this->finalizeParsedResume($builder, $fromAffinda, $extractedText);
+        $builder     = $this->finalizeParsedResume($builder, false, $extractedText);
         $standardJson = app(ResumeNormalizerService::class)->fromBuilderFormat($builder);
 
         return [
@@ -2612,9 +2628,7 @@ PROMPT;
     private function hybridAutofillSuggestions(string $parseSource): array
     {
         return match ($parseSource) {
-            'affinda+gemini' => ['Resume imported with Affinda + AI review — fields filled and verified.'],
-            'affinda'        => ['Resume imported with Affinda — AI review was skipped or unavailable.'],
-            'gemini', 'gemini+local' => ['Resume imported with AI extraction — Affinda was unavailable.'],
+            'gemini', 'gemini+local' => ['Resume imported with AI extraction — fields filled automatically.'],
             default          => ['Resume imported with local parsing — review all fields before saving.'],
         };
     }
@@ -2631,7 +2645,6 @@ PROMPT;
             return 'AI service is temporarily rate-limited. Please try again in a few moments.';
         }
 
-        // Affinda API 404 or invalid configuration
         if (str_contains($message, '404') || str_contains($message, 'not found')) {
             return 'Resume parsing service is misconfigured. Please contact support. (Code: 404)';
         }
@@ -2667,8 +2680,8 @@ PROMPT;
     }
 
     /**
-     * Gemini second-pass review for Affinda output.
-     * Keeps Affinda as source of truth and only fills missing/incomplete fields.
+     * AFFINDA DISABLED
+     * Legacy method name retained; this is now a Gemini second-pass review for existing builder data.
      */
     private function geminiReviewAffindaAndFill(
         array $affindaBuilder,
@@ -2723,7 +2736,7 @@ IMPORTANT OUTPUT SIZE RULE:
 - Include ONLY fields you add, fix, or improve.
 - OMIT keys that are already correct in PARSED_RESUME_JSON.
 - For sections (experience, education, projects, skills, summary, linkedin, github, portfolio, social_links), include a section ONLY if you are adding rows/items or filling blanks.
-- Do NOT repeat unchanged Affinda values.
+- Do NOT repeat unchanged existing values.
 
 RAW_TEXT:
 PROMPT;
@@ -3925,7 +3938,8 @@ PROMPT;
     }
 
     /**
-     * Keep Affinda-structured sections; let Gemini fill scalars and enhanced summary only.
+     * AFFINDA DISABLED
+     * Legacy helper name retained; merge primary structured sections with Gemini fill data.
      */
     private function mergeAffindaPrimary(array $affindaBuilder, array $geminiResume): array
     {
@@ -3971,7 +3985,8 @@ PROMPT;
     }
 
     /**
-     * Row-wise Affinda experience + Gemini bullets/periods matched by company or role.
+     * AFFINDA DISABLED
+     * Row-wise primary experience + Gemini bullets/periods matched by company or role.
      */
     private function mergeExperienceEnriched(array $primaryItems, array $geminiItems): array
     {
@@ -4035,7 +4050,8 @@ PROMPT;
     }
 
     /**
-     * Keep all Affinda rows and enrich row-by-row using Gemini only for blanks.
+     * AFFINDA DISABLED
+     * Keep all primary rows and enrich row-by-row using Gemini only for blanks.
      * Never reduces row count or drops existing values.
      */
     private function mergeSectionFillOnly(array $primaryItems, array $geminiItems): array

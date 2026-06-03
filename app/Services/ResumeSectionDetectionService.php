@@ -14,19 +14,57 @@ class ResumeSectionDetectionService
      */
     public function detectAllSections(string $text): array
     {
-        // Normalize the text first
-        $normalized = $this->normalizeText($text);
+        $sections = array_fill_keys([
+            'summary',
+            'skills',
+            'experience',
+            'education',
+            'projects',
+            'certifications',
+            'languages',
+            'achievements',
+        ], '');
 
-        return [
-            'summary'        => $this->extractSection($normalized, $this->summaryPatterns()),
-            'skills'         => $this->extractSection($normalized, $this->skillsPatterns()),
-            'experience'     => $this->extractSection($normalized, $this->experiencePatterns()),
-            'education'      => $this->extractSection($normalized, $this->educationPatterns()),
-            'projects'       => $this->extractSection($normalized, $this->projectsPatterns()),
-            'certifications' => $this->extractSection($normalized, $this->certificationsPatterns()),
-            'languages'      => $this->extractSection($normalized, $this->languagesPatterns()),
-            'achievements'   => $this->extractSection($normalized, $this->achievementsPatterns()),
-        ];
+        $current = null;
+        foreach (preg_split('/\R/', str_replace(["\r\n", "\r"], "\n", $text)) ?: [] as $line) {
+            $heading = $this->sectionKeyForHeading($line);
+            if ($heading !== null) {
+                $current = $heading;
+                continue;
+            }
+
+            if ($current !== null) {
+                $sections[$current] .= rtrim($line) . "\n";
+            }
+        }
+
+        return array_map(fn ($section) => trim($section), $sections);
+    }
+
+    private function sectionKeyForHeading(string $line): ?string
+    {
+        $heading = trim(preg_replace('/\s+/', ' ', $line) ?? '');
+        $heading = trim($heading, " \t\n\r\0\x0B:-–—");
+
+        if ($heading === '' || mb_strlen($heading) > 45) {
+            return null;
+        }
+
+        $key = strtolower($heading);
+        $key = preg_replace('/[^a-z0-9 ]+/', '', $key) ?? $key;
+        $key = trim(preg_replace('/\s+/', ' ', $key) ?? $key);
+
+        return match ($key) {
+            'summary', 'professional summary', 'profile', 'professional profile', 'objective', 'career objective', 'about me', 'about', 'synopsis' => 'summary',
+            'skills', 'skill', 'technical skills', 'core skills', 'core competencies', 'competencies', 'expertise', 'technologies', 'technology stack' => 'skills',
+            'experience', 'work experience', 'professional experience', 'employment history', 'work history', 'career history', 'employment', 'internships', 'positions', 'roles' => 'experience',
+            'education', 'academics', 'academic background', 'qualifications', 'academic qualifications' => 'education',
+            'projects', 'project', 'portfolio', 'personal projects', 'academic projects' => 'projects',
+            'certifications', 'certificates', 'licenses', 'credentials', 'professional certifications' => 'certifications',
+            'languages', 'language', 'linguistic skills' => 'languages',
+            'achievements', 'awards', 'honors', 'honours', 'accomplishments', 'publications', 'key achievements' => 'achievements',
+            default => null,
+        };
     }
 
     /**

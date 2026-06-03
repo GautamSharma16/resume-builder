@@ -5,6 +5,7 @@ namespace App\Services;
 class ResumeNormalizerService
 {
     /**
+     * AFFINDA DISABLED
      * Map Affinda v3 (compact) resume payload to universal schema.
      */
     public function fromAffinda(array $affinda): array

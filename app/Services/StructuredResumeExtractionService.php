@@ -30,15 +30,18 @@ class StructuredResumeExtractionService
             // Step 1: Prepare raw text
             Log::info("[$extractionId] Starting extraction", ['doc_type' => $documentType]);
             $prepared = $this->prepareText($rawText);
-            $this->logExtraction($extractionId, 'step_1_prepared_text', $prepared);
+            $this->logExtraction($extractionId, 'step_1_extracted_text', $prepared);
 
             // Step 2: Detect sections
             $sections = $this->sectionDetector->detectAllSections($prepared);
-            $this->logExtraction($extractionId, 'step_2_detected_sections', array_map(fn($s) => mb_strlen($s) > 0 ? substr($s, 0, 100) . '...' : '', $sections));
+            $this->logExtraction($extractionId, 'step_2_detected_sections', $sections);
 
             // Step 3: Parse each section with specialized parsers
             $structured = $this->parseAllSections($sections, $extractionId);
-            $this->logExtraction($extractionId, 'step_3_parsed_sections', array_map('count', $structured));
+            $this->logExtraction($extractionId, 'step_3_parsed_sections', array_map(
+                fn ($value) => is_array($value) ? count($value) : (trim((string) $value) !== '' ? 1 : 0),
+                $structured
+            ));
 
             // Step 4: Validate extracted data
             $validation = $this->validateExtraction($structured);
@@ -58,6 +61,7 @@ class StructuredResumeExtractionService
             return [
                 'success'        => true,
                 'extraction_id'  => $extractionId,
+                'sections'       => $sections,
                 'structured'     => $structured,
                 'for_ai'         => $forAi,
                 'validation'     => $validation,
@@ -420,6 +424,11 @@ class StructuredResumeExtractionService
     /**
      * Log extraction step
      */
+    public function logParserStep(string $extractionId, string $step, $data): void
+    {
+        $this->logExtraction($extractionId, $step, $data);
+    }
+
     private function logExtraction(string $extractionId, string $step, $data): void
     {
         $logPath = storage_path('logs/resume-parser.log');

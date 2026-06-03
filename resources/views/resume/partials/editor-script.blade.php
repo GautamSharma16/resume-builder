@@ -830,21 +830,27 @@
            Temporarily reset any transform, measure, then restore.
         ─────────────────────────────────────────────────────────── */
         const prevTransform = sheet.style.transform;
+        const prevWidth = sheet.style.width;
         const prevMinHeight = sheet.style.minHeight;
         const prevHeight = sheet.style.height;
+        const prevMarginTop = sheet.style.marginTop;
         sheet.style.transform = 'none';
+        sheet.style.width = A4_W + 'px';
         sheet.style.minHeight = '0';
         sheet.style.height = 'auto';
+        sheet.style.marginTop = '0';
         const rawH = Math.max(
             sheet.scrollHeight || 0,
             sheet.getBoundingClientRect().height || 0,
             A4_H
         );
-        const pageHeight = Math.max(A4_H, Math.round(sheet.getBoundingClientRect().width / (A4_W / A4_H)) || A4_H);
+        const pageHeight = A4_H;
         const pageTolerance = 2;
         sheet.style.transform = prevTransform;
+        sheet.style.width = prevWidth;
         sheet.style.minHeight = prevMinHeight;
         sheet.style.height = prevHeight;
+        sheet.style.marginTop = prevMarginTop;
 
         /* Page count */
         previewTotalPages = Math.max(1, Math.ceil(Math.max(0, rawH - pageTolerance) / pageHeight));
@@ -863,7 +869,8 @@
         sheet.style.minHeight       = rawH + 'px';
         sheet.style.boxSizing       = 'border-box';
         sheet.style.transformOrigin = 'top left';
-        sheet.style.transform       = `translateY(-${offsetY}px) scale(${scale})`;
+        sheet.style.transform       = `scale(${scale})`;
+        sheet.style.marginTop       = `-${Math.round(offsetY * scale)}px`;
         sheet.style.overflow        = 'visible';
         sheet.style.display         = 'block';
 
@@ -1601,13 +1608,9 @@
                 source = 'upload';
                 setSourceState('upload');
                 if (autofillStatusEl) {
-                    const sourceLabel = (data.parser_source === 'affinda+gemini')
-                        ? 'Affinda + AI'
-                        : (data.parser_source === 'affinda'
-                            ? 'Affinda'
-                            : (data.parser_source === 'gemini' || data.parser_source === 'gemini+local'
-                                ? 'AI'
-                                : 'local parser'));
+                    const sourceLabel = (data.parser_source === 'gemini' || data.parser_source === 'gemini+local')
+                        ? 'AI'
+                        : 'local parser';
                     autofillStatusEl.textContent = RESUME_UPLOAD_SUCCESS_MESSAGE;
                     autofillStatusEl.style.color = data.ai_unavailable ? '#b45309' : '#15803d';
                 }
