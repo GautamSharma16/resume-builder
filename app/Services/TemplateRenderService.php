@@ -185,7 +185,7 @@ class TemplateRenderService
     <section><h2>Education</h2>{{education}}</section>
     <section><h2>Certifications</h2>{{certifications}}</section>
     <section><h2>Languages</h2>{{languages}}</section>
-    <section><h2>Additional Information</h2>{{additional_information}}</section>
+    
 </div>
 HTML;
     }

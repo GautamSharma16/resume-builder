@@ -50,15 +50,34 @@
             <div class="hidden shrink-0 items-center xl:flex">
                 <x-dropdown align="right" width="56" contentClasses="overflow-hidden rounded-2xl border border-slate-200 bg-white py-2 shadow-[0_22px_50px_rgba(15,23,42,0.16)]">
                     <x-slot name="trigger">
-                        <button class="inline-flex max-w-[240px] items-center gap-3 rounded-[16px] border border-slate-200 bg-white px-3.5 py-2.5 text-slate-700 shadow-sm transition duration-200 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
-                            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-sm font-bold text-white shadow-sm">
-                                {{ substr(Auth::user()->name, 0, 1) }}
-                            </span>
-                            <span class="min-w-0 truncate text-base font-semibold">{{ Auth::user()->name }}</span>
-                            <svg class="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
+                       <button
+    class="inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-slate-800 transition-all duration-200 hover:bg-slate-100 focus:outline-none"
+>
+    <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black text-white">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             class="h-5 w-5"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke="currentColor"
+             stroke-width="2">
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.118a7.5 7.5 0 0115 0A17.933 17.933 0 0112 21.75a17.933 17.933 0 01-7.5-1.632z"/>
+        </svg>
+    </span>
+
+    <span class="font-medium text-slate-800">
+        {{ Auth::user()->name }}
+    </span>
+
+    <svg class="h-4 w-4 text-slate-500"
+         fill="currentColor"
+         viewBox="0 0 20 20">
+        <path fill-rule="evenodd"
+              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+              clip-rule="evenodd"/>
+    </svg>
+</button>
                     </x-slot>
 
                     <x-slot name="content">
@@ -155,9 +174,18 @@
 
     <div class="shrink-0 border-t border-slate-100 bg-slate-50/70 p-4">
         <div class="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70">
-            <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-sm font-bold text-white shadow-md">
-                {{ substr(Auth::user()->name, 0, 1) }}
-            </span>
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black text-white">
+        <svg xmlns="http://www.w3.org/2000/svg"
+             class="h-5 w-5"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke="currentColor"
+             stroke-width="2">
+            <path stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.118a7.5 7.5 0 0115 0A17.933 17.933 0 0112 21.75a17.933 17.933 0 01-7.5-1.632z"/>
+        </svg>
+    </span>
             <div class="min-w-0">
                 <p class="truncate text-sm font-bold text-slate-900">{{ Auth::user()->name }}</p>
                 <p class="truncate text-xs font-medium text-slate-500">{{ Auth::user()->email }}</p>
