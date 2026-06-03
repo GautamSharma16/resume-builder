@@ -3615,6 +3615,11 @@ PROMPT;
             return true;
         })));
 
+        $additionalInformation = $resume['additional_information'] ?? $resume['additionalInformation'] ?? [];
+        if (empty($additionalInformation)) {
+            $additionalInformation = $resume['achievements'] ?? [];
+        }
+
         $normalized = [
             'name'         => $rawName,
             'last_name'    => $rawLastName,
@@ -3689,7 +3694,8 @@ PROMPT;
             'certifications' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
             'certificates'   => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
             'languages'      => $this->normalizeLanguages($resume['languages'] ?? $resume['language'] ?? $resume['language_skills'] ?? $resume['language_proficiency'] ?? []),
-            'achievements'   => $this->normalizeNamedItems($resume['achievements'] ?? []),
+            'additional_information' => $this->normalizeNamedItems($additionalInformation),
+            'achievements'   => [],
         ];
 
         $primaryColor = trim((string) ($resume['primary_color'] ?? ''));
@@ -3851,7 +3857,7 @@ PROMPT;
 
         return array_values(array_filter(array_map(function ($item) {
             if (is_array($item)) {
-                $name = $this->scalarString($item['name'] ?? '');
+                $name = $this->scalarString($item['name'] ?? $item['title'] ?? $item['label'] ?? '');
                 $desc = $this->scalarString($item['description'] ?? $item['details'] ?? '');
                 return ($name === '' && $desc === '') ? null : ['name' => $name, 'description' => $desc];
             }

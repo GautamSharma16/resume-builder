@@ -93,11 +93,12 @@ class TemplateRenderService
                 ['name' => 'English', 'level' => 'Professional'],
                 ['name' => 'Hindi', 'level' => 'Native'],
             ],
-            'achievements' => [
+            'additional_information' => [
                 'Won First Place at the State-Level Hackathon 2023.',
                 'Published a research paper on AI-driven UI optimization in IJCS.',
                 'Recognized as Employee of the Month for outstanding delivery in Q3 2022.',
             ],
+            'achievements' => [],
             'social_links' => ['linkedin.com/in/johndoe', 'github.com/johndoe'],
         ];
     }
@@ -157,7 +158,7 @@ class TemplateRenderService
 
     public function containsResumePlaceholders(string $html): bool
     {
-        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\]\]/i', $html) === 1
+        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\]\]/i', $html) === 1
             || preg_match('/\{\{#if\s+[a-z0-9_.]+\s*\}\}/i', $html) === 1
             || $this->shouldRenderWithBlade($html);
     }
@@ -184,6 +185,7 @@ class TemplateRenderService
     <section><h2>Education</h2>{{education}}</section>
     <section><h2>Certifications</h2>{{certifications}}</section>
     <section><h2>Languages</h2>{{languages}}</section>
+    <section><h2>Additional Information</h2>{{additional_information}}</section>
 </div>
 HTML;
     }
@@ -271,7 +273,7 @@ HTML;
         }
 
         // Dynamic Section Visibility: If a section is empty, remove its header and token
-        foreach (['projects', 'certifications', 'certificates', 'languages', 'achievements', 'experience', 'education'] as $key) {
+        foreach (['projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'experience', 'education'] as $key) {
             $val = $data[$key] ?? '';
             if (empty($val) || $val === '<ul></ul>' || $val === '""' || $val === 'null') {
                 // Regex to find a section header followed by the token.
@@ -285,17 +287,17 @@ HTML;
         }
 
         if ($allowInjection) {
-            // Ensure projects, certifications, and achievements are visible in output if they exist but tokens are missing.
+            // Ensure visible optional sections are present when the selected template omits their tokens.
             // We also check if a section header with the title already exists to avoid duplicates.
             $this->ensureSectionVisible($html, $data, 'projects', 'Projects');
             $this->ensureSectionVisible($html, $data, 'certifications', 'Certifications');
             $this->ensureSectionVisible($html, $data, 'languages', 'Languages');
-            $this->ensureSectionVisible($html, $data, 'achievements', 'Achievements');
+            $this->ensureSectionVisible($html, $data, 'additional_information', 'Additional Information');
         }
 
         $html = preg_replace('/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary)\s*<\/h[1-6]>\s*(?:<div[^>]*>\s*)?<\/section>/i', '', $html);
-        $html = preg_replace('/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/i', '', $html);
-        $html = preg_replace('/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/i', '', $html);
+        $html = preg_replace('/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/i', '', $html);
+        $html = preg_replace('/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/i', '', $html);
 
         $html = $this->withScopedAccent($html, $this->resumeAccentColor($data));
 
@@ -419,6 +421,10 @@ HTML;
         $firstName = $this->text(Arr::get($data, 'name', ''));
         $lastName = $this->text(Arr::get($data, 'last_name', ''));
         $fullName = trim($firstName.' '.$lastName) ?: $firstName;
+        $additionalInformation = Arr::get($data, 'additional_information', Arr::get($data, 'additionalInformation', []));
+        if (empty($additionalInformation)) {
+            $additionalInformation = Arr::get($data, 'achievements', []);
+        }
 
         return [
             'name' => e($fullName),
@@ -440,7 +446,8 @@ HTML;
             'certifications' => $this->list(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
             'certificates' => $this->list(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
             'languages' => $this->languageList(Arr::get($data, 'languages', Arr::get($data, 'language', Arr::get($data, 'language_skills', Arr::get($data, 'language_proficiency', []))))),
-            'achievements' => $this->list(Arr::get($data, 'achievements', [])),
+            'additional_information' => $this->list($additionalInformation),
+            'achievements' => '',
             'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
             'profile_image' => Arr::get($data, 'profile_image', ''),
@@ -507,7 +514,8 @@ HTML;
             'certifications' => $this->normalizeBladeArray(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
             'certificates' => $this->normalizeBladeArray(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
             'languages' => $this->normalizeBladeArray(Arr::get($data, 'languages', Arr::get($data, 'language', Arr::get($data, 'language_skills', Arr::get($data, 'language_proficiency', []))))),
-            'achievements' => $this->normalizeBladeArray(Arr::get($data, 'achievements', [])),
+            'additional_information' => $this->normalizeBladeArray(Arr::get($data, 'additional_information', Arr::get($data, 'additionalInformation', Arr::get($data, 'achievements', [])))),
+            'achievements' => [],
             'social_links' => $this->normalizeBladeArray(Arr::get($data, 'social_links', [])),
             'link' => $this->text(Arr::get($data, 'link', '')),
             'contact' => $this->text(Arr::get($data, 'contact', '')),
@@ -605,7 +613,7 @@ HTML;
         $normalized = collect($items)->map(function ($item) {
             if (is_array($item)) {
                 if (array_key_exists('description', $item)) {
-                    $name = $this->text($item['name'] ?? '');
+                    $name = $this->text($item['name'] ?? $item['title'] ?? $item['label'] ?? '');
                     $description = $this->text($item['description']);
 
                     return trim($name.($description !== '' ? ' - '.$description : ''));

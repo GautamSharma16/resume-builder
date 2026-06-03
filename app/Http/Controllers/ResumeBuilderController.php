@@ -684,6 +684,11 @@ class ResumeBuilderController extends Controller
 
     private function normalizeResume(array $resume): array
     {
+        $additionalInformation = $resume['additional_information'] ?? $resume['additionalInformation'] ?? [];
+        if (empty($additionalInformation)) {
+            $additionalInformation = $resume['achievements'] ?? [];
+        }
+
         $normalized = array_merge($resume, [
             'name' => $this->toText($resume['name'] ?? ''),
             'mobile' => $this->toText($resume['mobile'] ?? $resume['contact'] ?? ''),
@@ -709,7 +714,8 @@ class ResumeBuilderController extends Controller
             'certifications' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
             'certificates' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
             'languages' => $this->normalizeLanguages($resume['languages'] ?? $resume['language'] ?? $resume['language_skills'] ?? $resume['language_proficiency'] ?? []),
-            'achievements' => $this->normalizeNamedItems($resume['achievements'] ?? []),
+            'additional_information' => $this->normalizeNamedItems($additionalInformation),
+            'achievements' => [],
             'profile_image' => $this->toText($resume['profile_image'] ?? ''),
         ]);
 
@@ -754,7 +760,7 @@ class ResumeBuilderController extends Controller
 
         return array_values(array_filter(array_map(function ($item) {
             if (is_array($item)) {
-                $name = $this->toText($item['name'] ?? '');
+                $name = $this->toText($item['name'] ?? $item['title'] ?? $item['label'] ?? '');
                 $description = $this->toText($item['description'] ?? $item['details'] ?? '');
 
                 if ($name === '' && $description === '') {

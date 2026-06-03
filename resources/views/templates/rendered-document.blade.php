@@ -180,6 +180,8 @@
 
         /* Print styles */
         @media print {
+            @page { margin: 24px 0 0 0; }
+            @page:first { margin: 0; }
             body { margin: 0; padding: 0; }
             .tpl-resume, .tpl-cover {
                 height: auto !important;

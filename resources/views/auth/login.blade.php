@@ -74,10 +74,10 @@
         max-width: min(230px, 72vw);
         object-fit: contain;
         filter: brightness(1.28) contrast(1.08) drop-shadow(0 6px 20px rgba(37,99,235,0.35));
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255,255,255,0.18);
+        /* background: rgba(255, 255, 255, 0.08); */
+        /* border: 1px solid rgba(255,255,255,0.18); */
         border-radius: 14px;
-        padding: 8px 10px;
+        padding: -3px 10px;
     }
 
     .lp-headline {
@@ -370,16 +370,7 @@
                     </div>
                 </div>
                 
-                <div class="glass-card" style="transform: translateX(48px); opacity: 0.8;">
-                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400" class="card-img" alt="Michael Chen">
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="font-bold text-white">Michael Chen</span>
-                            <span class="card-badge">Hired</span>
-                        </div>
-                        <div class="text-sm text-outline">Software Engineering Lead, <span class="text-white">ATS Score 91%</span></div>
-                    </div>
-                </div>
+                
             </div>
         </div>
 

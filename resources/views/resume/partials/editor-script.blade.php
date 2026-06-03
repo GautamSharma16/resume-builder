@@ -190,7 +190,7 @@
     const A4_H = 1123;
 
     /* ── State ── */
-    const defaults = { name:'', last_name:'', job_title:'', designation:'', desired_job_role:'', email:'', mobile:'', location:'', linkedin:'', portfolio:'', link:'', github:'', social_links:[], contact:'', address:'', summary:'', skills:[], experience:[], education:[], projects:[], certifications:[], languages:[], achievements:[], primary_color: '', primary_color_customized: false, profile_image: '' };
+    const defaults = { name:'', last_name:'', job_title:'', designation:'', desired_job_role:'', email:'', mobile:'', location:'', linkedin:'', portfolio:'', link:'', github:'', social_links:[], contact:'', address:'', summary:'', skills:[], experience:[], education:[], projects:[], certifications:[], languages:[], additional_information:[], achievements:[], primary_color: '', primary_color_customized: false, profile_image: '' };
     const state = Object.assign({}, defaults, readJson('resume-initial-json', {}));
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -406,9 +406,13 @@
         languages: uniqueByNormalized(ensureArray(r.languages).map(l =>
             typeof l === 'string' ? { name: l, level: '' } : { name: String(l?.name ?? l?.language ?? ''), level: String(l?.level ?? l?.proficiency ?? '') }
         ), l => [l.name, l.level].join(' ')),
-        achievements: uniqueByNormalized(ensureArray(r.achievements).map(a =>
-            typeof a === 'string' ? { name: a, description: '' } : { name: String(a?.name ?? ''), description: String(a?.description ?? '') }
+        additional_information: uniqueByNormalized([
+            ...ensureArray(r.additional_information ?? r.additionalInformation),
+            ...ensureArray(r.achievements)
+        ].map(a =>
+            typeof a === 'string' ? { name: a, description: '' } : { name: String(a?.name ?? a?.title ?? a?.label ?? ''), description: String(a?.description ?? a?.details ?? '') }
         ), a => [a.name, a.description].join(' ')),
+        achievements: [],
         primary_color: String(r.primary_color ?? ''),
         primary_color_customized: Boolean(r.primary_color_customized ?? (r.primary_color && r.primary_color !== '#2563eb')),
         profile_image: String(r.profile_image ?? ''),
@@ -424,7 +428,8 @@
         if (!state.projects.length)   state.projects.push({ name:'', tech_stack:'', link:'', description:'' });
         if (!state.certifications.length) state.certifications.push({ name:'', description:'' });
         if (!state.languages.length) state.languages.push({ name:'', level:'' });
-        if (!state.achievements.length)   state.achievements.push({ name:'', description:'' });
+        state.additional_information = ensureArray(state.additional_information);
+        state.achievements = [];
     };
     ensureDefaults();
 
@@ -435,6 +440,7 @@
 
     /* ── Legacy sync ── */
     function syncLegacy() {
+        state.achievements = [];
         state.contact = [state.email, state.mobile, state.linkedin, state.github, state.portfolio || state.link]
             .filter(Boolean)
             .join(' | ');
@@ -514,7 +520,7 @@
         return output;
     }
     function hasResumePlaceholders(html) {
-        const tokens = ['name', 'last_name', 'job_title', 'designation', 'email', 'mobile', 'location', 'contact', 'address', 'summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'certificates', 'languages', 'achievements', 'social_links', 'linkedin', 'portfolio', 'link', 'profile_image', 'profile_image_url', 'profile_image_tag', 'photo'];
+        const tokens = ['name', 'last_name', 'job_title', 'designation', 'email', 'mobile', 'location', 'contact', 'address', 'summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'social_links', 'linkedin', 'portfolio', 'link', 'profile_image', 'profile_image_url', 'profile_image_tag', 'photo'];
         return new RegExp('\\{\\{\\s*(' + tokens.join('|') + ')\\s*\\}\\}', 'i').test(html)
             || new RegExp('\\[\\[\\s*(' + tokens.join('|') + ')\\s*\\]\\]', 'i').test(html)
             || /\{\{#if\s+[a-z0-9_.]+\s*\}\}/i.test(html)
@@ -540,7 +546,7 @@
                 <section><h2>Projects</h2>@{{projects}}</section>
                 <section><h2>Certifications</h2>@{{certifications}}</section>
                 <section><h2>Languages</h2>@{{languages}}</section>
-                <section><h2>Achievements</h2>@{{achievements}}</section>
+                <section><h2>Additional Information</h2>@{{additional_information}}</section>
                 <section><h2>Education</h2>@{{education}}</section>
             </div>`;
     }
@@ -580,6 +586,7 @@
             output = editableTemplateShell();
         }
         const hasProjectsToken = /\{\{\s*projects\s*\}\}/.test(output) || output.includes('[[projects]]');
+        const hasAdditionalInformationToken = /\{\{\s*additional_information\s*\}\}/.test(output) || output.includes('[[additional_information]]');
         const values = {
             name:         esc(fullName() || state.name || ''),
             last_name:    esc(state.last_name || ''),
@@ -602,7 +609,8 @@
             certifications: state.certifications.some(c => c?.name || typeof c === 'string') ? renderList(state.certifications) : '',
             certificates: state.certifications.some(c => c?.name || typeof c === 'string') ? renderList(state.certifications) : '',
             languages: state.languages.some(l => l?.name || typeof l === 'string') ? renderList(state.languages) : '',
-            achievements: state.achievements.some(a => a?.name || typeof a === 'string') ? renderList(state.achievements) : '',
+            additional_information: state.additional_information.some(a => a?.name || typeof a === 'string') ? renderList(state.additional_information) : '',
+            achievements: '',
             profile_image: state.profile_image || '',
             profile_image_url: state.profile_image || '',
             profile_image_tag: state.profile_image ? `<img src="${state.profile_image}" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">` : '',
@@ -611,7 +619,7 @@
         output = applyHandlebarsIfBlocks(output, values);
         Object.entries(values).forEach(([k, v]) => { output = replaceToken(output, k, v); });
 
-        ['projects', 'certifications', 'certificates', 'languages', 'achievements', 'experience', 'education'].forEach(key => {
+        ['projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'experience', 'education'].forEach(key => {
             if (!values[key] || values[key] === '<ul></ul>' || values[key] === '') {
                 const re = new RegExp('<(h2|h3|h4|div)[^>]*>[^<]*?' + key + '[^<]*?<\\/\\1>\\s*(?:<[^>]+>\\s*)*?(\\{\\{\\s*' + key + '\\s*\\}\\}|\\[\\[' + key + '\\]\\])', 'gi');
                 output = output.replace(re, '');
@@ -632,7 +640,8 @@
                 'location': values.location, 'summary': values.summary,
                 'linkedin': values.linkedin || '',
                 'portfolio': values.portfolio, 'link': values.link, 'github': state.github || '',
-                'certifications': values.certifications, 'certificates': values.certificates, 'languages': values.languages
+                'certifications': values.certifications, 'certificates': values.certificates, 'languages': values.languages,
+                'additional_information': values.additional_information, 'achievements': values.achievements
             };
             Object.entries(bladeMap).forEach(([k, v]) => {
                 const re = new RegExp('\\{\\{\\s*\\$resume\\[[\'"]' + k + '[\'"]\\]\\s*\\}\\}', 'g');
@@ -664,11 +673,17 @@
             output = lastDiv !== -1 ? output.slice(0, lastDiv) + section + output.slice(lastDiv) : output + section;
         }
 
+        if (!hasAdditionalInformationToken && values.additional_information && !/<(h2|h3|h4|div|strong|b)[^>]*>[^<]*?Additional Information[^<]*?<\/\1>/i.test(output)) {
+            const section = `<h2>Additional Information</h2>${values.additional_information}`;
+            const lastDiv = output.lastIndexOf('</div>');
+            output = lastDiv !== -1 ? output.slice(0, lastDiv) + section + output.slice(lastDiv) : output + section;
+        }
+
         // Remove empty sections entirely so clear/delete reflects instantly in preview.
         output = output
             .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary)\s*<\/h[1-6]>\s*(?:<div[^>]*>\s*)?<\/section>/gi, '')
-            .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/gi, '')
-            .replace(/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/gi, '');
+            .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/gi, '')
+            .replace(/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/gi, '');
 
         output = output.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function(match, css) {
             let scoped = css.replace(/(^|\}|\s)body\s*\{/gi, '$1.resume-sheet-preview {');
@@ -734,7 +749,7 @@
                 ${projectsHtml ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Projects</h2><ul style="margin:0 0 14px 14px;padding:0;">${projectsHtml}</ul>` : ''}
                 ${state.certifications.some(c => c?.name || typeof c === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Certifications</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.certifications.map(c => `<li style="font-size:11px;"><strong>${esc(typeof c === 'string' ? c : (c?.name || ''))}</strong>${(typeof c !== 'string' && c?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(c.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
                 ${state.languages.some(l => l?.name || typeof l === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Languages</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.languages.map(l => `<li style="font-size:11px;"><strong>${esc(typeof l === 'string' ? l : (l?.name || ''))}</strong>${(typeof l !== 'string' && l?.level) ? `<span style="color:#6b7280;font-size:10.5px;"> - ${esc(l.level)}</span>` : ''}</li>`).join('')}</ul>` : ''}
-                ${state.achievements.some(a => a?.name || typeof a === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Achievements</h2><ul style="margin:0 0 0 14px;padding:0;">${state.achievements.map(a => `<li style="font-size:11px;"><strong>${esc(typeof a === 'string' ? a : (a?.name || ''))}</strong>${(typeof a !== 'string' && a?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(a.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+                ${state.additional_information.some(a => a?.name || typeof a === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Additional Information</h2><ul style="margin:0 0 0 14px;padding:0;">${state.additional_information.map(a => `<li style="font-size:11px;"><strong>${esc(typeof a === 'string' ? a : (a?.name || ''))}</strong>${(typeof a !== 'string' && a?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(a.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
             </div>
             </div></div>`;
     }
@@ -1154,20 +1169,20 @@
                 </div>`).join('');
         }
 
-        /* Achievement cards */
-        const achEditorEl = $('achievement-editor');
+        /* Additional information cards */
+        const achEditorEl = $('additional-information-editor');
         if (achEditorEl) {
-            achEditorEl.innerHTML = state.achievements.map((a, i) => `
-                <div class="rp-entry-card" data-achievement="${i}">
+            achEditorEl.innerHTML = state.additional_information.map((a, i) => `
+                <div class="rp-entry-card" data-additional-information="${i}">
                     <div class="rp-entry-field">
-                        <label class="rp-entry-label">Achievement Title</label>
-                        <input class="rp-input" data-k="name" value="${esc(a?.name || '')}" placeholder="e.g. Employee of the Year">
+                        <label class="rp-entry-label">Title</label>
+                        <input class="rp-input" data-k="name" value="${esc(a?.name || '')}" placeholder="e.g. Awards, Publications, Volunteer Work">
                     </div>
                     <div class="rp-entry-field">
                         <label class="rp-entry-label">Description / Details</label>
-                        <textarea class="rp-input rp-input-ta rich-ta" data-k="description" rows="2" placeholder="Recognized for outstanding performance in Q3 2023">${esc(a?.description || '')}</textarea>
+                        <textarea class="rp-input rp-input-ta rich-ta" data-k="description" rows="2" placeholder="Add relevant details">${esc(a?.description || '')}</textarea>
                     </div>
-                    <button type="button" data-remove-achievement class="rp-entry-remove">
+                    <button type="button" data-remove-additional-information class="rp-entry-remove">
                         <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
                         Remove
                     </button>
@@ -1423,13 +1438,13 @@
         renderTemplatePreview();
     });
 
-    $('achievement-editor')?.addEventListener('input', e => {
-        const row = e.target.closest('[data-achievement]');
+    $('additional-information-editor')?.addEventListener('input', e => {
+        const row = e.target.closest('[data-additional-information]');
         if (!row) return;
-        const i = Number(row.dataset.achievement);
+        const i = Number(row.dataset.additionalInformation);
         const k = e.target.dataset.k;
-        if (!state.achievements[i]) state.achievements[i] = { name:'', description:'' };
-        state.achievements[i][k] = e.target.value;
+        if (!state.additional_information[i]) state.additional_information[i] = { name:'', description:'' };
+        state.additional_information[i][k] = e.target.value;
         renderTemplatePreview();
     });
 
@@ -1489,7 +1504,7 @@
         if (btn.id === 'add-project-btn' || btn.id === 'add-project') { state.projects.push({ name:'', tech_stack:'', link:'', description:'' }); renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'add-certification-btn') { state.certifications.push({ name:'', description:'' }); renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'add-language-btn') { state.languages.push({ name:'', level:'' }); renderEditor(); renderTemplatePreview(); }
-        if (btn.id === 'add-achievement-btn')   { state.achievements.push({ name:'', description:'' }); renderEditor(); renderTemplatePreview(); }
+        if (btn.id === 'add-additional-information-btn')   { state.additional_information.push({ name:'', description:'' }); renderEditor(); renderTemplatePreview(); }
 
         if (btn.dataset.removeExp !== undefined) {
             state.experience.splice(Number(btn.closest('[data-exp]').dataset.exp), 1);
@@ -1504,14 +1519,14 @@
         if (btn.dataset.removeProject !== undefined)       { state.projects.splice(Number(btn.closest('[data-project]').dataset.project), 1); renderEditor(); renderTemplatePreview(); }
         if (btn.dataset.removeCertification !== undefined) { state.certifications.splice(Number(btn.closest('[data-certification]').dataset.certification), 1); renderEditor(); renderTemplatePreview(); }
         if (btn.dataset.removeLanguage !== undefined)      { state.languages.splice(Number(btn.closest('[data-language]').dataset.language), 1); renderEditor(); renderTemplatePreview(); }
-        if (btn.dataset.removeAchievement !== undefined)   { state.achievements.splice(Number(btn.closest('[data-achievement]').dataset.achievement), 1); renderEditor(); renderTemplatePreview(); }
+        if (btn.dataset.removeAdditionalInformation !== undefined)   { state.additional_information.splice(Number(btn.closest('[data-additional-information]').dataset.additionalInformation), 1); renderEditor(); renderTemplatePreview(); }
 
         if (btn.id === 'clear-exp-section-btn')           { state.experience = []; renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'clear-edu-section-btn')           { state.education = [];  renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'clear-project-section-btn')       { state.projects = [];   renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'clear-certification-section-btn') { state.certifications = []; renderEditor(); renderTemplatePreview(); }
         if (btn.id === 'clear-language-section-btn')      { state.languages = []; renderEditor(); renderTemplatePreview(); }
-        if (btn.id === 'clear-achievement-section-btn')   { state.achievements = [];   renderEditor(); renderTemplatePreview(); }
+        if (btn.id === 'clear-additional-information-section-btn')   { state.additional_information = [];   renderEditor(); renderTemplatePreview(); }
     });
 
     /* ── Save ── */

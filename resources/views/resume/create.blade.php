@@ -619,6 +619,52 @@
         }
         .rp-add-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
 
+        .rp-accordion {
+            margin-top: 2rem;
+            border-top: 1px dashed var(--border);
+            padding-top: 1.5rem;
+        }
+        .rp-accordion-toggle {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            border: 1.5px solid var(--border);
+            border-radius: var(--r-md);
+            background: #f8fafc;
+            color: var(--navy);
+            padding: 0.8rem 0.95rem;
+            cursor: pointer;
+            font-family: var(--font-body);
+            text-align: left;
+        }
+        .rp-accordion-title {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            min-width: 0;
+        }
+        .rp-accordion-title strong {
+            font-size: 0.95rem;
+            font-weight: 800;
+        }
+        .rp-accordion-title span {
+            color: var(--muted);
+            font-size: 0.76rem;
+            line-height: 1.35;
+        }
+        .rp-accordion-icon {
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .rp-accordion[open] .rp-accordion-icon {
+            transform: rotate(180deg);
+        }
+        .rp-accordion-body {
+            padding-top: 1rem;
+        }
+
         /* Form footer */
         .rp-form-footer {
             flex-shrink: 0;
@@ -1514,10 +1560,7 @@
                             <h2>Experience</h2>
                             <p>List your work history starting with the most recent role.</p>
                         </div>
-                        <button class="tips-btn" type="button">
-                            <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/></svg>
-                            Experience tips
-                        </button>
+                        
                     </div>
                     <div style="margin-bottom:0.85rem; display:flex; justify-content:flex-end;">
                         <button type="button" id="clear-exp-section-btn" class="rp-entry-remove">
@@ -1572,7 +1615,7 @@
                     <div class="step-head">
                         <div>
                             <h2>Additional Sections</h2>
-                            <p>Add projects, certifications, languages, and achievements to stand out.</p>
+                            <p>Add projects, certifications, languages, and additional information to stand out.</p>
                         </div>
                     </div>
 
@@ -1624,21 +1667,28 @@
                         </button>
                     </div>
 
-                    {{-- Achievements --}}
-                    <div id="achievements-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);" data-template-section="achievements">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                            <h3 style="font-size: 1.1rem; font-weight: 700;">Achievements</h3>
-                            <button type="button" id="clear-achievement-section-btn" class="rp-entry-remove">
-                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                                Delete Section
+                    <details id="additional-information-section" class="rp-accordion" data-template-section="additional_information">
+                        <summary class="rp-accordion-toggle">
+                            <span class="rp-accordion-title">
+                                <strong>Additional Information</strong>
+                                <span>Achievements, awards, publications, volunteer work, extra activities, business participation, conferences, and other information.</span>
+                            </span>
+                            <svg class="rp-accordion-icon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                        </summary>
+                        <div class="rp-accordion-body">
+                            <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 0.5rem;">
+                                <button type="button" id="clear-additional-information-section-btn" class="rp-entry-remove">
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                                    Delete Section
+                                </button>
+                            </div>
+                            <div id="additional-information-editor"></div>
+                            <button type="button" id="add-additional-information-btn" class="rp-add-btn" style="margin-top:0.5rem;">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add Information
                             </button>
                         </div>
-                        <div id="achievement-editor"></div>
-                        <button type="button" id="add-achievement-btn" class="rp-add-btn" style="margin-top:0.5rem;">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                            Add Achievement
-                        </button>
-                    </div>
+                    </details>
                 </div>
 
                 {{-- ── STEP 7: Finalize ── --}}
@@ -1909,10 +1959,11 @@
                     name: block.querySelector('[data-k="name"]')?.value || '',
                     level: block.querySelector('[data-k="level"]')?.value || '',
                 })),
-                achievements: Array.from(document.querySelectorAll('[data-achievement]')).map(block => ({
+                additional_information: Array.from(document.querySelectorAll('[data-additional-information]')).map(block => ({
                     name: block.querySelector('[data-k="name"]')?.value || '',
                     description: block.querySelector('[data-k="description"]')?.value || '',
                 })),
+                achievements: [],
             };
 
             if (aiContext === 'summary') {

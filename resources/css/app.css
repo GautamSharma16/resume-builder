@@ -13,7 +13,7 @@
     }
 
     .cvb-logo-nav {
-        height: clamp(44px, 5vw, 56px);
+        height: clamp(44px, 5vw, 110px);
         max-width: clamp(112px, 18vw, 156px);
     }
 
