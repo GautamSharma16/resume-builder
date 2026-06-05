@@ -162,6 +162,26 @@
         </ul>
     @endif
 
+    @if(count($resume['achievements'] ?? []))
+        <h2>Achievements</h2>
+        <ul>
+            @foreach(($resume['achievements'] ?? []) as $achievement)
+                @if(is_array($achievement))
+                    <li>
+                        @if($text($achievement['name'] ?? $achievement['title'] ?? '') !== '')
+                            <strong>{{ $text($achievement['name'] ?? $achievement['title'] ?? '') }}</strong>
+                        @endif
+                        @if($text($achievement['description'] ?? $achievement['details'] ?? '') !== '')
+                            <span class="project-description">{{ $text($achievement['description'] ?? $achievement['details'] ?? '') }}</span>
+                        @endif
+                    </li>
+                @else
+                    <li>{{ $text($achievement) }}</li>
+                @endif
+            @endforeach
+        </ul>
+    @endif
+
     @if(count($resume['languages'] ?? []))
         <h2>Languages</h2>
         <ul>

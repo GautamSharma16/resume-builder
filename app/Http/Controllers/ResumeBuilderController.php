@@ -12,6 +12,7 @@ use App\Services\PdfConversionService;
 use App\Services\TemplateRenderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+
 class ResumeBuilderController extends Controller
 {
     public function __construct(
@@ -82,7 +83,7 @@ class ResumeBuilderController extends Controller
             'template_id' => ['nullable', 'exists:templates,id'],
             'source' => ['required', 'in:manual,upload'],
             'resume' => ['required', 'array'],
-            'download_format' => ['nullable', 'in:pdf,doc,ppt'],
+            'download_format' => ['nullable', 'in:pdf,doc,docx,ppt'],
         ]);
 
         $subscription = $request->user()?->activeSubscription;
@@ -518,6 +519,10 @@ class ResumeBuilderController extends Controller
             : view('templates.rendered-document', ['html' => app(TemplateRenderService::class)->renderResume(new \App\Models\Template(), $resume->data)])->render();
         $filename = str($resume->title ?: 'resume')->slug()->toString();
 
+        if ($format === 'docx') {
+            return $this->downloadDocx($html, $filename);
+        }
+
         if ($format === 'doc') {
             return response($html, 200, [
                 'Content-Type' => 'application/msword',
@@ -538,6 +543,230 @@ class ResumeBuilderController extends Controller
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => "attachment; filename={$filename}.pdf",
         ]);
+    }
+
+    private function downloadDocx(string $html, string $filename)
+    {
+        $path = tempnam(sys_get_temp_dir(), 'resume_docx_').'.docx';
+        $this->writeDocx($path, $this->bodyHtmlForDocx($html));
+
+        return response()->download(
+            $path,
+            "{$filename}.docx",
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        )->deleteFileAfterSend(true);
+    }
+
+    private function bodyHtmlForDocx(string $html): string
+    {
+        if (preg_match('/<body[^>]*>([\s\S]*?)<\/body>/i', $html, $matches)) {
+            return $matches[1];
+        }
+
+        return $html;
+    }
+
+    private function writeDocx(string $path, string $html): void
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            abort(500, 'Unable to create Word document.');
+        }
+
+        $zip->addFromString('[Content_Types].xml', $this->docxContentTypesXml());
+        $zip->addFromString('_rels/.rels', $this->docxRootRelsXml());
+        $zip->addFromString('word/_rels/document.xml.rels', $this->docxDocumentRelsXml());
+        $zip->addFromString('word/styles.xml', $this->docxStylesXml());
+        $zip->addFromString('word/numbering.xml', $this->docxNumberingXml());
+        $zip->addFromString('word/document.xml', $this->docxDocumentXml($html));
+        $zip->close();
+    }
+
+    private function docxDocumentXml(string $html): string
+    {
+        $paragraphs = $this->htmlParagraphsForDocx($html);
+        if ($paragraphs === []) {
+            $paragraphs[] = ['style' => null, 'list' => false, 'runs' => [['text' => 'Resume', 'bold' => false, 'italic' => false, 'underline' => false]]];
+        }
+
+        $body = collect($paragraphs)->map(fn ($paragraph) => $this->docxParagraphXml($paragraph))->join('');
+
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 wp14">'
+            .'<w:body>'.$body.'<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="360" w:footer="360" w:gutter="0"/></w:sectPr></w:body></w:document>';
+    }
+
+    private function htmlParagraphsForDocx(string $html): array
+    {
+        $dom = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="UTF-8"><body>'.$html.'</body>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $paragraphs = [];
+        foreach ($dom->childNodes as $node) {
+            $this->collectDocxParagraphs($node, $paragraphs);
+        }
+
+        return $paragraphs;
+    }
+
+    private function collectDocxParagraphs(\DOMNode $node, array &$paragraphs, bool $inList = false): void
+    {
+        if ($node instanceof \DOMText) {
+            $text = trim(preg_replace('/\s+/', ' ', $node->nodeValue));
+            if ($text !== '') {
+                $paragraphs[] = ['style' => null, 'list' => $inList, 'runs' => [['text' => $text, 'bold' => false, 'italic' => false, 'underline' => false]]];
+            }
+            return;
+        }
+
+        if (! $node instanceof \DOMElement) {
+            foreach ($node->childNodes as $child) {
+                $this->collectDocxParagraphs($child, $paragraphs, $inList);
+            }
+            return;
+        }
+
+        $tag = strtolower($node->tagName);
+        if (in_array($tag, ['style', 'script', 'svg', 'img'], true)) {
+            return;
+        }
+
+        if ($tag === 'ul' || $tag === 'ol') {
+            foreach ($node->childNodes as $child) {
+                $this->collectDocxParagraphs($child, $paragraphs, true);
+            }
+            return;
+        }
+
+        $style = match ($tag) {
+            'h1' => 'Heading1',
+            'h2' => 'Heading2',
+            'h3', 'h4' => 'Heading3',
+            default => null,
+        };
+
+        if (in_array($tag, ['h1', 'h2', 'h3', 'h4', 'p', 'li'], true) || ! $this->hasDocxBlockChild($node)) {
+            $runs = $this->docxInlineRuns($node);
+            if ($runs !== []) {
+                $paragraphs[] = ['style' => $style, 'list' => $tag === 'li' || $inList, 'runs' => $runs];
+            }
+            return;
+        }
+
+        foreach ($node->childNodes as $child) {
+            $this->collectDocxParagraphs($child, $paragraphs, $inList);
+        }
+    }
+
+    private function hasDocxBlockChild(\DOMElement $node): bool
+    {
+        foreach ($node->childNodes as $child) {
+            if ($child instanceof \DOMElement && in_array(strtolower($child->tagName), ['div', 'section', 'article', 'header', 'footer', 'table', 'tr', 'td', 'ul', 'ol', 'li', 'p', 'h1', 'h2', 'h3', 'h4'], true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function docxInlineRuns(\DOMNode $node, array $format = []): array
+    {
+        $runs = [];
+        foreach ($node->childNodes as $child) {
+            if ($child instanceof \DOMText) {
+                $text = preg_replace('/\s+/', ' ', $child->nodeValue);
+                if (trim($text) !== '') {
+                    $runs[] = [
+                        'text' => $text,
+                        'bold' => $format['bold'] ?? false,
+                        'italic' => $format['italic'] ?? false,
+                        'underline' => $format['underline'] ?? false,
+                    ];
+                }
+                continue;
+            }
+
+            if (! $child instanceof \DOMElement) {
+                continue;
+            }
+
+            $tag = strtolower($child->tagName);
+            if ($tag === 'br') {
+                $runs[] = ['text' => "\n", 'bold' => false, 'italic' => false, 'underline' => false];
+                continue;
+            }
+
+            $childFormat = $format;
+            $childFormat['bold'] = ($childFormat['bold'] ?? false) || in_array($tag, ['strong', 'b'], true);
+            $childFormat['italic'] = ($childFormat['italic'] ?? false) || in_array($tag, ['em', 'i'], true);
+            $childFormat['underline'] = ($childFormat['underline'] ?? false) || $tag === 'u';
+            array_push($runs, ...$this->docxInlineRuns($child, $childFormat));
+        }
+
+        return $runs;
+    }
+
+    private function docxParagraphXml(array $paragraph): string
+    {
+        $properties = '';
+        if (! empty($paragraph['style'])) {
+            $properties .= '<w:pStyle w:val="'.$paragraph['style'].'"/>';
+        }
+        if (! empty($paragraph['list'])) {
+            $properties .= '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr>';
+        }
+
+        $runs = collect($paragraph['runs'] ?? [])->map(fn ($run) => $this->docxRunXml($run))->join('');
+
+        return '<w:p>'.($properties ? '<w:pPr>'.$properties.'</w:pPr>' : '').$runs.'</w:p>';
+    }
+
+    private function docxRunXml(array $run): string
+    {
+        $props = '';
+        if (! empty($run['bold'])) {
+            $props .= '<w:b/>';
+        }
+        if (! empty($run['italic'])) {
+            $props .= '<w:i/>';
+        }
+        if (! empty($run['underline'])) {
+            $props .= '<w:u w:val="single"/>';
+        }
+
+        $text = (string) ($run['text'] ?? '');
+        if ($text === "\n") {
+            return '<w:r><w:br/></w:r>';
+        }
+
+        return '<w:r>'.($props ? '<w:rPr>'.$props.'</w:rPr>' : '').'<w:t xml:space="preserve">'.e($text).'</w:t></w:r>';
+    }
+
+    private function docxContentTypesXml(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>';
+    }
+
+    private function docxRootRelsXml(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+    }
+
+    private function docxDocumentRelsXml(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>';
+    }
+
+    private function docxStylesXml(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:after="120"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:pPr><w:spacing w:before="120" w:after="120"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:rPr><w:b/><w:sz w:val="24"/></w:rPr><w:pPr><w:spacing w:before="180" w:after="80"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:rPr><w:b/><w:sz w:val="22"/></w:rPr></w:style></w:styles>';
+    }
+
+    private function docxNumberingXml(): string
+    {
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="0"><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>';
     }
 
     private function authorizeResume(Resume $resume): void
@@ -685,9 +914,6 @@ class ResumeBuilderController extends Controller
     private function normalizeResume(array $resume): array
     {
         $additionalInformation = $resume['additional_information'] ?? $resume['additionalInformation'] ?? [];
-        if (empty($additionalInformation)) {
-            $additionalInformation = $resume['achievements'] ?? [];
-        }
 
         $normalized = array_merge($resume, [
             'name' => $this->toText($resume['name'] ?? ''),
@@ -715,7 +941,7 @@ class ResumeBuilderController extends Controller
             'certificates' => $this->normalizeNamedItems($resume['certifications'] ?? $resume['certificates'] ?? []),
             'languages' => $this->normalizeLanguages($resume['languages'] ?? $resume['language'] ?? $resume['language_skills'] ?? $resume['language_proficiency'] ?? []),
             'additional_information' => $this->normalizeNamedItems($additionalInformation),
-            'achievements' => [],
+            'achievements' => $this->normalizeNamedItems($resume['achievements'] ?? []),
             'profile_image' => $this->toText($resume['profile_image'] ?? ''),
         ]);
 

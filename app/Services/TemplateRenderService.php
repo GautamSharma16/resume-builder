@@ -94,11 +94,12 @@ class TemplateRenderService
                 ['name' => 'Hindi', 'level' => 'Native'],
             ],
             'additional_information' => [
-                'Won First Place at the State-Level Hackathon 2023.',
                 'Published a research paper on AI-driven UI optimization in IJCS.',
+            ],
+            'achievements' => [
+                'Won First Place at the State-Level Hackathon 2023.',
                 'Recognized as Employee of the Month for outstanding delivery in Q3 2022.',
             ],
-            'achievements' => [],
             'social_links' => ['linkedin.com/in/johndoe', 'github.com/johndoe'],
         ];
     }
@@ -184,6 +185,7 @@ class TemplateRenderService
     <section><h2>Projects</h2>{{projects}}</section>
     <section><h2>Education</h2>{{education}}</section>
     <section><h2>Certifications</h2>{{certifications}}</section>
+    <section><h2>Achievements</h2>{{achievements}}</section>
     <section><h2>Languages</h2>{{languages}}</section>
     
 </div>
@@ -291,6 +293,7 @@ HTML;
             // We also check if a section header with the title already exists to avoid duplicates.
             $this->ensureSectionVisible($html, $data, 'projects', 'Projects');
             $this->ensureSectionVisible($html, $data, 'certifications', 'Certifications');
+            $this->ensureSectionVisible($html, $data, 'achievements', 'Achievements');
             $this->ensureSectionVisible($html, $data, 'languages', 'Languages');
             $this->ensureSectionVisible($html, $data, 'additional_information', 'Additional Information');
         }
@@ -422,9 +425,6 @@ HTML;
         $lastName = $this->text(Arr::get($data, 'last_name', ''));
         $fullName = trim($firstName.' '.$lastName) ?: $firstName;
         $additionalInformation = Arr::get($data, 'additional_information', Arr::get($data, 'additionalInformation', []));
-        if (empty($additionalInformation)) {
-            $additionalInformation = Arr::get($data, 'achievements', []);
-        }
 
         return [
             'name' => e($fullName),
@@ -447,7 +447,7 @@ HTML;
             'certificates' => $this->list(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
             'languages' => $this->languageList(Arr::get($data, 'languages', Arr::get($data, 'language', Arr::get($data, 'language_skills', Arr::get($data, 'language_proficiency', []))))),
             'additional_information' => $this->list($additionalInformation),
-            'achievements' => '',
+            'achievements' => $this->list(Arr::get($data, 'achievements', [])),
             'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
             'profile_image' => Arr::get($data, 'profile_image', ''),
@@ -514,8 +514,8 @@ HTML;
             'certifications' => $this->normalizeBladeArray(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
             'certificates' => $this->normalizeBladeArray(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
             'languages' => $this->normalizeBladeArray(Arr::get($data, 'languages', Arr::get($data, 'language', Arr::get($data, 'language_skills', Arr::get($data, 'language_proficiency', []))))),
-            'additional_information' => $this->normalizeBladeArray(Arr::get($data, 'additional_information', Arr::get($data, 'additionalInformation', Arr::get($data, 'achievements', [])))),
-            'achievements' => [],
+            'additional_information' => $this->normalizeBladeArray(Arr::get($data, 'additional_information', Arr::get($data, 'additionalInformation', []))),
+            'achievements' => $this->normalizeBladeArray(Arr::get($data, 'achievements', [])),
             'social_links' => $this->normalizeBladeArray(Arr::get($data, 'social_links', [])),
             'link' => $this->text(Arr::get($data, 'link', '')),
             'contact' => $this->text(Arr::get($data, 'contact', '')),

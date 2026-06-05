@@ -139,7 +139,7 @@ class PendingDownloadService
 
     private function format(string $format): string
     {
-        return in_array($format, ['pdf', 'doc', 'ppt'], true) ? $format : 'pdf';
+        return in_array($format, ['pdf', 'doc', 'docx', 'ppt'], true) ? $format : 'pdf';
     }
 
     private function isLocalUrl(string $url): bool

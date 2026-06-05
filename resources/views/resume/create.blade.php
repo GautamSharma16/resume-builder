@@ -1651,6 +1651,22 @@
                         </button>
                     </div>
 
+                    {{-- Achievements --}}
+                    <div id="achievements-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);" data-template-section="achievements">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <h3 style="font-size: 1.1rem; font-weight: 700;">Achievements</h3>
+                            <button type="button" id="clear-achievement-section-btn" class="rp-entry-remove">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                                Delete Section
+                            </button>
+                        </div>
+                        <div id="achievement-editor"></div>
+                        <button type="button" id="add-achievement-btn" class="rp-add-btn" style="margin-top:0.5rem;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Achievement
+                        </button>
+                    </div>
+
                     {{-- Languages --}}
                     <div id="languages-section" style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);" data-template-section="languages">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
@@ -1959,7 +1975,10 @@
                     name: block.querySelector('[data-k="name"]')?.value || '',
                     description: block.querySelector('[data-k="description"]')?.value || '',
                 })),
-                achievements: [],
+                achievements: Array.from(document.querySelectorAll('[data-achievement]')).map(block => ({
+                    name: block.querySelector('[data-k="name"]')?.value || '',
+                    description: block.querySelector('[data-k="description"]')?.value || '',
+                })),
             };
 
             if (aiContext === 'summary') {
