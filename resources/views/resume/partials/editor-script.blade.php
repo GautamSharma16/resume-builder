@@ -17,7 +17,7 @@
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/__(.*?)__/g, '<u>$1</u>');
     const AI_FAILURE_MESSAGE = "We're unable to process your request right now. Please try again after some time.";
-    const RESUME_UPLOAD_SUCCESS_MESSAGE = 'Resume uploaded successfully. Please review all the extracted information before proceeding.';
+    const RESUME_UPLOAD_SUCCESS_MESSAGE = 'Resume uploaded. Our AI has autofilled your details; please review them thoroughly before downloading.';
     const friendlyAiMessage = (message) => {
         return AI_FAILURE_MESSAGE;
     };
@@ -1355,14 +1355,6 @@
     });
 
     $('edit-resume')?.addEventListener('click', () => goToStep(1));
-    $('finalize-exit-btn')?.addEventListener('click', () => {
-        if (document.referrer && document.referrer !== window.location.href) {
-            window.history.back();
-            return;
-        }
-
-        window.location.href = app.dataset.loginUrl ? '/' : '/';
-    });
 
     /* ── Field event listeners ── */
     document.querySelectorAll('.cv-field').forEach(input => {
@@ -1628,6 +1620,7 @@
                         : 'local parser';
                     autofillStatusEl.textContent = RESUME_UPLOAD_SUCCESS_MESSAGE;
                     autofillStatusEl.style.color = data.ai_unavailable ? '#b45309' : '#15803d';
+                    setTimeout(() => { if (autofillStatusEl.textContent === RESUME_UPLOAD_SUCCESS_MESSAGE) autofillStatusEl.textContent = ''; }, 10000);
                 }
                 notify(RESUME_UPLOAD_SUCCESS_MESSAGE, 'info');
             } catch (err) {

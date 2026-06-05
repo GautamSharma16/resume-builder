@@ -1613,7 +1613,7 @@
 
     let currentAnalysisId = null;
     let enhanceInProgress = false;
-    const AI_FAILURE_MESSAGE = "We're unable to process your request right now. Please try again after some time.";
+    const AI_FAILURE_MESSAGE = "The AI assistant is currently busy processing requests.Please wait a moment and try again.";
     const showAiFailureAlert = () => {
         window.alert(AI_FAILURE_MESSAGE);
     };

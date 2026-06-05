@@ -1708,10 +1708,6 @@
                             <a href="{{ route('dashboard') }}" class="btn" style="font-size:1rem; padding: 0.9rem 2.5rem; margin-top:0.75rem; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">
                                 Go to Dashboard
                             </a>
-                        @else
-                            <button type="button" id="finalize-exit-btn" class="btn" style="font-size:1rem; padding: 0.9rem 2.5rem; margin-top:0.75rem;">
-                                Exit
-                            </button>
                         @endauth
                     </div>
                 </div>

@@ -336,8 +336,7 @@
         width: auto;
         max-width: min(220px, 72vw);
         object-fit: contain;
-        background: rgba(37, 99, 235, 0.12);
-        border: 1px solid rgba(37, 99, 235, 0.25);
+        
         border-radius: 12px;
         /* padding: 8px 10px; */
     }
