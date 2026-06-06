@@ -1707,7 +1707,13 @@
     const closePopupBtn     = $('close-template-popup');
     const templatePreviewPage = $('template-preview-page');
     const templatePreviewName = $('template-preview-name');
+    const templatePreviewPageNav = $('template-preview-page-nav');
+    const templatePreviewPageLabel = $('template-preview-page-label');
+    const templatePreviewPagePrev = $('template-preview-page-prev');
+    const templatePreviewPageNext = $('template-preview-page-next');
     let templatePreviewActiveId = '';
+    let templatePreviewPageNum = 1;
+    let templatePreviewTotalPages = 1;
 
     function updateTemplateThumbScales() {
         if (!templateGrid) return;
@@ -1785,6 +1791,37 @@
         return renderTemplateChooserSampleHtml(template);
     }
 
+    function updateTemplatePreviewPageControls() {
+        const show = templatePreviewTotalPages > 1;
+        templatePreviewPageNav?.classList.toggle('active', show);
+        if (templatePreviewPageLabel) templatePreviewPageLabel.textContent = `${templatePreviewPageNum} / ${templatePreviewTotalPages}`;
+        if (templatePreviewPagePrev) templatePreviewPagePrev.disabled = templatePreviewPageNum <= 1;
+        if (templatePreviewPageNext) templatePreviewPageNext.disabled = templatePreviewPageNum >= templatePreviewTotalPages;
+    }
+
+    function applyTemplatePreviewPage() {
+        if (!templatePreviewPage) return;
+        const sheet = templatePreviewPage.querySelector('.rp-template-preview-sheet');
+        if (!sheet) {
+            templatePreviewTotalPages = 1;
+            templatePreviewPageNum = 1;
+            updateTemplatePreviewPageControls();
+            return;
+        }
+        sheet.style.transform = 'none';
+        const rawHeight = Math.max(sheet.scrollHeight || 0, sheet.getBoundingClientRect().height || 0, A4_H);
+        templatePreviewTotalPages = Math.max(1, Math.ceil(Math.max(0, rawHeight - 2) / A4_H));
+        templatePreviewPageNum = Math.min(Math.max(1, templatePreviewPageNum), templatePreviewTotalPages);
+        sheet.style.minHeight = rawHeight + 'px';
+        sheet.style.transform = `translateY(-${(templatePreviewPageNum - 1) * A4_H}px)`;
+        updateTemplatePreviewPageControls();
+    }
+
+    function goToTemplatePreviewPage(page) {
+        templatePreviewPageNum = Math.min(Math.max(1, page), templatePreviewTotalPages);
+        applyTemplatePreviewPage();
+    }
+
     function updateTemplateLargePreview(id, animate = true) {
         if (!templatePreviewPage) return;
         const template = templates[id] || templates[selectedTemplateId] || Object.values(templates)[0];
@@ -1795,9 +1832,12 @@
         templatePreviewActiveId = String(id || selectedTemplateId || '');
         if (templatePreviewName) templatePreviewName.textContent = 'Resume';
         if (animate) templatePreviewPage.classList.add('is-swapping');
+        templatePreviewPageNum = 1;
         requestAnimationFrame(() => {
-            templatePreviewPage.innerHTML = renderTemplateChooserHtml(template);
+            templatePreviewPage.innerHTML = `<div class="rp-template-preview-sheet">${renderTemplateChooserHtml(template)}</div>`;
             templatePreviewPage.classList.remove('is-swapping');
+            applyTemplatePreviewPage();
+            setTimeout(applyTemplatePreviewPage, 120);
         });
     }
 
@@ -1863,7 +1903,10 @@
     closePopupBtn?.addEventListener('click',     () => templatePopup?.classList.remove('open', 'visible'));
     $('close-template-btn')?.addEventListener('click', () => templatePopup?.classList.remove('open', 'visible'));
     templatePopup?.addEventListener('click', e => { if (e.target === templatePopup) templatePopup.classList.remove('open', 'visible'); });
+    templatePreviewPagePrev?.addEventListener('click', () => goToTemplatePreviewPage(templatePreviewPageNum - 1));
+    templatePreviewPageNext?.addEventListener('click', () => goToTemplatePreviewPage(templatePreviewPageNum + 1));
     window.addEventListener('resize', updateTemplateThumbScales);
+    window.addEventListener('resize', applyTemplatePreviewPage);
     if ('ResizeObserver' in window && templateGrid) {
         new ResizeObserver(updateTemplateThumbScales).observe(templateGrid);
     }

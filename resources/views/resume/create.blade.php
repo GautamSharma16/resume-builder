@@ -1076,7 +1076,7 @@
                 display: flex;
                 flex-direction: column;
                 overflow: hidden;
-                padding: 1.6rem clamp(1rem, 2.4vw, 2.6rem);
+                padding: -0.6rem clamp(1rem, 2.4vw, 2.6rem);
             }
             .rp-template-preview-head {
                 display: flex;
@@ -1095,22 +1095,65 @@
                 min-height: 0;
                 overflow: auto;
                 display: flex;
+                flex-direction: column;
                 justify-content: center;
-                align-items: flex-start;
+                align-items: center;
                 padding: 0.8rem 0.8rem 1.6rem;
                 scrollbar-width: none;
                 -ms-overflow-style: none;
             }
             .rp-template-preview-page {
                 width: 794px;
-                min-height: 1123px;
+                height: 1123px;
+                min-height: 790px;
                 flex: 0 0 794px;
                 background: #fff;
                 box-shadow: 0 16px 40px rgba(15,23,42,0.12);
+                overflow: hidden;
                 transform: scale(0.82);
                 transform-origin: top center;
                 margin-bottom: -202px;
                 transition: opacity 0.14s ease, transform 0.14s ease;
+            }
+            .rp-template-preview-sheet {
+                width: 794px;
+                min-height: 1123px;
+                overflow: visible;
+                transition: transform 0.16s ease;
+            }
+            .rp-template-page-nav {
+                display: none;
+                align-items: center;
+                justify-content: center;
+                gap: 0.6rem;
+                margin-top: 0.9rem;
+                padding: 0.45rem 0.65rem;
+                border-radius: 999px;
+                background: rgba(255,255,255,0.9);
+                border: 1px solid rgba(148,163,184,0.28);
+                box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+                color: #334155;
+                font-size: 0.78rem;
+                font-weight: 800;
+            }
+            .rp-template-page-nav.active {
+                display: inline-flex;
+            }
+            .rp-template-page-btn {
+                width: 30px;
+                height: 30px;
+                border: 0;
+                border-radius: 50%;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                background: #f8fafc;
+                color: #0f172a;
+                cursor: pointer;
+            }
+            .rp-template-page-btn:disabled {
+                opacity: 0.35;
+                cursor: not-allowed;
             }
             .rp-template-preview-page.is-swapping {
                 opacity: 0.45;
@@ -2079,6 +2122,19 @@
                     </div>
                     <div class="rp-template-preview-canvas" tabindex="0">
                         <div id="template-preview-page" class="rp-template-preview-page resume-sheet-preview"></div>
+                        <div id="template-preview-page-nav" class="rp-template-page-nav" aria-label="Template preview page navigation">
+                            <button type="button" id="template-preview-page-prev" class="rp-template-page-btn" aria-label="Previous preview page" title="Previous page">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <polyline points="15 18 9 12 15 6"/>
+                                </svg>
+                            </button>
+                            <span id="template-preview-page-label">1 / 1</span>
+                            <button type="button" id="template-preview-page-next" class="rp-template-page-btn" aria-label="Next preview page" title="Next page">
+                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <polyline points="9 18 15 12 9 6"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </section>
             </div>

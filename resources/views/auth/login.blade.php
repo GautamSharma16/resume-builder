@@ -359,10 +359,10 @@
 
             <div class="space-y-6">
                 <div class="glass-card" style="transform: translateX(16px);">
-                    <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400" class="card-img" alt="Sarah Johnson">
+                    <img src="{{ asset('shreya-sharma.png') }}" class="card-img" alt="shreya sharma">
                     <div>
                         <div class="flex items-center gap-2 mb-1">
-                            <span class="font-bold text-white">Sarah Johnson</span>
+                            <span class="font-bold text-white">Shreya Sharma</span>
                             <span class="card-badge">Hired</span>
                         </div>
                         <div class="text-sm text-outline">Senior Product Designer, <span class="text-white">ATS Score 94%</span></div>
