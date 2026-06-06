@@ -1603,7 +1603,7 @@
     {{-- ══ TOPBAR ══ --}}
     <header class="rp-topbar" style="position: relative; z-index: 100;">
         <a href="{{ route('home') }}" class="rp-topbar-logo">
-            <img src="{{ asset('logo.webp') }}" alt="Cvbliss" class="cvb-logo" style="height: clamp(42px, 5vw, 52px); width: auto; max-width: 150px;">
+            <img src="{{ asset('Logo.webp') }}" alt="Cvbliss" class="cvb-logo" style="height: clamp(42px, 5vw, 52px); width: auto; max-width: 150px;">
         </a>
         <div style="flex: 1;"></div>
         <div class="rp-topbar-actions" style="display: flex; gap: 0.75rem; align-items: center;">
