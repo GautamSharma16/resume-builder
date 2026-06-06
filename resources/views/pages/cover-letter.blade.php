@@ -82,7 +82,7 @@
         padding: 0.3rem 1rem 0.3rem 0.8rem;
         border-radius: var(--r-full);
     }
-    .section-label::before {
+    /* .section-label::before {
         content: '';
         display: block;
         width: 8px;
@@ -90,7 +90,7 @@
         background: var(--blue);
         border-radius: 50%;
 
-    }
+    } */
     .section-heading {
         font-family: var(--font-display);
         font-size: clamp(2rem, 4vw, 3rem);
@@ -1086,7 +1086,7 @@
                 <div class="field-grid">
                     <div class="field-group">
                         <label>Full Name</label>
-                        <input type="text" id="cl-name" class="form-input" placeholder="John Doe">
+                        <input type="text" id="cl-name" class="form-input" placeholder="James Smith">
                     </div>
                     <div class="field-group">
                         <label>Email Address</label>
@@ -1094,11 +1094,11 @@
                     </div>
                     <div class="field-group">
                         <label>Phone Number</label>
-                        <input type="text" id="cl-mobile" class="form-input" placeholder="+91 98765 43210">
+                        <input type="text" id="cl-mobile" class="form-input" placeholder="+1 (555) 123-4567">
                     </div>
                     <div class="field-group">
                         <label>Location</label>
-                        <input type="text" id="cl-location" class="form-input" placeholder="Bengaluru">
+                        <input type="text" id="cl-location" class="form-input" placeholder="Austin, Texas, USA">
                     </div>
                 </div>
             </div>
@@ -1135,7 +1135,7 @@
             <div class="toolbar-card">
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                     <button class="btn-toolbar" id="btn-change-tmpl">
-                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 5a1 1 0 01.3-.7l7-7a1 1 0 011.4 0l7 7a1 1 0 01.3.7v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/></svg>
+                        <!-- <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 5a1 1 0 01.3-.7l7-7a1 1 0 011.4 0l7 7a1 1 0 01.3.7v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/></svg> -->
                         Template
                     </button>
                     <div style="padding-left: 0.5rem; border-left: 1px solid var(--border);">

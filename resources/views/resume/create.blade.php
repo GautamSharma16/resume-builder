@@ -876,7 +876,11 @@
             transition: background 0.15s;
         }
         .rp-popup-close:hover { background: var(--border); }
+        .rp-popup-back { display: none; }
         .rp-popup-body { padding: 1.5rem; overflow-y: auto; flex: 1; min-height: 0; }
+        .rp-template-sidebar,
+        .rp-template-preview-pane { display: none; }
+        .rp-template-list { display: contents; }
         .rp-tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem; align-items: start; }
         .rp-tpl-card {
             border: 2px solid var(--border);
@@ -911,6 +915,244 @@
             text-align: center;
             border-top: 1px solid var(--border);
             color: var(--ink);
+        }
+
+        @media (min-width: 769px) {
+            .rp-overlay {
+                align-items: stretch;
+                justify-content: stretch;
+                padding: 0;
+                background: #eef3f9;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+                z-index: 10000;
+            }
+            .rp-popup {
+                width: 100%;
+                max-width: none;
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+                box-shadow: none;
+                background: #eef3f9;
+            }
+            .rp-popup-head {
+                height: 74px;
+                padding: 0 2.5rem;
+                background: #fff;
+                position: relative;
+                justify-content: center;
+                border-bottom: 1px solid var(--border);
+            }
+            .rp-popup-head h3 {
+                font-family: var(--font-body);
+                font-size: 0.9rem;
+                font-weight: 800;
+                color: var(--green);
+            }
+            .rp-popup-head h3::before {
+                content: 'Saved';
+            }
+            .rp-popup-head h3 { font-size: 0; }
+            .rp-popup-head h3::before { font-size: 0.9rem; }
+            .rp-popup-head::before {
+                content: '‹ Back to editor';
+                position: absolute;
+                left: 2.5rem;
+                top: 50%;
+                transform: translateY(-50%);
+                color: var(--navy);
+                font-size: 0.95rem;
+                font-weight: 700;
+            }
+            .rp-popup-head::before { content: none; }
+            .rp-popup-back {
+                position: absolute;
+                left: 2.5rem;
+                top: 50%;
+                transform: translateY(-50%);
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                border: 0;
+                background: transparent;
+                color: var(--navy);
+                font: inherit;
+                font-size: 0.95rem;
+                font-weight: 700;
+                cursor: pointer;
+                padding: 0.4rem 0;
+            }
+            .rp-popup-head .color-selector-wrap {
+                position: absolute;
+                right: 5.4rem;
+                top: 50%;
+                transform: translateY(-50%);
+                margin: 0 !important;
+            }
+            .rp-popup-close {
+                position: absolute;
+                right: 1.5rem;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            .rp-popup-body {
+                display: grid;
+                grid-template-columns: minmax(430px, 38%) minmax(0, 1fr);
+                padding: 0;
+                overflow: hidden;
+                background: #eef3f9;
+            }
+            .rp-template-sidebar {
+                display: none;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.55rem;
+                padding-top: 2.4rem;
+                background: #fff;
+                border-right: 1px solid var(--border);
+                color: var(--blue);
+                font-weight: 700;
+            }
+            .rp-template-sidebar-icon {
+                width: 42px;
+                height: 42px;
+                border-radius: 8px;
+                display: grid;
+                place-items: center;
+                background: #f1f5f9;
+                color: var(--ink);
+            }
+            .rp-template-list {
+                display: block;
+                overflow-y: auto;
+                background: #fff;
+                padding: 2rem 1.6rem;
+                border-right: 1px solid var(--border);
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            .rp-template-list::-webkit-scrollbar,
+            .rp-template-preview-canvas::-webkit-scrollbar {
+                display: none;
+            }
+            .rp-template-list-title {
+                display: block !important;
+                margin: 0 0 1.6rem;
+                padding-bottom: 1.2rem;
+                border-bottom: 1px solid var(--border);
+                font-family: var(--font-display);
+                color: var(--navy);
+                font-size: 1.5rem;
+                font-weight: 700;
+            }
+            .rp-tpl-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 1.15rem 1rem;
+            }
+            .rp-tpl-card {
+                border-radius: 6px;
+                border-width: 1px;
+                box-shadow: none;
+            }
+            .rp-tpl-card:hover,
+            .rp-tpl-card.selected {
+                border-color: var(--blue);
+                box-shadow: 0 0 0 2px rgba(59,130,246,0.18);
+            }
+            .rp-tpl-thumb {
+                height: var(--tpl-thumb-height, 360px);
+            }
+            .rp-tpl-name {
+                min-height: 42px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0.55rem;
+                font-size: 0.72rem;
+            }
+            .rp-template-preview-pane {
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                padding: 1.6rem clamp(1rem, 2.4vw, 2.6rem);
+            }
+            .rp-template-preview-head {
+                display: flex;
+                align-items: center;
+                gap: 0.8rem;
+                margin-bottom: 1rem;
+                color: var(--blue);
+                font-size: 1rem;
+                font-weight: 700;
+            }
+            .rp-template-preview-head .color-selector-wrap {
+                display: none !important;
+            }
+            .rp-template-preview-canvas {
+                flex: 1;
+                min-height: 0;
+                overflow: auto;
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                padding: 0.8rem 0.8rem 1.6rem;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            .rp-template-preview-page {
+                width: 794px;
+                min-height: 1123px;
+                flex: 0 0 794px;
+                background: #fff;
+                box-shadow: 0 16px 40px rgba(15,23,42,0.12);
+                transform: scale(0.82);
+                transform-origin: top center;
+                margin-bottom: -202px;
+                transition: opacity 0.14s ease, transform 0.14s ease;
+            }
+            .rp-template-preview-page.is-swapping {
+                opacity: 0.45;
+                transform: scale(0.805);
+            }
+        }
+
+        @media (min-width: 769px) and (max-width: 1180px) {
+            .rp-popup-body {
+                grid-template-columns: minmax(360px, 40%) minmax(0, 1fr);
+            }
+            .rp-popup-head {
+                padding: 0 1.2rem;
+            }
+            .rp-popup-back {
+                left: 1.2rem;
+            }
+            .rp-popup-head .color-selector-wrap {
+                right: 4.6rem;
+                gap: 8px !important;
+                padding: 5px 10px !important;
+            }
+            .rp-popup-head .color-circle-btn:not(.original) {
+                width: 22px !important;
+                height: 22px !important;
+            }
+            .rp-popup-head .color-circle-btn.original {
+                padding: 4px 10px !important;
+            }
+            .rp-template-list {
+                padding: 1.5rem 1rem;
+            }
+            .rp-tpl-grid {
+                gap: 0.9rem;
+            }
+            .rp-template-preview-page {
+                transform: scale(0.64);
+                margin-bottom: -405px;
+            }
+            .rp-template-preview-page.is-swapping {
+                transform: scale(0.625);
+            }
         }
 
         @media (min-width: 1025px) and (max-width: 1440px) {
@@ -1318,7 +1560,7 @@
     {{-- ══ TOPBAR ══ --}}
     <header class="rp-topbar" style="position: relative; z-index: 100;">
         <a href="{{ route('home') }}" class="rp-topbar-logo">
-            <img src="{{ asset('Logo.png') }}" alt="Cvbliss" class="cvb-logo" style="height: clamp(42px, 5vw, 52px); width: auto; max-width: 150px;">
+            <img src="{{ asset('logo.webp') }}" alt="Cvbliss" class="cvb-logo" style="height: clamp(42px, 5vw, 52px); width: auto; max-width: 150px;">
         </a>
         <div style="flex: 1;"></div>
         <div class="rp-topbar-actions" style="display: flex; gap: 0.75rem; align-items: center;">
@@ -1806,13 +2048,39 @@
     <div id="template-popup" class="rp-overlay">
         <div class="rp-popup">
             <div class="rp-popup-head">
-                <h3>Choose a Template</h3>
-                <button class="rp-popup-close" id="close-template-btn">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                <button type="button" class="rp-popup-back" id="close-template-popup">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M15 18 9 12l6-6"/>
+                    </svg>
+                    Back to editor
                 </button>
+                <h3>Choose a Template</h3>
+                <div class="color-selector-wrap" style="display: flex; align-items: center; gap: 12px; margin-left: auto; margin-right: 0; background: #fff; padding: 6px 16px; border-radius: 100px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #eef2f6;">
+                    <button type="button" class="color-circle-btn original active" onclick="applyColorSelection('')" title="Original Color" style="background: #fff; border: 1.5px solid #0b1221; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 700; color: #0b1221; cursor: pointer; transition: all 0.2s;">Original</button>
+                    <button type="button" class="color-circle-btn" onclick="applyColorSelection('#3b82f6')" title="Blue" style="width: 24px; height: 24px; border-radius: 50%; background: #3b82f6; border: none; cursor: pointer; transition: transform 0.2s;"></button>
+                    <button type="button" class="color-circle-btn" onclick="applyColorSelection('#10b981')" title="Green" style="width: 24px; height: 24px; border-radius: 50%; background: #10b981; border: none; cursor: pointer; transition: transform 0.2s;"></button>
+                    <button type="button" class="color-circle-btn" onclick="applyColorSelection('#475569')" title="Slate" style="width: 24px; height: 24px; border-radius: 50%; background: #475569; border: none; cursor: pointer; transition: transform 0.2s;"></button>
+                    <button type="button" class="color-circle-btn" onclick="applyColorSelection('#e11d48')" title="Rose" style="width: 24px; height: 24px; border-radius: 50%; background: #e11d48; border: none; cursor: pointer; transition: transform 0.2s;"></button>
+                    <button type="button" class="color-circle-btn" onclick="applyColorSelection('#6366f1')" title="Indigo" style="width: 24px; height: 24px; border-radius: 50%; background: #6366f1; border: none; cursor: pointer; transition: transform 0.2s;"></button>
+                </div>
+                <!-- <button class="rp-popup-close" id="close-template-btn">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button> -->
             </div>
             <div class="rp-popup-body">
-                <div class="rp-tpl-grid" id="template-grid"></div>
+                <div class="rp-template-list" tabindex="0">
+                    <h2 class="rp-template-list-title" style="display:none;">Templates</h2>
+                    <div class="rp-tpl-grid" id="template-grid"></div>
+                </div>
+                <section class="rp-template-preview-pane" aria-live="polite">
+                    <div class="rp-template-preview-head">
+                        
+                        
+                    </div>
+                    <div class="rp-template-preview-canvas" tabindex="0">
+                        <div id="template-preview-page" class="rp-template-preview-page resume-sheet-preview"></div>
+                    </div>
+                </section>
             </div>
         </div>
     </div>

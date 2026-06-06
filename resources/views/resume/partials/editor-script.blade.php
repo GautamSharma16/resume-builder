@@ -797,6 +797,9 @@
         previewPage = 1;
         cvPreviewEl.innerHTML = `<div class="resume-preview-stage"><div class="resume-sheet-preview">${output}</div></div>`;
         scheduleUpdateScale();
+        if (templatePopup?.classList.contains('open')) {
+            updateTemplateLargePreview(templatePreviewActiveId || selectedTemplateId, false);
+        }
     }
 
     /* ── Schedule scale update after browser paints ── */
@@ -1001,6 +1004,7 @@
             bindTemplateCard(card, id);
             templateGrid.appendChild(card);
         });
+        updateTemplateLargePreview(selectedId);
         requestAnimationFrame(updateTemplateThumbScales);
     }
 
@@ -1284,12 +1288,13 @@
             btn.classList.remove('active');
             btn.style.boxShadow = 'none';
             btn.style.borderColor = btn.classList.contains('original') ? '#0b1221' : 'transparent';
+            if (btn.classList.contains('original')) btn.style.color = '#0b1221';
         });
-        const activeBtn = Array.from(document.querySelectorAll('.color-circle-btn')).find(btn => {
+        const activeBtns = Array.from(document.querySelectorAll('.color-circle-btn')).filter(btn => {
             if (color === '') return btn.classList.contains('original');
             return btn.title.toLowerCase() === getColorName(color).toLowerCase();
         });
-        if (activeBtn) {
+        activeBtns.forEach(activeBtn => {
             activeBtn.classList.add('active');
             if (!activeBtn.classList.contains('original')) {
                 activeBtn.style.boxShadow = `0 0 0 2px #fff, 0 0 0 4px ${color}`;
@@ -1297,7 +1302,7 @@
                 activeBtn.style.borderColor = '#2563eb';
                 activeBtn.style.color = '#2563eb';
             }
-        }
+        });
         renderTemplatePreview();
     }
     window.applyColorSelection = applyColorSelection;
@@ -1700,15 +1705,99 @@
     const templateGrid      = $('template-grid');
     const changeTemplateBtn = $('change-template-btn');
     const closePopupBtn     = $('close-template-popup');
+    const templatePreviewPage = $('template-preview-page');
+    const templatePreviewName = $('template-preview-name');
+    let templatePreviewActiveId = '';
 
     function updateTemplateThumbScales() {
         if (!templateGrid) return;
         templateGrid.querySelectorAll('.rp-tpl-thumb').forEach(thumb => {
             const width = thumb.clientWidth || thumb.offsetWidth || 0;
             if (!width) return;
-            const scale = Math.min(0.58, Math.max(0.22, (width - 2) / A4_W));
+            const scale = Math.min(0.64, Math.max(0.28, (width - 2) / A4_W));
             thumb.style.setProperty('--tpl-thumb-scale', scale.toFixed(4));
             thumb.style.setProperty('--tpl-thumb-height', Math.ceil(A4_H * scale) + 'px');
+        });
+    }
+
+    function hasTemplateChooserUserData() {
+        return Boolean(
+            fullName() || state.designation || state.job_title || state.email || state.mobile || state.location ||
+            state.linkedin || state.github || state.portfolio || state.link || state.summary || state.profile_image ||
+            state.skills.some(Boolean) ||
+            state.experience.some(e => e?.company || e?.role || e?.period || ensureArray(e?.points).some(Boolean)) ||
+            state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ||
+            state.projects.some(p => p?.name || p?.description || p?.tech_stack || p?.tech || p?.link) ||
+            state.certifications.some(c => typeof c === 'string' ? c.trim() : (c?.name || c?.description)) ||
+            state.languages.some(l => typeof l === 'string' ? l.trim() : (l?.name || l?.level)) ||
+            state.achievements.some(a => typeof a === 'string' ? a.trim() : (a?.name || a?.description)) ||
+            state.additional_information.some(a => typeof a === 'string' ? a.trim() : (a?.name || a?.description))
+        );
+    }
+
+    function templateChooserSampleData() {
+        return {
+            name: 'James Smith',
+            email: 'james.smith@example.com',
+            mobile: '+1 (555) 123-4567',
+            location: 'Austin, Texas, USA',
+            contact: 'james.smith@example.com | +1 (555) 123-4567 | Austin, Texas, USA',
+            address: 'Austin, Texas, USA',
+            designation: 'Senior Full Stack Developer',
+            job_title: 'Senior Full Stack Developer',
+            summary: 'Results-driven Senior Full Stack Developer with 6+ years of experience building scalable web applications, cloud solutions, and enterprise SaaS platforms.',
+            linkedin: 'linkedin.com/in/jamessmith',
+            github: 'github.com/jamessmith',
+            portfolio: 'https://jamessmith.dev',
+            link: 'https://jamessmith.dev',
+            social_links: 'linkedin.com/in/jamessmith | github.com/jamessmith',
+            skills: '<span class="tpl-badge">Laravel</span><span class="tpl-badge">PHP</span><span class="tpl-badge">MySQL</span><span class="tpl-badge">React.js</span><span class="tpl-badge">AWS</span>',
+            experience: `<div class="tpl-role"><div class="tpl-role-head"><strong>Senior Full Stack Developer</strong><span>2023 - Present</span></div><p>TechNova Solutions</p><ul><li>Led development of enterprise SaaS platform serving 100K+ users.</li><li>Improved API performance by 45%.</li><li>Mentored junior developers.</li></ul></div>`,
+            education: '<ul><li><strong>Master of Science in Computer Science</strong><span class="tpl-description">University of Texas, 2018 - 2020</span></li><li><strong>Bachelor of Computer Science</strong><span class="tpl-description">State University, 2014 - 2018</span></li></ul>',
+            projects: '<ul><li><strong>Enterprise CRM Platform</strong><span class="tpl-description">Laravel, React.js, MySQL, AWS</span></li><li><strong>AI Resume Builder</strong><span class="tpl-description">Next.js, Node.js, TypeScript, AWS</span></li></ul>',
+            certifications: '<ul><li>AWS Certified Solutions Architect</li><li>Google Cloud Associate Engineer</li><li>Meta Frontend Professional Certificate</li></ul>',
+            certificates: '<ul><li>AWS Certified Solutions Architect</li><li>Google Cloud Associate Engineer</li><li>Meta Frontend Professional Certificate</li></ul>',
+            languages: '<ul><li>English - Native</li><li>Spanish - Professional</li></ul>',
+            achievements: '<ul><li>Winner - National Hackathon 2024</li><li>Top Performer Award 2023</li><li>Built platform serving 100K+ users</li></ul>',
+            additional_information: '<ul><li>Open Source Contributor</li><li>Tech Conference Speaker</li><li>Mentor for Junior Developers</li></ul>',
+            profile_image: '<div style="width:80px; height:80px; background:#e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#94a3b8;"><svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></div>',
+            profile_image_url: '',
+            profile_image_tag: '',
+            photo: '',
+        };
+    }
+
+    function renderTemplateChooserSampleHtml(template) {
+        const html = String(template?.html || '');
+        const sampleData = templateChooserSampleData();
+        let filled = hasResumePlaceholders(html) ? html : editableTemplateShell();
+        Object.entries(sampleData).forEach(([k, v]) => {
+            filled = filled.replace(new RegExp('\\{\\{\\s*' + k + '\\s*\\}\\}', 'g'), v);
+            filled = filled.split('[[' + k + ']]').join(v);
+        });
+        return resumeAccentStyle(state.primary_color_customized ? state.primary_color : '') + filled;
+    }
+
+    function renderTemplateChooserHtml(template) {
+        if (hasTemplateChooserUserData()) {
+            return renderTemplateHtml(template);
+        }
+        return renderTemplateChooserSampleHtml(template);
+    }
+
+    function updateTemplateLargePreview(id, animate = true) {
+        if (!templatePreviewPage) return;
+        const template = templates[id] || templates[selectedTemplateId] || Object.values(templates)[0];
+        if (!template) {
+            templatePreviewPage.innerHTML = '<div style="padding:2rem;color:#64748b;">No templates found.</div>';
+            return;
+        }
+        templatePreviewActiveId = String(id || selectedTemplateId || '');
+        if (templatePreviewName) templatePreviewName.textContent = 'Resume';
+        if (animate) templatePreviewPage.classList.add('is-swapping');
+        requestAnimationFrame(() => {
+            templatePreviewPage.innerHTML = renderTemplateChooserHtml(template);
+            templatePreviewPage.classList.remove('is-swapping');
         });
     }
 
@@ -1716,6 +1805,8 @@
         const card = document.createElement('div');
         card.className = 'rp-tpl-card' + (isSelected ? ' selected' : '');
         card.dataset.templateId = id;
+        card.tabIndex = 0;
+        card.setAttribute('role', 'button');
         const thumb = document.createElement('div');
         thumb.className = 'rp-tpl-thumb';
         const check = document.createElement('div');
@@ -1724,27 +1815,7 @@
         thumb.appendChild(check);
         const inner = document.createElement('div');
         inner.className = 'rp-tpl-thumb-inner';
-        const html = String(template?.html || '');
-        const sampleData = {
-            name: 'Alex Johnson', email: 'alex@example.com', mobile: '+91 98765 43210', location: 'Mumbai, India',
-            contact: 'alex@example.com | +91 98765 43210', address: 'Mumbai, India',
-            summary: 'Experienced professional with a strong background in product development.',
-            social_links: 'linkedin.com/in/alex',
-            skills: '<span class="tpl-badge">Leadership</span><span class="tpl-badge">React</span><span class="tpl-badge">Python</span>',
-            experience: `<div class="tpl-role"><div class="tpl-role-head"><strong>Senior Engineer</strong><span>2021-Present</span></div><p>TechCorp</p><ul><li>Led a team of 6 engineers</li><li>Reduced API latency by 40%</li></ul></div>`,
-            education: '<ul><li>B.Sc. Computer Science, MIT, 2019</li></ul>',
-            projects: '<ul><li><strong>Open Resume</strong><span class="tpl-description">Built with React &amp; Node.js</span></li></ul>',
-            certifications: '<ul><li>AWS Certified Developer</li></ul>',
-            certificates: '<ul><li>AWS Certified Developer</li></ul>',
-            languages: '<ul><li>English - Professional</li><li>Hindi - Native</li></ul>',
-            profile_image: '<div style="width:80px; height:80px; background:#e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#94a3b8;"><svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></div>',
-        };
-        let filled = hasResumePlaceholders(html) ? html : editableTemplateShell();
-        Object.entries(sampleData).forEach(([k, v]) => {
-            filled = filled.replace(new RegExp('\\{\\{\\s*' + k + '\\s*\\}\\}', 'g'), v);
-            filled = filled.split('[[' + k + ']]').join(v);
-        });
-        inner.innerHTML = filled;
+        inner.innerHTML = renderTemplateChooserSampleHtml(template);
         thumb.appendChild(inner);
         const name = document.createElement('div');
         name.className = 'rp-tpl-name';
@@ -1764,17 +1835,27 @@
             templateGrid.appendChild(card);
         });
         templatePopup.classList.add('open', 'visible');
+        updateTemplateLargePreview(selectedId);
         requestAnimationFrame(updateTemplateThumbScales);
         setTimeout(updateTemplateThumbScales, 120);
     }
 
     function bindTemplateCard(card, id) {
-        card.addEventListener('click', () => {
+        card.addEventListener('mouseenter', () => updateTemplateLargePreview(id));
+        card.addEventListener('focusin', () => updateTemplateLargePreview(id));
+        const selectTemplate = () => {
             templateGrid.querySelectorAll('.rp-tpl-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             if (templateIdEl) { selectedTemplateId = id; templateIdEl.value = id; templateIdEl.dispatchEvent(new Event('change')); }
-            applyColorSelection('');
+            updateTemplateLargePreview(id);
             setTimeout(() => templatePopup.classList.remove('open', 'visible'), 160);
+        };
+        card.addEventListener('click', selectTemplate);
+        card.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                selectTemplate();
+            }
         });
     }
 

@@ -1015,6 +1015,8 @@
         cursor: pointer;
     }
     .rp-popup-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
+    .rp-template-list { display: contents; }
+    .rp-preview-pane { display: none; }
     .rp-tpl-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -1093,6 +1095,119 @@
         text-align: center;
         color: var(--navy);
         background: white;
+    }
+    @media (min-width: 641px) {
+        .rp-popup {
+            max-width: min(1420px, calc(100vw - 3rem));
+            height: min(88vh, 860px);
+        }
+        .rp-popup-body {
+            display: grid;
+            grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+            gap: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #eef3f9;
+        }
+        .rp-template-list {
+            display: block;
+            background: #fff;
+            padding: 1.35rem;
+            overflow-y: auto;
+            border-right: 1px solid var(--border);
+        }
+        .rp-tpl-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+        .rp-tpl-card {
+            border-radius: var(--r-md);
+        }
+        .rp-tpl-card:hover {
+            transform: translateY(-2px);
+        }
+        .rp-tpl-thumb {
+            height: 245px;
+        }
+        .rp-tpl-thumb-inner {
+            transform: scale(0.235) translateX(-50%);
+        }
+        .rp-preview-pane {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 1.35rem 1.5rem;
+            overflow: hidden;
+        }
+        .rp-preview-title {
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.85rem;
+            color: var(--blue);
+            font-size: 1rem;
+            font-weight: 700;
+        }
+        .rp-preview-category {
+            color: var(--muted);
+            font-size: 0.74rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .rp-preview-canvas {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 1.25rem;
+            background: #e9eef6;
+            border-radius: var(--r-lg);
+            border: 1px solid rgba(148,163,184,0.35);
+        }
+        .rp-preview-page {
+            width: 794px;
+            min-height: 1123px;
+            flex: 0 0 794px;
+            background: #fff;
+            box-shadow: 0 22px 55px rgba(15,23,42,0.14);
+            border: 1px solid rgba(148,163,184,0.35);
+            transform: scale(0.72);
+            transform-origin: top center;
+            margin-bottom: -315px;
+            transition: opacity 0.16s ease, transform 0.16s ease;
+        }
+        .rp-preview-page.is-swapping {
+            opacity: 0.35;
+            transform: scale(0.705);
+        }
+        .rp-preview-page *,
+        .rp-preview-page .tpl-resume,
+        .rp-preview-page .tpl-resume * {
+            visibility: visible !important;
+        }
+    }
+    @media (min-width: 641px) and (max-width: 1100px) {
+        .rp-popup-body {
+            grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+        }
+        .rp-tpl-grid {
+            grid-template-columns: 1fr;
+        }
+        .rp-tpl-thumb {
+            height: 220px;
+        }
+        .rp-preview-page {
+            transform: scale(0.58);
+            margin-bottom: -475px;
+        }
+        .rp-preview-page.is-swapping {
+            transform: scale(0.565);
+        }
     }
 
     /* ─── PAYMENT MODAL ───────────────────────────────────────── */
@@ -1573,7 +1688,18 @@
             </button>
         </div>
         <div class="rp-popup-body">
-            <div class="rp-tpl-grid" id="templateGrid"></div>
+            <div class="rp-template-list">
+                <div class="rp-tpl-grid" id="templateGrid"></div>
+            </div>
+            <div class="rp-preview-pane" aria-live="polite">
+                <div class="rp-preview-title">
+                    <span id="templatePreviewName">Resume Preview</span>
+                    <span id="templatePreviewCategory" class="rp-preview-category"></span>
+                </div>
+                <div class="rp-preview-canvas">
+                    <div id="templatePreviewCanvas" class="rp-preview-page"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -2032,11 +2158,33 @@
     const changeTemplateBtn = document.getElementById('changeTemplateBtn');
     const closeTemplateBtn  = document.getElementById('closeTemplateModal');
     const templateGrid      = document.getElementById('templateGrid');
+    const templatePreviewCanvas = document.getElementById('templatePreviewCanvas');
+    const templatePreviewName = document.getElementById('templatePreviewName');
+    const templatePreviewCategory = document.getElementById('templatePreviewCategory');
+
+    function renderModalTemplatePreview(templateId) {
+        if (!templatePreviewCanvas) return;
+
+        const template = resumeTemplates[templateId] || resumeTemplates[selectedTemplateId] || Object.values(resumeTemplates)[0];
+        if (!template) {
+            templatePreviewCanvas.innerHTML = '<div style="padding:2rem;color:var(--muted);">No templates found.</div>';
+            return;
+        }
+
+        if (templatePreviewName) templatePreviewName.textContent = template.name || 'Resume Preview';
+        if (templatePreviewCategory) templatePreviewCategory.textContent = template.category ? `${template.category} template` : 'Resume template';
+
+        templatePreviewCanvas.classList.add('is-swapping');
+        window.requestAnimationFrame(() => {
+            templatePreviewCanvas.innerHTML = renderedTemplates[template.id] || '';
+            templatePreviewCanvas.classList.remove('is-swapping');
+        });
+    }
 
     function buildTemplateGrid() {
         if (!templateGrid) return;
         templateGrid.innerHTML = Object.values(resumeTemplates).map(tpl => `
-            <div class="rp-tpl-card ${String(tpl.id) === String(selectedTemplateId) ? 'selected' : ''}" data-template-id="${tpl.id}">
+            <div class="rp-tpl-card ${String(tpl.id) === String(selectedTemplateId) ? 'selected' : ''}" data-template-id="${tpl.id}" role="button" tabindex="0">
                 <div class="rp-tpl-thumb">
                     <div class="rp-tpl-check">
                         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
@@ -2045,19 +2193,30 @@
                         ${renderedTemplates[tpl.id] || ''}
                     </div>
                 </div>
-                <div class="rp-tpl-name">${tpl.name}</div>
+                <div class="rp-tpl-name">${esc(tpl.name || 'Resume Template')}</div>
             </div>
         `).join('');
 
         document.querySelectorAll('.rp-tpl-card').forEach(card => {
-            card.addEventListener('click', () => {
+            card.addEventListener('mouseenter', () => renderModalTemplatePreview(card.dataset.templateId));
+            card.addEventListener('focusin', () => renderModalTemplatePreview(card.dataset.templateId));
+            const selectTemplate = () => {
                 selectedTemplateId = card.dataset.templateId;
                 document.querySelectorAll('.rp-tpl-card').forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
                 renderTemplatePreview(resumeData);
                 templatePopup?.classList.remove('open');
+            };
+            card.addEventListener('click', selectTemplate);
+            card.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    selectTemplate();
+                }
             });
         });
+
+        renderModalTemplatePreview(selectedTemplateId);
     }
 
     changeTemplateBtn?.addEventListener('click', () => {

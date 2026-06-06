@@ -12,20 +12,115 @@ class TemplateRenderService
     {
         return [
             'type' => 'resume',
-            'name' => 'John Doe',
-            'email' => 'john.doe@example.com',
-            'mobile' => '+91 98765 43210',
-            'location' => 'Bengaluru, India',
-            'link' => 'https://example.com',
-            'summary' => 'Senior Developer with 3+ years of experience building SaaS products, scalable Laravel APIs, and clean user workflows.',
-            'linkedin' => 'linkedin.com/in/johndoe',
-            'github' => 'github.com/johndoe',
-            'skills' => ['React.js', 'Node.js', 'Express.js', 'MongoDB', 'REST APIs', 'JWT Authentication'],
+            'name' => 'James Smith',
+            'email' => 'james.smith@example.com',
+            'mobile' => '+1 (555) 123-4567',
+            'location' => 'Austin, Texas, USA',
+            'link' => 'https://jamessmith.dev',
+            'summary' => 'Results-driven Senior Full Stack Developer with 6+ years of experience building scalable web applications, cloud solutions, and enterprise SaaS platforms. Skilled in Laravel, React, AWS, and modern software architecture.',
+            'linkedin' => 'linkedin.com/in/jamessmith',
+            'github' => 'github.com/jamessmith',
+            'skills' => ['Laravel', 'PHP', 'MySQL', 'React.js', 'Next.js', 'TypeScript', 'Node.js', 'AWS', 'Docker', 'Git', 'REST APIs'],
             'experience' => [
                 [
-                    'role' => 'MERN Stack Developer Intern',
-                    'company' => 'Companyvista Inc',
-                    'duration' => 'Feb 2024 - Present',
+                    'role' => 'Senior Full Stack Developer',
+                    'company' => 'TechNova Solutions',
+                    'duration' => '2023 - Present',
+                    'highlights' => [
+                        'Led development of enterprise SaaS platform serving 100K+ users.',
+                        'Improved API performance by 45%.',
+                        'Mentored junior developers.',
+                    ],
+                ],
+                [
+                    'role' => 'Full Stack Developer',
+                    'company' => 'DigitalCraft Inc.',
+                    'duration' => '2020 - 2023',
+                    'highlights' => [
+                        'Built customer portals using Laravel and React.',
+                        'Delivered 20+ client projects.',
+                        'Reduced deployment times using CI/CD pipelines.',
+                    ],
+                ],
+            ],
+            'education' => [
+                [
+                    'degree' => 'Master of Science in Computer Science',
+                    'institution' => 'University of Texas',
+                    'duration' => '2018 - 2020',
+                ],
+                [
+                    'degree' => 'Bachelor of Computer Science',
+                    'institution' => 'State University',
+                    'duration' => '2014 - 2018',
+                ],
+            ],
+            'projects' => [
+                [
+                    'name' => 'Enterprise CRM Platform',
+                    'tech_stack' => 'Laravel, React.js, MySQL, AWS',
+                    'highlights' => [
+                        'Built a scalable CRM platform with role-based workflows, reporting dashboards, and REST API integrations.',
+                    ],
+                ],
+                [
+                    'name' => 'AI Resume Builder',
+                    'tech_stack' => 'Next.js, Node.js, TypeScript, AWS',
+                    'highlights' => [
+                        'Designed an AI-assisted resume workflow with structured parsing, template previews, and export-ready documents.',
+                    ],
+                ],
+                [
+                    'name' => 'E-Commerce Analytics Dashboard',
+                    'tech_stack' => 'React.js, Laravel, MySQL, Docker',
+                    'highlights' => [
+                        'Delivered real-time sales analytics, conversion reporting, and customer segmentation dashboards.',
+                    ],
+                ],
+            ],
+            'certifications' => [
+                'AWS Certified Solutions Architect',
+                'Google Cloud Associate Engineer',
+                'Meta Frontend Professional Certificate',
+            ],
+            'certificates' => [
+                'AWS Certified Solutions Architect',
+                'Google Cloud Associate Engineer',
+                'Meta Frontend Professional Certificate',
+            ],
+            'languages' => [
+                ['name' => 'English', 'level' => 'Native'],
+                ['name' => 'Spanish', 'level' => 'Professional'],
+            ],
+            'additional_information' => [
+                'Open Source Contributor',
+                'Tech Conference Speaker',
+                'Mentor for Junior Developers',
+            ],
+            'achievements' => [
+                'Winner - National Hackathon 2024',
+                'Top Performer Award 2023',
+                'Built platform serving 100K+ users',
+            ],
+            'social_links' => ['linkedin.com/in/jamessmith', 'github.com/jamessmith'],
+        ];
+
+        return [
+            'type' => 'resume',
+            'name' => 'James Smith',
+            'email' => 'james.smith@example.com',
+            'mobile' => '+1 (555) 123-4567',
+            'location' => 'Austin, Texas, USA',
+            'link' => 'https://jamessmith.dev',
+            'summary' => 'Results-driven Senior Full Stack Developer with 6+ years of experience building scalable web applications, cloud solutions, and enterprise SaaS platforms. Skilled in Laravel, React, AWS, and modern software architecture.',
+            'linkedin' => 'linkedin.com/in/jamessmith',
+            'github' => 'github.com/jamessmith',
+            'skills' => ['Laravel', 'PHP', 'MySQL', 'React.js', 'Next.js', 'TypeScript', 'Node.js', 'AWS', 'Docker', 'Git', 'REST APIs'],
+            'experience' => [
+                [
+                    'role' => 'Senior Full Stack Developer',
+                    'company' => 'TechNova Solutions',
+                    'duration' => '2023 - Present',
                     'location' => 'On-site',
                     'link' => 'https://companyvista.com',
                     'highlights' => [
@@ -34,9 +129,9 @@ class TemplateRenderService
                     ],
                 ],
                 [
-                    'role' => 'Frontend Developer',
-                    'company' => 'BrightTech',
-                    'duration' => '2022 - 2024',
+                    'role' => 'Full Stack Developer',
+                    'company' => 'DigitalCraft Inc.',
+                    'duration' => '2020 - 2023',
                     'location' => 'Remote',
                     'link' => 'https://brighttech.com',
                     'highlights' => [
@@ -47,15 +142,15 @@ class TemplateRenderService
             ],
             'education' => [
                 [
-                    'degree' => 'Master of Computer Applications (MCA)',
-                    'institution' => 'Galgotia College of Engineering and Technology',
-                    'duration' => '2024 - Present',
+                    'degree' => 'Master of Science in Computer Science',
+                    'institution' => 'University of Texas',
+                    'duration' => '2018 - 2020',
                     'cgpa' => '7.70',
                 ],
                 [
-                    'degree' => 'B.Sc. Computer Science',
-                    'institution' => 'Delhi University',
-                    'duration' => '2021 - 2024',
+                    'degree' => 'Bachelor of Computer Science',
+                    'institution' => 'State University',
+                    'duration' => '2014 - 2018',
                     'cgpa' => '7.85',
                 ],
             ],
@@ -81,26 +176,29 @@ class TemplateRenderService
             ],
             'certifications' => [
                 'AWS Certified Developer – Associate',
-                'MongoDB Certified Developer',
-                'Certified React.js Specialist',
+                'Google Cloud Associate Engineer',
+                'Meta Frontend Professional Certificate',
             ],
             'certificates' => [
                 'AWS Certified Developer - Associate',
-                'MongoDB Certified Developer',
-                'Certified React.js Specialist',
+                'Google Cloud Associate Engineer',
+                'Meta Frontend Professional Certificate',
             ],
             'languages' => [
-                ['name' => 'English', 'level' => 'Professional'],
-                ['name' => 'Hindi', 'level' => 'Native'],
+                ['name' => 'English', 'level' => 'Native'],
+                ['name' => 'Spanish', 'level' => 'Professional'],
             ],
             'additional_information' => [
-                'Published a research paper on AI-driven UI optimization in IJCS.',
+                'Open Source Contributor',
+                'Tech Conference Speaker',
+                'Mentor for Junior Developers',
             ],
             'achievements' => [
-                'Won First Place at the State-Level Hackathon 2023.',
-                'Recognized as Employee of the Month for outstanding delivery in Q3 2022.',
+                'Winner - National Hackathon 2024',
+                'Top Performer Award 2023',
+                'Built platform serving 100K+ users',
             ],
-            'social_links' => ['linkedin.com/in/johndoe', 'github.com/johndoe'],
+            'social_links' => ['linkedin.com/in/jamessmith', 'github.com/jamessmith'],
         ];
     }
 
@@ -109,16 +207,32 @@ class TemplateRenderService
     {
         return array_merge([
             'type' => 'cover_letter',
-            'name' => 'John Doe',
-            'email' => 'john.doe@example.com',
-            'mobile' => '+91 98765 43210',
-            'location' => 'Bengaluru, India',
+            'name' => 'James Smith',
+            'email' => 'james.smith@example.com',
+            'mobile' => '+1 (555) 123-4567',
+            'location' => 'Austin, Texas, USA',
             'company' => 'Acme SaaS',
             'company_name' => 'Acme SaaS',
             'job_role' => 'Senior Laravel Developer',
-            'skills' => 'Laravel, PHP, MySQL',
+            'skills' => 'Laravel, React.js, MySQL, AWS',
             'job_description' => "We are looking for a Senior Laravel Developer to join our team. You will be responsible for building scalable APIs, managing databases, and improving our SaaS product's performance.",
-            'body' => "Dear Hiring Manager,\n\nI am excited to apply for the Senior Laravel Developer role at Acme SaaS. With 3+ years of experience building Laravel products, payment workflows, and database-driven applications, I can contribute quickly to your engineering team.\n\nMy work includes building production APIs, improving performance, and collaborating with product teams to ship clean user experiences. I would welcome the opportunity to bring the same focus and ownership to Acme SaaS.\n\nSincerely,\nJohn Doe",
+            'body' => "Dear Hiring Manager,\n\nI am excited to apply for the Senior Laravel Developer position at Acme SaaS.\n\nWith over 6 years of experience building scalable web applications, RESTful APIs, and cloud-based solutions, I have successfully delivered high-performance products across multiple industries.\n\nMy expertise includes Laravel, React.js, MySQL, AWS, and modern software architecture. I am passionate about building clean, maintainable code and collaborating with cross-functional teams to create exceptional user experiences.\n\nI would welcome the opportunity to contribute my technical expertise and problem-solving skills to your organization.\n\nSincerely,\n\nJames Smith",
+            'primary_color' => '#2563eb',
+            'primary_color_customized' => false,
+        ], $overrides ?? []);
+
+        return array_merge([
+            'type' => 'cover_letter',
+            'name' => 'James Smith',
+            'email' => 'james.smith@example.com',
+            'mobile' => '+1 (555) 123-4567',
+            'location' => 'Austin, Texas, USA',
+            'company' => 'Acme SaaS',
+            'company_name' => 'Acme SaaS',
+            'job_role' => 'Senior Laravel Developer',
+            'skills' => 'Laravel, React.js, MySQL, AWS',
+            'job_description' => "We are looking for a Senior Laravel Developer to join our team. You will be responsible for building scalable APIs, managing databases, and improving our SaaS product's performance.",
+            'body' => "Dear Hiring Manager,\n\nI am excited to apply for the Senior Laravel Developer position at Acme SaaS.\n\nWith over 6 years of experience building scalable web applications, RESTful APIs, and cloud-based solutions, I have successfully delivered high-performance products across multiple industries.\n\nMy expertise includes Laravel, React.js, MySQL, AWS, and modern software architecture. I am passionate about building clean, maintainable code and collaborating with cross-functional teams to create exceptional user experiences.\n\nI would welcome the opportunity to contribute my technical expertise and problem-solving skills to your organization.\n\nSincerely,\n\nJames Smith",
             'primary_color' => '#2563eb',
             'primary_color_customized' => false,
         ], $overrides ?? []);

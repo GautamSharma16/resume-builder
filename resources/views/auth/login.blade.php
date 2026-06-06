@@ -71,7 +71,7 @@
     .lp-logo img {
         height: clamp(64px, 8vw, 92px);
         width: auto;
-        max-width: min(230px, 72vw);
+        max-width: min(161px, 72vw);
         object-fit: contain;
         filter: brightness(1.28) contrast(1.08) drop-shadow(0 6px 20px rgba(37,99,235,0.35));
         /* background: rgba(255, 255, 255, 0.08); */
@@ -349,7 +349,7 @@
         
         <div class="lp-content">
             <a href="{{ route('home') }}" class="lp-logo">
-                <img src="{{ asset('Logo.png') }}" alt="CvBliss Logo" class="cvb-logo">
+                <img src="{{ asset('logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
             </a>
 
             <h1 class="lp-headline">Build resumes that get you hired faster</h1>
@@ -390,7 +390,7 @@
     <div class="lp-right">
         <div class="form-shell">
             <a href="{{ route('home') }}" class="mobile-brand">
-                <img src="{{ asset('Logo.png') }}" alt="CvBliss Logo" class="cvb-logo">
+                <img src="{{ asset('logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
             </a>
             
             @php $activeTab = $activeTab ?? 'login'; @endphp
@@ -469,7 +469,7 @@
                     <div class="field-group">
                         <label class="field-label" for="name">Full Name</label>
                         <div class="input-wrapper">
-                            <input class="form-input" id="name" name="name" type="text" value="{{ old('name') }}" placeholder="John Doe" required>
+                            <input class="form-input" id="name" name="name" type="text" value="{{ old('name') }}" placeholder="James Smith" required>
                             <span class="material-symbols-outlined input-icon">person</span>
                         </div>
                     </div>

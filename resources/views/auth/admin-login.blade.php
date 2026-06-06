@@ -71,7 +71,7 @@
     .lp-logo img {
         height: clamp(52px, 7vw, 72px);
         width: auto;
-        max-width: min(210px, 70vw);
+        max-width: min(161px, 70vw);
         object-fit: contain;
         filter: brightness(1.2);
     }
@@ -220,7 +220,7 @@
         
         <div class="lp-content">
             <a href="{{ route('home') }}" class="lp-logo">
-                <img src="{{ asset('Logo.png') }}" alt="CvBliss Logo" class="cvb-logo">
+                <img src="{{ asset('logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
             </a>
 
             <h1 class="lp-headline">Administrative Control Center</h1>
@@ -228,7 +228,7 @@
                 Secure portal for CvBliss staff. Manage platform analytics, user resumes, and system-wide configurations.
             </p>
 
-            <div class="space-y-6">
+            <!-- <div class="space-y-6">
                 <div class="glass-card" style="transform: translateX(16px);">
                     <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
                         <span class="material-symbols-outlined text-blue-400">shield_person</span>
@@ -241,7 +241,7 @@
                         <div class="text-sm text-outline">Multi-factor authentication enabled for all admin accounts.</div>
                     </div>
                 </div>
-            </div>
+            </div> -->
         </div>
 
         <div class="lp-stats">
