@@ -8,7 +8,7 @@
             <!-- Logo -->
             <div class="flex shrink-0 items-center">
                 <a href="{{ route('home') }}" class="group flex items-center gap-2" aria-label="Cvbliss home">
-                    <img src="{{ asset('logo.webp') }}"
+                    <img src="{{ asset('Logo.webp') }}"
                          alt="Cvbliss Logo"
                          class="cvb-logo cvb-logo-nav transition duration-300 group-hover:scale-[1.03]">
                 </a>
@@ -138,7 +138,7 @@
        class="fixed inset-y-0 left-0 z-[70] flex w-[min(20rem,calc(100vw-2rem))] flex-col border-r border-slate-200 bg-white shadow-[24px_0_60px_rgba(15,23,42,0.18)] xl:hidden">
     <div class="flex h-20 shrink-0 items-center justify-between border-b border-slate-100 px-5">
         <a href="{{ route('home') }}" class="flex min-w-0 items-center" aria-label="Cvbliss home">
-            <img src="{{ asset('logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-drawer">
+            <img src="{{ asset('Logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-drawer">
         </a>
         <button type="button"
                 @click="open = false"

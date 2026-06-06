@@ -349,7 +349,7 @@
         
         <div class="lp-content">
             <a href="{{ route('home') }}" class="lp-logo">
-                <img src="{{ asset('logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
+                <img src="{{ asset('Logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
             </a>
 
             <h1 class="lp-headline">Build resumes that get you hired faster</h1>
@@ -390,7 +390,7 @@
     <div class="lp-right">
         <div class="form-shell">
             <a href="{{ route('home') }}" class="mobile-brand">
-                <img src="{{ asset('logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
+                <img src="{{ asset('Logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
             </a>
             
             @php $activeTab = $activeTab ?? 'login'; @endphp

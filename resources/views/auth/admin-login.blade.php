@@ -220,7 +220,7 @@
         
         <div class="lp-content">
             <a href="{{ route('home') }}" class="lp-logo">
-                <img src="{{ asset('logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
+                <img src="{{ asset('Logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
             </a>
 
             <h1 class="lp-headline">Administrative Control Center</h1>

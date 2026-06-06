@@ -8,7 +8,7 @@
             <!-- Logo -->
             <div class="flex shrink-0 items-center">
                 <a href="{{ route('home') }}" class="group flex items-center gap-2" aria-label="Cvbliss home">
-                    <img src="{{ asset('logo.webp') }}"
+                    <img src="{{ asset('Logo.webp') }}"
                          alt="Cvbliss Logo"
                          class="cvb-logo cvb-logo-nav transition duration-300 group-hover:scale-[1.03]">
                 </a>

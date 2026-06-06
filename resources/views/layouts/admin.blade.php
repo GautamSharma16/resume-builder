@@ -51,7 +51,7 @@
                 <!-- Mobile Logo Area -->
                 <div class="flex h-20 shrink-0 items-center justify-between border-b border-slate-100 px-5">
                     <a href="{{ route('home') }}" class="flex min-w-0 items-center">
-                        <img src="{{ asset('logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-drawer">
+                        <img src="{{ asset('Logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-drawer">
                     </a>
                     <button @click="sidebarOpen = false" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-slate-400 transition duration-200 hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,7 +97,7 @@
                     <!-- Logo -->
                     <div class="flex items-center px-8 h-20 border-b border-slate-100 shrink-0">
                         <a href="{{ route('home') }}" class="flex items-center">
-                            <img src="{{ asset('logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-admin-sidebar">
+                            <img src="{{ asset('Logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-admin-sidebar">
                         </a>
                     </div>
 
