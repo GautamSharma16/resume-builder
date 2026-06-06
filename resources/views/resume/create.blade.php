@@ -877,6 +877,7 @@
         }
         .rp-popup-close:hover { background: var(--border); }
         .rp-popup-back { display: none; }
+        .rp-popup-back-short { display: none; }
         .rp-popup-body { padding: 1.5rem; overflow-y: auto; flex: 1; min-height: 0; }
         .rp-template-sidebar,
         .rp-template-preview-pane { display: none; }
@@ -1484,6 +1485,28 @@
                 background: var(--blue);
                 color: #fff;
                 box-shadow: 0 2px 10px rgba(59,130,246,0.4);
+            }
+            body.template-popup-open .rp-mobile-nav {
+                display: none !important;
+            }
+            .rp-overlay.open .rp-popup-back {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                border: 0;
+                background: transparent;
+                color: var(--navy);
+                font: inherit;
+                font-size: 0.95rem;
+                font-weight: 700;
+                cursor: pointer;
+                padding: 0.4rem 0;
+            }
+            .rp-popup-back-full {
+                display: none;
+            }
+            .rp-popup-back-short {
+                display: inline;
             }
         }
 
@@ -2095,7 +2118,7 @@
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M15 18 9 12l6-6"/>
                     </svg>
-                    Back to editor
+                    <span class="rp-popup-back-full">Back to editor</span><span class="rp-popup-back-short">Back</span>
                 </button>
                 <h3>Choose a Template</h3>
                 <div class="color-selector-wrap" style="display: flex; align-items: center; gap: 12px; margin-left: auto; margin-right: 0; background: #fff; padding: 6px 16px; border-radius: 100px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border: 1px solid #eef2f6;">

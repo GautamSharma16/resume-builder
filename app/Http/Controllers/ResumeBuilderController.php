@@ -54,6 +54,18 @@ class ResumeBuilderController extends Controller
         if ($selectedTemplateId) {
             $selectedTemplate = Template::where('type', 'resume')->where('is_active', true)->findOrFail($selectedTemplateId);
             $selectedTemplateId = $selectedTemplate->id;
+        } else {
+            $savedTemplateId = $request->user()
+                ? Resume::where('user_id', $request->user()->id)
+                    ->whereNotNull('template_id')
+                    ->latest()
+                    ->value('template_id')
+                : null;
+
+            $selectedTemplate = $savedTemplateId
+                ? $templates->firstWhere('id', $savedTemplateId)
+                : $templates->first();
+            $selectedTemplateId = $selectedTemplate?->id;
         }
 
         $analysisId = $request->query('analysis_id');
@@ -568,6 +580,30 @@ class ResumeBuilderController extends Controller
 
     private function writeDocx(string $path, string $html): void
     {
+        if (class_exists(\PhpOffice\PhpWord\PhpWord::class) && class_exists(\PhpOffice\PhpWord\Shared\Html::class)) {
+            try {
+                $phpWord = new \PhpOffice\PhpWord\PhpWord();
+                $phpWord->setDefaultFontName('Arial');
+                $phpWord->setDefaultFontSize(10);
+
+                $section = $phpWord->addSection([
+                    'marginTop' => 720,
+                    'marginRight' => 720,
+                    'marginBottom' => 720,
+                    'marginLeft' => 720,
+                ]);
+
+                \PhpOffice\PhpWord\Shared\Html::addHtml($section, $this->htmlForPhpWord($html), false, false);
+                \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007')->save($path);
+
+                if ($this->isValidDocx($path)) {
+                    return;
+                }
+            } catch (\Throwable) {
+                @unlink($path);
+            }
+        }
+
         $zip = new \ZipArchive();
         if ($zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
             abort(500, 'Unable to create Word document.');
@@ -580,6 +616,55 @@ class ResumeBuilderController extends Controller
         $zip->addFromString('word/numbering.xml', $this->docxNumberingXml());
         $zip->addFromString('word/document.xml', $this->docxDocumentXml($html));
         $zip->close();
+
+        if (! $this->isValidDocx($path)) {
+            @unlink($path);
+            abort(500, 'Unable to create a valid Word document.');
+        }
+    }
+
+    private function htmlForPhpWord(string $html): string
+    {
+        $html = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $html) ?? '';
+        $html = preg_replace('/<style\b[^>]*>[\s\S]*?<\/style>/i', '', $html) ?? $html;
+        $html = preg_replace('/<svg\b[^>]*>[\s\S]*?<\/svg>/i', '', $html) ?? $html;
+        $html = preg_replace('/\s(class|id|data-[\w-]+)="[^"]*"/i', '', $html) ?? $html;
+
+        return '<div>'.$html.'</div>';
+    }
+
+    private function isValidDocx(string $path): bool
+    {
+        if (! is_file($path) || filesize($path) <= 0) {
+            return false;
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($path) !== true) {
+            return false;
+        }
+
+        $required = ['[Content_Types].xml', '_rels/.rels', 'word/document.xml'];
+        foreach ($required as $entry) {
+            if ($zip->locateName($entry) === false) {
+                $zip->close();
+                return false;
+            }
+        }
+
+        $documentXml = $zip->getFromName('word/document.xml') ?: '';
+        $zip->close();
+
+        if ($documentXml === '') {
+            return false;
+        }
+
+        $dom = new \DOMDocument();
+        libxml_use_internal_errors(true);
+        $valid = $dom->loadXML($documentXml);
+        libxml_clear_errors();
+
+        return $valid;
     }
 
     private function docxDocumentXml(string $html): string
@@ -679,7 +764,7 @@ class ResumeBuilderController extends Controller
                 $text = preg_replace('/\s+/', ' ', $child->nodeValue);
                 if (trim($text) !== '') {
                     $runs[] = [
-                        'text' => $text,
+                        'text' => $this->cleanDocxText($text),
                         'bold' => $format['bold'] ?? false,
                         'italic' => $format['italic'] ?? false,
                         'underline' => $format['underline'] ?? false,
@@ -742,6 +827,11 @@ class ResumeBuilderController extends Controller
         }
 
         return '<w:r>'.($props ? '<w:rPr>'.$props.'</w:rPr>' : '').'<w:t xml:space="preserve">'.e($text).'</w:t></w:r>';
+    }
+
+    private function cleanDocxText(string $text): string
+    {
+        return preg_replace('/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}]/u', '', $text) ?? '';
     }
 
     private function docxContentTypesXml(): string

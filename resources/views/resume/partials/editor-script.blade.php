@@ -1868,16 +1868,28 @@
     function openTemplatePopup() {
         if (!templatePopup || !templateGrid) return;
         const selectedId = templateIdEl?.value || selectedTemplateId || '';
+        templatePreviewActiveId = String(selectedId || '');
         templateGrid.innerHTML = '';
         Object.entries(templates).forEach(([id, tpl]) => {
             const card = buildTemplateCard(id, tpl, id === selectedId);
             bindTemplateCard(card, id);
             templateGrid.appendChild(card);
         });
+        document.body.classList.add('template-popup-open');
         templatePopup.classList.add('open', 'visible');
         updateTemplateLargePreview(selectedId);
         requestAnimationFrame(updateTemplateThumbScales);
         setTimeout(updateTemplateThumbScales, 120);
+    }
+
+    function closeTemplatePopup(restoreEditor = false) {
+        templatePopup?.classList.remove('open', 'visible');
+        document.body.classList.remove('template-popup-open');
+        templatePreviewActiveId = String(templateIdEl?.value || selectedTemplateId || '');
+
+        if (restoreEditor && window.matchMedia('(max-width: 1024px)').matches) {
+            window.setMobileView?.('form');
+        }
     }
 
     function bindTemplateCard(card, id) {
@@ -1888,7 +1900,7 @@
             card.classList.add('selected');
             if (templateIdEl) { selectedTemplateId = id; templateIdEl.value = id; templateIdEl.dispatchEvent(new Event('change')); }
             updateTemplateLargePreview(id);
-            setTimeout(() => templatePopup.classList.remove('open', 'visible'), 160);
+            setTimeout(() => closeTemplatePopup(false), 160);
         };
         card.addEventListener('click', selectTemplate);
         card.addEventListener('keydown', event => {
@@ -1900,9 +1912,9 @@
     }
 
     changeTemplateBtn?.addEventListener('click', openTemplatePopup);
-    closePopupBtn?.addEventListener('click',     () => templatePopup?.classList.remove('open', 'visible'));
-    $('close-template-btn')?.addEventListener('click', () => templatePopup?.classList.remove('open', 'visible'));
-    templatePopup?.addEventListener('click', e => { if (e.target === templatePopup) templatePopup.classList.remove('open', 'visible'); });
+    closePopupBtn?.addEventListener('click',     () => closeTemplatePopup(true));
+    $('close-template-btn')?.addEventListener('click', () => closeTemplatePopup(true));
+    templatePopup?.addEventListener('click', e => { if (e.target === templatePopup) closeTemplatePopup(true); });
     templatePreviewPagePrev?.addEventListener('click', () => goToTemplatePreviewPage(templatePreviewPageNum - 1));
     templatePreviewPageNext?.addEventListener('click', () => goToTemplatePreviewPage(templatePreviewPageNum + 1));
     window.addEventListener('resize', updateTemplateThumbScales);

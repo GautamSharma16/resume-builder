@@ -334,7 +334,7 @@
             </div>
             <div class="rp-dl-group">
                 <a class="rp-dl-btn primary" href="{{ route('resume.download', [$resume, 'pdf']) }}" @if($requiresPlanForDownload) data-open-plan-modal @endif>PDF</a>
-                <a class="rp-dl-btn" href="{{ route('resume.download', [$resume, 'doc']) }}" @if($requiresPlanForDownload) data-open-plan-modal @endif>DOC</a>
+                <a class="rp-dl-btn" href="{{ route('resume.download', [$resume, 'docx']) }}" @if($requiresPlanForDownload) data-open-plan-modal @endif>DOCX</a>
                 <a class="rp-dl-btn" href="{{ route('resume.download', [$resume, 'ppt']) }}" @if($requiresPlanForDownload) data-open-plan-modal @endif>PPT</a>
             </div>
         </header>

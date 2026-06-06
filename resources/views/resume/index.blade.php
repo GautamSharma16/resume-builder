@@ -108,7 +108,7 @@
                                             <span class="w-8 h-8 rounded bg-red-50 text-red-600 flex items-center justify-center mr-3 font-bold text-[10px]">PDF</span>
                                             Download PDF
                                         </a>
-                                        <a href="{{ route('resume.download', [$resume, 'doc']) }}" @if($requiresPlanForDownload && ! $resume->is_paid) data-open-plan-modal @endif class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                                        <a href="{{ route('resume.download', [$resume, 'docx']) }}" @if($requiresPlanForDownload && ! $resume->is_paid) data-open-plan-modal @endif class="flex items-center px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors">
                                             <span class="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center mr-3 font-bold text-[10px]">DOC</span>
                                             Download DOCX
                                         </a>
