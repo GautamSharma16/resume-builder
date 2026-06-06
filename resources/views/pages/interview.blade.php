@@ -183,7 +183,7 @@
   .filter-bar {
     background: white;
     border-bottom: 1px solid var(--border);
-    position: sticky;
+    
     top: 0;
     z-index: 50;
   }
