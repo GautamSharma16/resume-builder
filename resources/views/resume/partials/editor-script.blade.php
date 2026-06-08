@@ -1299,11 +1299,14 @@
             if (!activeBtn.classList.contains('original')) {
                 activeBtn.style.boxShadow = `0 0 0 2px #fff, 0 0 0 4px ${color}`;
             } else {
-                activeBtn.style.borderColor = '#2563eb';
-                activeBtn.style.color = '#2563eb';
+                activeBtn.style.borderColor = '#0b1221';
+                activeBtn.style.color = '#0b1221';
             }
         });
         renderTemplatePreview();
+        if (typeof refreshTemplatePopupThumbs === 'function') {
+            refreshTemplatePopupThumbs();
+        }
     }
     window.applyColorSelection = applyColorSelection;
 
@@ -1886,6 +1889,10 @@
         templatePopup?.classList.remove('open', 'visible');
         document.body.classList.remove('template-popup-open');
         templatePreviewActiveId = String(templateIdEl?.value || selectedTemplateId || '');
+
+        /* Clear popup previews to prevent CSS bleeding from injected <style> tags */
+        if (typeof templateGrid !== 'undefined' && templateGrid) templateGrid.innerHTML = '';
+        if (typeof templatePreviewPage !== 'undefined' && templatePreviewPage) templatePreviewPage.innerHTML = '';
 
         if (restoreEditor && window.matchMedia('(max-width: 1024px)').matches) {
             window.setMobileView?.('form');

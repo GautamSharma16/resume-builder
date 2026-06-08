@@ -1784,6 +1784,36 @@
                     ══════════════════════════════════════════ */
             @media (max-width: 1024px) {
 
+                #template-popup .color-selector-wrap {
+                    display: none !important;
+                }
+
+                #template-popup .rp-popup-head {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 1rem 1.5rem;
+                }
+
+                #template-popup .rp-popup-head h3 {
+                    font-size: 1.25rem;
+                    font-family: var(--font-display);
+                    color: var(--navy);
+                    text-align: center;
+                    margin: 0;
+                    flex: none;
+                }
+
+                #template-popup .rp-popup-head .rp-popup-back {
+                    position: absolute;
+                    left: 1rem;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    display: inline-flex;
+                    margin: 0;
+                }
+
                 /* Builder: single column */
                 .rp-builder {
                     grid-template-columns: 1fr;

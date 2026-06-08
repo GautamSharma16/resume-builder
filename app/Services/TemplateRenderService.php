@@ -540,6 +540,12 @@ HTML;
         $fullName = trim($firstName.' '.$lastName) ?: $firstName;
         $additionalInformation = Arr::get($data, 'additional_information', Arr::get($data, 'additionalInformation', []));
 
+        $rawImage = Arr::get($data, 'profile_image', '');
+        $profileImage = $rawImage;
+        if (empty($profileImage) || $profileImage === 'null' || $profileImage === '""') {
+            $profileImage = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face';
+        }
+
         return [
             'name' => e($fullName),
             'last_name' => e($lastName),
@@ -564,10 +570,10 @@ HTML;
             'achievements' => $this->list(Arr::get($data, 'achievements', [])),
             'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
-            'profile_image' => Arr::get($data, 'profile_image', ''),
-            'profile_image_url' => Arr::get($data, 'profile_image', ''),
-            'profile_image_tag' => Arr::get($data, 'profile_image') ? '<img src="'.Arr::get($data, 'profile_image').'" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">' : '',
-            'photo' => Arr::get($data, 'profile_image', ''),
+            'profile_image' => $profileImage,
+            'profile_image_url' => $profileImage,
+            'profile_image_tag' => '<img src="'.$profileImage.'" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">',
+            'photo' => $profileImage,
         ];
     }
 
@@ -607,6 +613,11 @@ HTML;
 
     private function bladeRenderDataForResume(array $data): array
     {
+        $profileImage = $this->text(Arr::get($data, 'profile_image', ''));
+        if (empty($profileImage) || $profileImage === 'null' || $profileImage === '""') {
+            $profileImage = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face';
+        }
+
         $resume = [
             'type' => 'resume',
             'name' => trim($this->text(Arr::get($data, 'name', '')).' '.$this->text(Arr::get($data, 'last_name', ''))) ?: $this->text(Arr::get($data, 'name', '')),
@@ -636,9 +647,9 @@ HTML;
             'address' => $this->text(Arr::get($data, 'address', '')),
             'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
-            'profile_image' => $this->text(Arr::get($data, 'profile_image', '')),
-            'profile_image_url' => $this->text(Arr::get($data, 'profile_image', '')),
-            'photo' => $this->text(Arr::get($data, 'profile_image', '')),
+            'profile_image' => $profileImage,
+            'profile_image_url' => $profileImage,
+            'photo' => $profileImage,
         ];
 
         return array_merge(['resume' => $resume], $resume);
