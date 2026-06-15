@@ -186,8 +186,7 @@
 
         /* Print styles */
         @media print {
-            @page { margin: 24px 0 0 0; }
-            @page:first { margin: 0; }
+            @page { margin: 0; }
             body { margin: 0; padding: 0; }
             .tpl-resume, .tpl-cover {
                 height: auto !important;
@@ -219,6 +218,21 @@
     (() => {
         const documentNode = document.querySelector('.tpl-resume, .tpl-cover');
         if (!documentNode) return;
+
+        const markerPattern = /^[\s*_\-•·]+$/;
+        const walker = document.createTreeWalker(documentNode, NodeFilter.SHOW_TEXT);
+        const markerTextNodes = [];
+        while (walker.nextNode()) {
+            if (markerPattern.test(walker.currentNode.nodeValue || '')) {
+                markerTextNodes.push(walker.currentNode);
+            }
+        }
+        markerTextNodes.forEach((node) => node.remove());
+        documentNode.querySelectorAll('p, div, span, strong, b, em, i').forEach((node) => {
+            if (markerPattern.test(node.textContent || '') && node.children.length === 0) {
+                node.remove();
+            }
+        });
 
         const background = window.getComputedStyle(documentNode).backgroundColor;
         if (!background || background === 'transparent' || background === 'rgba(0, 0, 0, 0)') return;
