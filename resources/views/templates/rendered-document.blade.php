@@ -8,10 +8,16 @@
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body {
             background: #fff; 
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
             -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .tpl-resume, .tpl-cover {
@@ -207,5 +213,19 @@
         }
     </style>
 </head>
-<body>{!! $html !!}</body>
+<body>
+{!! $html !!}
+<script>
+    (() => {
+        const documentNode = document.querySelector('.tpl-resume, .tpl-cover');
+        if (!documentNode) return;
+
+        const background = window.getComputedStyle(documentNode).backgroundColor;
+        if (!background || background === 'transparent' || background === 'rgba(0, 0, 0, 0)') return;
+
+        document.documentElement.style.backgroundColor = background;
+        document.body.style.backgroundColor = background;
+    })();
+</script>
+</body>
 </html>

@@ -919,12 +919,28 @@ HTML;
         if (is_array($value)) {
             return collect($value)
                 ->flatten()
-                ->map(fn ($part) => is_scalar($part) ? trim((string) $part) : '')
+                ->map(fn ($part) => is_scalar($part) ? $this->cleanTextMarkers((string) $part) : '')
                 ->filter()
                 ->join(' - ');
         }
 
-        return trim((string) ($value ?? ''));
+        return $this->cleanTextMarkers((string) ($value ?? ''));
+    }
+
+    private function cleanTextMarkers(string $value): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        $lines = preg_split('/\R/', $value) ?: [];
+        $lines = array_values(array_filter(array_map('trim', $lines), function (string $line): bool {
+            return ! preg_match('/^(?:[-*_•·]+|\x{2022})$/u', $line);
+        }));
+
+        return trim(implode("\n", $lines));
     }
 
     private function formatCoverLetterBody(string $body): string
