@@ -212,10 +212,12 @@
         }
     </style>
 </head>
-<body>
+<body class="rendered-document-body">
 {!! $html !!}
 <script>
     (() => {
+        if (!document.body.classList.contains('rendered-document-body')) return;
+
         const documentNode = document.querySelector('.tpl-resume, .tpl-cover');
         if (!documentNode) return;
 

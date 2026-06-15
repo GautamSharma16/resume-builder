@@ -17,29 +17,18 @@ class TemplateRenderService
             'mobile' => '+1 (555) 123-4567',
             'location' => 'Austin, Texas, USA',
             'link' => 'https://jamessmith.dev',
-            'summary' => 'Results-driven Senior Full Stack Developer with 6+ years of experience building scalable web applications, cloud solutions, and enterprise SaaS platforms. Skilled in Laravel, React, AWS, and modern software architecture.',
+            'summary' => 'Senior Full Stack Developer with 6+ years of experience building reliable web applications and SaaS products. Skilled in Laravel, React, APIs, and cloud-ready architecture.',
             'linkedin' => 'linkedin.com/in/jamessmith',
             'github' => 'github.com/jamessmith',
-            'skills' => ['Laravel', 'PHP', 'MySQL', 'React.js', 'Next.js', 'TypeScript', 'Node.js', 'AWS', 'Docker', 'Git', 'REST APIs'],
+            'skills' => ['Laravel', 'PHP', 'React.js', 'MySQL', 'AWS', 'Docker', 'REST APIs'],
             'experience' => [
                 [
                     'role' => 'Senior Full Stack Developer',
                     'company' => 'TechNova Solutions',
                     'duration' => '2023 - Present',
                     'highlights' => [
-                        'Led development of enterprise SaaS platform serving 100K+ users.',
-                        'Improved API performance by 45%.',
-                        'Mentored junior developers.',
-                    ],
-                ],
-                [
-                    'role' => 'Full Stack Developer',
-                    'company' => 'DigitalCraft Inc.',
-                    'duration' => '2020 - 2023',
-                    'highlights' => [
-                        'Built customer portals using Laravel and React.',
-                        'Delivered 20+ client projects.',
-                        'Reduced deployment times using CI/CD pipelines.',
+                        'Built core SaaS features across frontend, backend, and API layers.',
+                        'Improved application performance and mentored junior developers.',
                     ],
                 ],
             ],
@@ -57,50 +46,27 @@ class TemplateRenderService
             ],
             'projects' => [
                 [
-                    'name' => 'Enterprise CRM Platform',
+                    'name' => 'CRM Platform',
                     'tech_stack' => 'Laravel, React.js, MySQL, AWS',
                     'highlights' => [
-                        'Built a scalable CRM platform with role-based workflows, reporting dashboards, and REST API integrations.',
-                    ],
-                ],
-                [
-                    'name' => 'AI Resume Builder',
-                    'tech_stack' => 'Next.js, Node.js, TypeScript, AWS',
-                    'highlights' => [
-                        'Designed an AI-assisted resume workflow with structured parsing, template previews, and export-ready documents.',
-                    ],
-                ],
-                [
-                    'name' => 'E-Commerce Analytics Dashboard',
-                    'tech_stack' => 'React.js, Laravel, MySQL, Docker',
-                    'highlights' => [
-                        'Delivered real-time sales analytics, conversion reporting, and customer segmentation dashboards.',
+                        'Built dashboards, role-based workflows, and REST API integrations.',
                     ],
                 ],
             ],
             'certifications' => [
                 'AWS Certified Solutions Architect',
-                'Google Cloud Associate Engineer',
-                'Meta Frontend Professional Certificate',
             ],
             'certificates' => [
                 'AWS Certified Solutions Architect',
-                'Google Cloud Associate Engineer',
-                'Meta Frontend Professional Certificate',
             ],
             'languages' => [
                 ['name' => 'English', 'level' => 'Native'],
-                ['name' => 'Spanish', 'level' => 'Professional'],
             ],
             'additional_information' => [
                 'Open Source Contributor',
-                'Tech Conference Speaker',
-                'Mentor for Junior Developers',
             ],
             'achievements' => [
-                'Winner - National Hackathon 2024',
                 'Top Performer Award 2023',
-                'Built platform serving 100K+ users',
             ],
             'social_links' => ['linkedin.com/in/jamessmith', 'github.com/jamessmith'],
         ];
