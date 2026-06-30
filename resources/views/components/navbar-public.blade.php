@@ -10,7 +10,7 @@
                 <a href="{{ route('home') }}" class="group flex items-center gap-2" aria-label="Cvbliss home">
                     <img src="{{ asset('Logo.webp') }}"
                          alt="Cvbliss Logo"
-                         class="cvb-logo cvb-logo-nav h-9 sm:h-10 lg:h-10 xl:h-12 2xl:h-13 w-auto transition duration-300 group-hover:scale-[1.03]">
+                         class="cvb-logo cvb-logo-nav w-auto transition duration-300 group-hover:scale-[1.03]">
                 </a>
             </div>
 
@@ -56,7 +56,7 @@
             <!-- Auth Button -->
             <div class="hidden shrink-0 items-center lg:flex">
                 <a href="{{ route('login') }}"
-                   class="inline-flex h-11 lg:h-11 xl:h-13 2xl:h-14 items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r from-blue-600 to-indigo-600 px-5 lg:px-5 xl:px-7 2xl:px-8 text-[15px] lg:text-[15px] xl:text-lg 2xl:text-lg font-bold text-white shadow-[0_14px_30px_rgba(37,99,235,0.24)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(37,99,235,0.32)] focus:outline-none active:translate-y-0">
+                   class="inline-flex h-11 lg:h-11 xl:h-[52px] 2xl:h-14 items-center justify-center gap-2 rounded-[14px] bg-gradient-to-r from-blue-600 to-indigo-600 px-5 lg:px-5 xl:px-7 2xl:px-8 text-[15px] lg:text-[15px] xl:text-lg 2xl:text-lg font-bold text-white shadow-[0_14px_30px_rgba(37,99,235,0.24)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(37,99,235,0.32)] focus:outline-none active:translate-y-0">
                     <svg class="h-5 w-5 xl:h-6 xl:w-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
                     </svg>
