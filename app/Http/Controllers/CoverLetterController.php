@@ -452,6 +452,14 @@ class CoverLetterController extends Controller
         ]);
     }
 
+    public function destroy(CoverLetter $coverLetter)
+    {
+        $this->authorizeLetter($coverLetter);
+        $coverLetter->delete();
+
+        return back()->with('status', 'Cover letter deleted successfully.');
+    }
+
     private function generateWithGemini(string $name, string $role, string $company, string $description, array $resume, string $skills = ''): array
     {
         $fallbackBody = "Dear Hiring Manager,\n\nI am excited to apply for the {$role} role".($company ? " at {$company}" : '').". My background in {$skills} aligns well with the requirements, and I would welcome the opportunity to contribute measurable value.\n\nSincerely,\n{$name}";

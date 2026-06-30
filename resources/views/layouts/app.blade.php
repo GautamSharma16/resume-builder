@@ -73,6 +73,74 @@
 
     @include('components.plan-download-modal')
 
+    <!-- Custom Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="fixed inset-0 z-[1250] hidden items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
+        <div class="modal-fade-in w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-2xl">
+            <div class="flex items-start gap-4">
+                <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </span>
+                <div>
+                    <h3 id="delete-modal-title" class="text-lg font-bold text-gray-950">Delete Document</h3>
+                    <p id="delete-modal-message" class="text-sm text-gray-500 mt-2">Are you sure you want to delete this document? This action cannot be undone.</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" id="delete-modal-cancel" class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-gray-300 hover:bg-gray-50">Cancel</button>
+                <button type="button" id="delete-modal-confirm" class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700 hover:shadow-red-600/30">Delete</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    (() => {
+        const modal = document.getElementById('delete-confirm-modal');
+        if (!modal) return;
+
+        let activeForm = null;
+
+        const open = (form, titleText, messageText) => {
+            activeForm = form;
+            document.getElementById('delete-modal-title').textContent = titleText || 'Delete Document';
+            document.getElementById('delete-modal-message').textContent = messageText || 'Are you sure you want to delete this document? This action cannot be undone.';
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        };
+
+        const close = () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+            activeForm = null;
+        };
+
+        document.getElementById('delete-modal-cancel').addEventListener('click', close);
+        document.getElementById('delete-modal-confirm').addEventListener('click', () => {
+            if (activeForm) {
+                activeForm.submit();
+            }
+            close();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !modal.classList.contains('hidden')) close();
+        });
+
+        document.addEventListener('submit', (event) => {
+            const form = event.target;
+            if (form.hasAttribute('data-delete-confirm')) {
+                event.preventDefault();
+                const title = form.getAttribute('data-confirm-title');
+                const message = form.getAttribute('data-confirm-message');
+                open(form, title, message);
+            }
+        });
+    })();
+    </script>
+
     @stack('scripts')
     
     <!--Start of Tawk.to Script-->

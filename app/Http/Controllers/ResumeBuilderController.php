@@ -557,6 +557,14 @@ class ResumeBuilderController extends Controller
         ]);
     }
 
+    public function destroy(Resume $resume)
+    {
+        $this->authorizeResume($resume);
+        $resume->delete();
+
+        return back()->with('status', 'Resume deleted successfully.');
+    }
+
     private function downloadDocx(string $html, string $filename)
     {
         $path = tempnam(sys_get_temp_dir(), 'resume_docx_').'.docx';
