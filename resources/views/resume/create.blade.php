@@ -976,21 +976,27 @@
             }
 
             .change-tpl-btn {
-                background: var(--white);
-                border: 1.5px solid var(--border);
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                border: 1.5px solid #1d4ed8;
                 padding: 0.45rem 1rem;
                 border-radius: 999px;
                 font-size: 0.8rem;
-                font-weight: 700;
+                font-weight: 800;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 gap: 0.4rem;
-                color: var(--navy);
+                color: var(--white);
                 font-family: var(--font-body);
-                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-                transition: background 0.15s, box-shadow 0.15s;
+                box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28);
+                transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
                 flex-shrink: 0;
+            }
+
+            .change-tpl-btn:hover {
+                background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+                box-shadow: 0 10px 22px rgba(37, 99, 235, 0.36);
+                transform: translateY(-1px);
             }
 
             .preview-topbar .color-selector-wrap {
@@ -1930,8 +1936,13 @@
                 .change-tpl-btn {
                     flex-shrink: 0 !important;
                     width: auto !important;
-                    padding: 5px 10px !important;
-                    font-size: 11px !important;
+                    padding: 6px 12px !important;
+                    font-size: 11.5px !important;
+                    font-weight: 800 !important;
+                    border-color: #1d4ed8 !important;
+                    color: #ffffff !important;
+                    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+                    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.28) !important;
                     min-height: unset !important;
                     white-space: nowrap !important;
                     justify-content: center !important;
@@ -2159,14 +2170,14 @@
                     order: 1;
                     flex: 1 1 auto !important;
                     justify-content: flex-start !important;
-                    max-width: calc(100vw - 116px) !important;
+                    max-width: calc(100vw - 124px) !important;
                 }
 
                 .preview-topbar .change-tpl-btn,
                 .change-tpl-btn {
                     order: 2;
                     padding: 5px 8px !important;
-                    max-width: 106px;
+                    max-width: 114px;
                     overflow: hidden;
                     text-overflow: ellipsis;
                 }
