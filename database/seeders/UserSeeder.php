@@ -24,7 +24,7 @@ class UserSeeder extends Seeder
             ['SEO Manager', 'seo@cvbliss.test', 'seo', 'Seo@123'],
             ['Developer', 'developer@cvbliss.test', 'developer', 'Dev@123'],
             ['Article Writer', 'writer@cvbliss.test', 'article_writer', 'Writer@123'],
-            ['Admin User', 'admin@resumebuilder.com', 'admin', 'Admin@123'],
+            ['Admin User', 'siddhartha.verma@cvbliss.in', 'admin', 'Admin@123'],
             ['Developer Staff', 'developer@resumebuilder.com', 'developer', 'Dev@123'],
             ['SEO Staff', 'seo@resumebuilder.com', 'seo', 'Seo@123'],
             ['Article Staff', 'article@resumebuilder.com', 'article_writer', 'Article@123'],

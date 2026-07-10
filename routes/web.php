@@ -31,6 +31,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login.store')->middleware('throttle:5,1');
     Route::get('/admin/login', [AuthController::class, 'showAdminLogin'])->name('admin.login');
     Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login.store')->middleware('throttle:5,1');
+    Route::get('/admin/forgot-password', [AuthController::class, 'showAdminForgot'])->name('admin.password.request');
+    Route::post('/admin/forgot-password', [AuthController::class, 'sendAdminResetLink'])->name('admin.password.email')->middleware('throttle:5,1');
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.store')->middleware('throttle:5,1');
     Route::get('/forgot-password', [AuthController::class, 'showForgot'])->name('password.request');

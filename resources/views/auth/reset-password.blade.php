@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $isAdminReset = strtolower((string) old('email', $email)) === ($adminResetEmail ?? null);
+@endphp
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
     <div class="grid grid-cols-1 lg:grid-cols-2 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <section class="p-8 sm:p-10">
@@ -11,7 +14,12 @@
             <form method="POST" action="{{ route('password.store') }}" class="mt-6 space-y-4">
                 @csrf
                 <input type="hidden" name="token" value="{{ $token }}">
-                <input name="email" type="email" value="{{ old('email', $email) }}" required class="w-full rounded-md border-gray-300 text-sm focus:border-teal-600 focus:ring-teal-600" placeholder="Email">
+                @if($isAdminReset)
+                    <input type="hidden" name="email" value="{{ $adminResetEmail }}">
+                    <input type="email" value="{{ $adminResetEmail }}" readonly class="w-full rounded-md border-gray-300 bg-gray-100 text-sm text-gray-700 focus:border-teal-600 focus:ring-teal-600" placeholder="Email">
+                @else
+                    <input name="email" type="email" value="{{ old('email', $email) }}" required class="w-full rounded-md border-gray-300 text-sm focus:border-teal-600 focus:ring-teal-600" placeholder="Email">
+                @endif
                 <input name="password" type="password" required class="w-full rounded-md border-gray-300 text-sm focus:border-teal-600 focus:ring-teal-600" placeholder="New password">
                 <input name="password_confirmation" type="password" required class="w-full rounded-md border-gray-300 text-sm focus:border-teal-600 focus:ring-teal-600" placeholder="Confirm password">
                 <button class="w-full rounded-md bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800">Reset password</button>

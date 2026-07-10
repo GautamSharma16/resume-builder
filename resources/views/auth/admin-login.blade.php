@@ -263,8 +263,12 @@
             
             <div class="form-header">
                 <span class="form-label-top">Staff Portal</span>
-                <h2 class="form-title">Admin Access</h2>
-                <p class="form-subtitle">Sign in to manage users, content, and site settings securely.</p>
+                <h2 class="form-title">{{ ($resetMode ?? false) ? 'Reset Password' : 'Admin Access' }}</h2>
+                <p class="form-subtitle">
+                    {{ ($resetMode ?? false)
+                        ? 'A secure reset link will be sent only to the authorized admin mailbox.'
+                        : 'Sign in to manage users, content, and site settings securely.' }}
+                </p>
             </div>
 
             {{-- Alerts --}}
@@ -279,6 +283,24 @@
                 </div>
             @endif
 
+            @if($resetMode ?? false)
+                <form method="POST" action="{{ route('admin.password.email') }}">
+                    @csrf
+
+                    <div class="field-group">
+                        <label class="field-label" for="admin_reset_email">Authorized reset email</label>
+                        <div class="input-wrapper">
+                            <input class="form-input" id="admin_reset_email" type="email" value="{{ $adminResetEmail ?? 'siddhartha.verma@cvbliss.in' }}" readonly>
+                            <span class="material-symbols-outlined input-icon">mark_email_read</span>
+                        </div>
+                    </div>
+
+                    <button class="btn-submit" type="submit">
+                        Send Reset Link
+                        <span class="material-symbols-outlined" style="font-size: 20px;">outgoing_mail</span>
+                    </button>
+                </form>
+            @else
             <form method="POST" action="{{ route('admin.login.store') }}">
                 @csrf
                 <input type="hidden" name="role_scope" value="staff">
@@ -286,13 +308,16 @@
                 <div class="field-group">
                     <label class="field-label" for="email">Admin Email</label>
                     <div class="input-wrapper">
-                        <input class="form-input" id="email" name="email" type="email" value="{{ old('email') }}" placeholder="admin@cvbliss.com" required>
+                        <input class="form-input" id="email" name="email" type="email" value="{{ old('email') }}" placeholder="Email address" required>
                         <span class="material-symbols-outlined input-icon">admin_panel_settings</span>
                     </div>
                 </div>
 
                 <div class="field-group">
-                    <label class="field-label" for="password">Password</label>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; padding:0 4px;">
+                        <label class="field-label" style="margin-bottom:0; margin-left:0;" for="password">Password</label>
+                        <a href="{{ route('admin.password.request') }}" style="color:var(--primary); font-size:12px; font-weight:600; text-decoration:none;">Forgot?</a>
+                    </div>
                     <div class="input-wrapper">
                         <input class="form-input" id="password" name="password" type="password" placeholder="••••••••" required>
                         <span class="material-symbols-outlined input-icon">lock</span>
@@ -304,9 +329,14 @@
                     <span class="material-symbols-outlined" style="font-size: 20px;">verified_user</span>
                 </button>
             </form>
+            @endif
 
             <div class="footer-cta">
-                Return to <a href="{{ route('home') }}">Homepage</a>
+                @if($resetMode ?? false)
+                    Remembered it? <a href="{{ route('admin.login') }}">Back to admin login</a>
+                @else
+                    Return to <a href="{{ route('home') }}">Homepage</a>
+                @endif
             </div>
         </div>
     </div>

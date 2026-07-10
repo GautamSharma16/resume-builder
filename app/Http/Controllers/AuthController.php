@@ -18,6 +18,8 @@ use Throwable;
 
 class AuthController extends Controller
 {
+    private const ADMIN_PASSWORD_RESET_EMAIL = 'siddhartha.verma@cvbliss.in';
+
     public function showLogin(Request $request)
     {
         $this->rememberIntendedRedirect($request);
@@ -29,7 +31,17 @@ class AuthController extends Controller
     {
         $this->rememberIntendedRedirect($request);
 
-        return view('auth.admin-login');
+        return view('auth.admin-login', ['resetMode' => false]);
+    }
+
+    public function showAdminForgot(Request $request)
+    {
+        $this->rememberIntendedRedirect($request);
+
+        return view('auth.admin-login', [
+            'resetMode' => true,
+            'adminResetEmail' => self::ADMIN_PASSWORD_RESET_EMAIL,
+        ]);
     }
 
     public function login(Request $request)
@@ -71,6 +83,18 @@ class AuthController extends Controller
 
         if (($validated['role_scope'] ?? 'user') === 'staff' && ! $user->hasRole(['admin', 'team', 'sales', 'company', 'seo', 'dev', 'developer', 'article', 'article_writer'])) {
             throw ValidationException::withMessages(['email' => 'This login panel is for company and admin accounts.']);
+        }
+
+        if (
+            ($validated['role_scope'] ?? 'user') === 'staff'
+            && $user->hasRole('admin')
+            && Str::lower($user->email) !== self::ADMIN_PASSWORD_RESET_EMAIL
+        ) {
+            RateLimiter::hit($key, 60);
+
+            throw ValidationException::withMessages([
+                'email' => 'Only the authorized admin email can access this panel.',
+            ]);
         }
 
         if (($validated['role_scope'] ?? 'user') === 'user' && ! $user->hasRole('user')) {
@@ -185,6 +209,13 @@ class AuthController extends Controller
     public function sendResetLink(Request $request)
     {
         $validated = $request->validate(['email' => ['required', 'email']]);
+        $validated['email'] = Str::lower($validated['email']);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        if ($this->isProtectedStaffReset($user)) {
+            return back()->with('status', 'If an account exists, a reset link has been sent.');
+        }
 
         try {
             $status = Password::sendResetLink($validated);
@@ -203,9 +234,43 @@ class AuthController extends Controller
         return back()->with('status', 'If an account exists, a reset link has been sent.');
     }
 
+    public function sendAdminResetLink(Request $request)
+    {
+        $email = self::ADMIN_PASSWORD_RESET_EMAIL;
+        $user = User::where('email', $email)->first();
+
+        if (! $user || ! $user->hasRole(['admin', 'team', 'sales', 'company', 'seo', 'dev', 'developer', 'article', 'article_writer'])) {
+            throw ValidationException::withMessages([
+                'email' => 'The authorized admin reset account is not available.',
+            ]);
+        }
+
+        try {
+            $status = Password::sendResetLink(['email' => $email]);
+        } catch (Throwable $e) {
+            report($e);
+
+            throw ValidationException::withMessages([
+                'email' => 'We could not send the reset email right now. Please check the mail settings and try again.',
+            ]);
+        }
+
+        if ($status === Password::RESET_THROTTLED) {
+            throw ValidationException::withMessages(['email' => __($status)]);
+        }
+
+        return back()->with('status', 'A reset link has been sent to '.self::ADMIN_PASSWORD_RESET_EMAIL.'.');
+    }
+
     public function showReset(Request $request, string $token)
     {
-        return view('auth.reset-password', ['token' => $token, 'email' => $request->query('email')]);
+        $email = is_string($request->query('email')) ? Str::lower($request->query('email')) : null;
+
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => $email,
+            'adminResetEmail' => self::ADMIN_PASSWORD_RESET_EMAIL,
+        ]);
     }
 
     public function resetPassword(Request $request)
@@ -215,6 +280,15 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
         ]);
+        $validated['email'] = Str::lower($validated['email']);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        if ($this->isProtectedStaffReset($user)) {
+            throw ValidationException::withMessages([
+                'email' => 'Only '.self::ADMIN_PASSWORD_RESET_EMAIL.' can reset an admin password from this link.',
+            ]);
+        }
 
         $status = Password::reset($validated, function (User $user, string $password) {
             $user->forceFill([
@@ -233,7 +307,11 @@ class AuthController extends Controller
             throw ValidationException::withMessages(['email' => __($status)]);
         }
 
-        return redirect()->route('login')->with('status', 'Your password has been reset.');
+        $redirectRoute = $user?->hasRole(['admin', 'team', 'sales', 'company', 'seo', 'dev', 'developer', 'article', 'article_writer'])
+            ? 'admin.login'
+            : 'login';
+
+        return redirect()->route($redirectRoute)->with('status', 'Your password has been reset.');
     }
 
     public function updatePassword(Request $request)
@@ -272,6 +350,15 @@ class AuthController extends Controller
     {
         $otp = $user->generateOtp();
         Mail::to($user->email)->send(new OtpMail($otp, $user->name));
+    }
+
+    private function isProtectedStaffReset(?User $user): bool
+    {
+        if (! $user || ! $user->hasRole(['admin', 'team', 'sales', 'company', 'seo', 'dev', 'developer', 'article', 'article_writer'])) {
+            return false;
+        }
+
+        return Str::lower($user->email) !== self::ADMIN_PASSWORD_RESET_EMAIL;
     }
 
     private function redirectPath(User $user): string

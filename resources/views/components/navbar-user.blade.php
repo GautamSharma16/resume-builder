@@ -3,8 +3,8 @@
 <nav x-init="scrolled = window.scrollY > 12; window.addEventListener('scroll', () => { scrolled = window.scrollY > 12 })"
          :class="scrolled ? 'bg-white/90 shadow-[0_18px_55px_rgba(15,23,42,0.10)] border-slate-200/80' : 'bg-white/95 shadow-[0_8px_30px_rgba(15,23,42,0.04)] border-slate-100'"
          class="sticky top-0 z-50 w-full border-b backdrop-blur-xl transition-all duration-300">
-    <div class="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 xl:px-16">
-        <div class="flex min-h-[82px] items-center justify-between gap-4 lg:gap-8">
+    <div class="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-16">
+        <div class="flex min-h-[82px] items-center justify-between gap-2 lg:gap-2 xl:gap-8">
             <!-- Logo -->
             <div class="flex shrink-0 items-center">
                 <a href="{{ route('home') }}" class="group flex items-center gap-2" aria-label="Cvbliss home">
@@ -15,45 +15,41 @@
             </div>
 
             <!-- Navigation Links -->
-            <div class="hidden min-w-0 flex-1 items-center justify-center gap-1 xl:flex 2xl:gap-2">
-                <a href="{{ route('resume-maker') }}" class="group relative whitespace-nowrap rounded-full px-3.5 py-2.5 text-[15px] font-semibold leading-none tracking-[0.01em] transition duration-200 2xl:px-4 2xl:text-base {{ request()->routeIs('resume-maker') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
+            <div class="hidden min-w-0 flex-1 items-center justify-center gap-0 lg:flex 2xl:gap-2">
+                <a href="{{ route('resume-maker') }}" class="group relative whitespace-nowrap rounded-full px-2 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] transition duration-200 xl:px-3.5 xl:text-[15px] 2xl:px-4 2xl:text-base {{ request()->routeIs('resume-maker') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
                     Resume Maker
                     <span class="absolute inset-x-4 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-600 transition-transform duration-200 {{ request()->routeIs('resume-maker') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100' }}"></span>
                 </a>
-                <a href="{{ route('enhance-cv') }}" class="group relative whitespace-nowrap rounded-full px-3.5 py-2.5 text-[15px] font-semibold leading-none tracking-[0.01em] transition duration-200 2xl:px-4 2xl:text-base {{ request()->routeIs('enhance-cv') || request()->routeIs('improve-cv') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
+                <a href="{{ route('enhance-cv') }}" class="group relative whitespace-nowrap rounded-full px-2 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] transition duration-200 xl:px-3.5 xl:text-[15px] 2xl:px-4 2xl:text-base {{ request()->routeIs('enhance-cv') || request()->routeIs('improve-cv') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
                     Enhance CV
                     <span class="absolute inset-x-4 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-600 transition-transform duration-200 {{ request()->routeIs('enhance-cv') || request()->routeIs('improve-cv') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100' }}"></span>
                 </a>
-                <a href="{{ route('templates') }}" class="group relative whitespace-nowrap rounded-full px-3.5 py-2.5 text-[15px] font-semibold leading-none tracking-[0.01em] transition duration-200 2xl:px-4 2xl:text-base {{ request()->routeIs('templates') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
+                <a href="{{ route('templates') }}" class="group relative whitespace-nowrap rounded-full px-2 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] transition duration-200 xl:px-3.5 xl:text-[15px] 2xl:px-4 2xl:text-base {{ request()->routeIs('templates') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
                     Templates
                     <span class="absolute inset-x-4 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-600 transition-transform duration-200 {{ request()->routeIs('templates') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100' }}"></span>
                 </a>
-                <a href="{{ route('cover-letter') }}" class="group relative whitespace-nowrap rounded-full px-3.5 py-2.5 text-[15px] font-semibold leading-none tracking-[0.01em] transition duration-200 2xl:px-4 2xl:text-base {{ request()->routeIs('cover-letter') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
+                <a href="{{ route('cover-letter') }}" class="group relative whitespace-nowrap rounded-full px-2 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] transition duration-200 xl:px-3.5 xl:text-[15px] 2xl:px-4 2xl:text-base {{ request()->routeIs('cover-letter') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
                     Cover Letter
                     <span class="absolute inset-x-4 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-600 transition-transform duration-200 {{ request()->routeIs('cover-letter') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100' }}"></span>
                 </a>
-                <a href="{{ route('plans') }}" class="group relative whitespace-nowrap rounded-full px-3.5 py-2.5 text-[15px] font-semibold leading-none tracking-[0.01em] transition duration-200 2xl:px-4 2xl:text-base {{ request()->routeIs('plans') || request()->routeIs('plans.*') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
-                    Pricing
-                    <span class="absolute inset-x-4 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-600 transition-transform duration-200 {{ request()->routeIs('plans') || request()->routeIs('plans.*') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100' }}"></span>
-                </a>
-                <a href="{{ route('interview') }}" class="group relative whitespace-nowrap rounded-full px-3.5 py-2.5 text-[15px] font-semibold leading-none tracking-[0.01em] transition duration-200 2xl:px-4 2xl:text-base {{ request()->routeIs('interview') || request()->routeIs('blog.show') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
+                <a href="{{ route('interview') }}" class="group relative whitespace-nowrap rounded-full px-2 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] transition duration-200 xl:px-3.5 xl:text-[15px] 2xl:px-4 2xl:text-base {{ request()->routeIs('interview') || request()->routeIs('blog.show') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
                     Interview Tips
                     <span class="absolute inset-x-4 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-600 transition-transform duration-200 {{ request()->routeIs('interview') || request()->routeIs('blog.show') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100' }}"></span>
                 </a>
-                <a href="{{ route('contact') }}" class="group relative whitespace-nowrap rounded-full px-3.5 py-2.5 text-[15px] font-semibold leading-none tracking-[0.01em] transition duration-200 2xl:px-4 2xl:text-base {{ request()->routeIs('contact') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
+                <a href="{{ route('contact') }}" class="group relative whitespace-nowrap rounded-full px-2 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] transition duration-200 xl:px-3.5 xl:text-[15px] 2xl:px-4 2xl:text-base {{ request()->routeIs('contact') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
                     Contact Us
                     <span class="absolute inset-x-4 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-600 transition-transform duration-200 {{ request()->routeIs('contact') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100' }}"></span>
                 </a>
             </div>
 
             <!-- User Menu -->
-            <div class="hidden shrink-0 items-center xl:flex">
+            <div class="hidden shrink-0 items-center lg:flex">
                 <x-dropdown align="right" width="56" contentClasses="overflow-hidden rounded-2xl border border-slate-200 bg-white py-2 shadow-[0_22px_50px_rgba(15,23,42,0.16)]">
                     <x-slot name="trigger">
                        <button
-    class="inline-flex items-center gap-3 rounded-2xl px-4 py-3 text-slate-800 transition-all duration-200 hover:bg-slate-100 focus:outline-none"
+    class="inline-flex items-center gap-1.5 rounded-2xl px-2 py-2 text-slate-800 transition-all duration-200 hover:bg-slate-100 focus:outline-none xl:gap-3 xl:px-4 xl:py-3"
 >
-    <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-black text-white">
+    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black text-white xl:h-10 xl:w-10">
         <svg xmlns="http://www.w3.org/2000/svg"
              class="h-5 w-5"
              fill="none"
@@ -66,11 +62,11 @@
         </svg>
     </span>
 
-    <span class="font-medium text-slate-800">
+    <span class="max-w-[6.5rem] truncate text-[13px] font-medium text-slate-800 xl:max-w-none xl:text-base">
         {{ Auth::user()->name }}
     </span>
 
-    <svg class="h-4 w-4 text-slate-500"
+    <svg class="h-4 w-4 shrink-0 text-slate-500"
          fill="currentColor"
          viewBox="0 0 20 20">
         <path fill-rule="evenodd"
@@ -106,7 +102,7 @@
 
             <button type="button"
                     @click="open = !open"
-                    class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-slate-200 bg-white text-slate-700 shadow-sm transition duration-200 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 xl:hidden"
+                    class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-slate-200 bg-white text-slate-700 shadow-sm transition duration-200 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-100 lg:hidden"
                     :aria-expanded="open.toString()"
                     aria-label="Open navigation">
                 <svg x-show="!open" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,7 +120,7 @@
 <div x-show="open"
      x-cloak
      x-transition.opacity.duration.300ms
-     class="fixed inset-0 z-[60] bg-slate-900/55 backdrop-blur-sm xl:hidden"
+     class="fixed inset-0 z-[60] bg-slate-900/55 backdrop-blur-sm lg:hidden"
      @click="open = false"></div>
 
 <aside x-show="open"
@@ -135,7 +131,7 @@
        x-transition:leave="transition ease-in-out duration-300 transform"
        x-transition:leave-start="translate-x-0"
        x-transition:leave-end="-translate-x-full"
-       class="fixed inset-y-0 left-0 z-[70] flex w-[min(20rem,calc(100vw-2rem))] flex-col border-r border-slate-200 bg-white shadow-[24px_0_60px_rgba(15,23,42,0.18)] xl:hidden">
+       class="fixed inset-y-0 left-0 z-[70] flex w-[min(20rem,calc(100vw-2rem))] flex-col border-r border-slate-200 bg-white shadow-[24px_0_60px_rgba(15,23,42,0.18)] lg:hidden">
     <div class="flex h-20 shrink-0 items-center justify-between border-b border-slate-100 px-5">
         <a href="{{ route('home') }}" class="flex min-w-0 items-center" aria-label="Cvbliss home">
             <img src="{{ asset('Logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-drawer">
@@ -155,7 +151,6 @@
         <a href="{{ route('enhance-cv') }}" class="group flex min-h-[48px] items-center rounded-xl px-4 py-3 text-base font-medium transition-all duration-200 {{ request()->routeIs('enhance-cv') || request()->routeIs('improve-cv') ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }}">Enhance CV</a>
         <a href="{{ route('templates') }}" class="group flex min-h-[48px] items-center rounded-xl px-4 py-3 text-base font-medium transition-all duration-200 {{ request()->routeIs('templates') ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }}">Templates</a>
         <a href="{{ route('cover-letter') }}" class="group flex min-h-[48px] items-center rounded-xl px-4 py-3 text-base font-medium transition-all duration-200 {{ request()->routeIs('cover-letter') ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }}">Cover Letter</a>
-        <a href="{{ route('plans') }}" class="group flex min-h-[48px] items-center rounded-xl px-4 py-3 text-base font-medium transition-all duration-200 {{ request()->routeIs('plans') || request()->routeIs('plans.*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }}">Pricing</a>
         <a href="{{ route('interview') }}" class="group flex min-h-[48px] items-center rounded-xl px-4 py-3 text-base font-medium transition-all duration-200 {{ request()->routeIs('interview') || request()->routeIs('blog.show') ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }}">Interview Tips</a>
         <a href="{{ route('contact') }}" class="group flex min-h-[48px] items-center rounded-xl px-4 py-3 text-base font-medium transition-all duration-200 {{ request()->routeIs('contact') ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600' }}">Contact Us</a>
 
