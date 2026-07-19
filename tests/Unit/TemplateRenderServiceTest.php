@@ -12,17 +12,45 @@ class TemplateRenderServiceTest extends TestCase
     {
         $service = new TemplateRenderService();
         $template = new Template([
-            'html' => '<div class="tpl-resume"><section><h2>Projects</h2>{{projects}}</section><section><h2>Languages</h2>{{languages}}</section><section><h2>Education</h2>{{education}}</section></div>',
+            'html' => '<div class="tpl-resume"><section><h2>Professional Summary</h2><div>{{summary}}</div></section><section><h2>Skills</h2><div class="tpl-badges">{{skills}}</div></section><section><h2>Projects</h2>{{projects}}</section><section><h2>Languages</h2>{{languages}}</section><section><h2>Education</h2>{{education}}</section></div>',
         ]);
 
         $html = (string) $service->renderResume($template, [
             'name' => 'Gautam Sharma',
+            'summary' => '',
+            'skills' => [],
             'projects' => [],
             'languages' => [],
             'education' => [],
         ]);
 
+        $this->assertStringNotContainsString('<h2>Professional Summary</h2>', $html);
+        $this->assertStringNotContainsString('<h2>Skills</h2>', $html);
         $this->assertStringNotContainsString('<h2>Projects</h2>', $html);
+        $this->assertStringNotContainsString('<h2>Languages</h2>', $html);
+        $this->assertStringNotContainsString('<h2>Education</h2>', $html);
+    }
+
+    public function test_it_hides_sections_that_only_have_blank_editor_rows(): void
+    {
+        $service = new TemplateRenderService();
+
+        $html = (string) $service->renderResume(new Template(), [
+            'name' => 'Gautam Sharma',
+            'summary' => '',
+            'skills' => [],
+            'projects' => [['name' => '', 'description' => '', 'tech_stack' => '', 'link' => '']],
+            'certifications' => [['name' => '', 'description' => '']],
+            'achievements' => [['name' => '', 'description' => '']],
+            'languages' => [['name' => '', 'level' => '']],
+            'education' => [['degree' => '', 'stream' => '', 'institution' => '', 'year' => '']],
+        ]);
+
+        $this->assertStringNotContainsString('<h2>Professional Summary</h2>', $html);
+        $this->assertStringNotContainsString('<h2>Skills</h2>', $html);
+        $this->assertStringNotContainsString('<h2>Projects</h2>', $html);
+        $this->assertStringNotContainsString('<h2>Certifications</h2>', $html);
+        $this->assertStringNotContainsString('<h2>Achievements</h2>', $html);
         $this->assertStringNotContainsString('<h2>Languages</h2>', $html);
         $this->assertStringNotContainsString('<h2>Education</h2>', $html);
     }

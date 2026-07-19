@@ -355,7 +355,7 @@ HTML;
         }
 
         // Dynamic Section Visibility: If a section is empty, remove its header and token
-        foreach (['projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'experience', 'education'] as $key) {
+        foreach (['summary', 'skills', 'projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'experience', 'education'] as $key) {
             $val = $data[$key] ?? '';
             if (empty($val) || $val === '<ul></ul>' || $val === '""' || $val === 'null') {
                 // Regex to find a section header followed by the token.
@@ -378,9 +378,10 @@ HTML;
             $this->ensureSectionVisible($html, $data, 'additional_information', 'Additional Information');
         }
 
-        $html = preg_replace('/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary)\s*<\/h[1-6]>\s*(?:<div[^>]*>\s*)?<\/section>/i', '', $html);
-        $html = preg_replace('/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/i', '', $html);
-        $html = preg_replace('/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/i', '', $html);
+        $emptySectionTitles = 'Professional Summary|Summary|Skills|Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information';
+        $emptyBodyPattern = '(?:<ul[^>]*>\s*<\/ul>|<ol[^>]*>\s*<\/ol>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|<span[^>]*>\s*<\/span>|\s*)*';
+        $html = preg_replace('/<section[^>]*>\s*<h[1-6][^>]*>\s*('.$emptySectionTitles.')\s*<\/h[1-6]>\s*'.$emptyBodyPattern.'\s*<\/section>/i', '', $html);
+        $html = preg_replace('/<h[1-6][^>]*>\s*('.$emptySectionTitles.')\s*<\/h[1-6]>\s*'.$emptyBodyPattern.'/i', '', $html);
 
         $html = $this->withScopedAccent($html, $this->resumeAccentColor($data));
 

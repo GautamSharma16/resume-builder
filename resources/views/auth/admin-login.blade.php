@@ -287,14 +287,6 @@
                 <form method="POST" action="{{ route('admin.password.email') }}">
                     @csrf
 
-                    <div class="field-group">
-                        <label class="field-label" for="admin_reset_email">Authorized reset email</label>
-                        <div class="input-wrapper">
-                            <input class="form-input" id="admin_reset_email" type="email" value="{{ $adminResetEmail ?? 'siddhartha.verma@cvbliss.in' }}" readonly>
-                            <span class="material-symbols-outlined input-icon">mark_email_read</span>
-                        </div>
-                    </div>
-
                     <button class="btn-submit" type="submit">
                         Send Reset Link
                         <span class="material-symbols-outlined" style="font-size: 20px;">outgoing_mail</span>
