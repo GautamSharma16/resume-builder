@@ -186,23 +186,23 @@
 
         /* Print styles */
         @media print {
-            @page { size: A4 portrait; margin: 0; }
+            @page { size: A4 portrait; margin: 10mm; }
             html,
             body {
-                width: 210mm;
+                width: auto;
                 margin: 0;
                 padding: 0;
                 background: #fff !important;
             }
             .tpl-resume {
-                width: 210mm !important;
+                width: auto !important;
                 max-width: none !important;
                 margin: 0 !important;
-                padding: 10mm !important;
+                padding: 0 !important;
                 box-shadow: none !important;
             }
             .tpl-cover {
-                width: 210mm !important;
+                width: auto !important;
                 max-width: none !important;
                 margin: 0 !important;
                 box-shadow: none !important;
@@ -219,7 +219,12 @@
                 max-height: none !important;
                 overflow: visible !important;
             }
-            .tpl-resume section,
+            .tpl-resume section {
+                break-inside: auto;
+                page-break-inside: auto;
+                break-before: auto;
+                page-break-before: auto;
+            }
             .tpl-cover section {
                 break-inside: avoid-page;
                 page-break-inside: avoid;

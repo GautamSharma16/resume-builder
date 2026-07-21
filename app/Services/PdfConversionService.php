@@ -417,6 +417,7 @@ if (chromePath.length > 0) {
         path: outPath,
         format: 'A4',
         printBackground: true,
+        preferCSSPageSize: true,
         margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
     });
 
