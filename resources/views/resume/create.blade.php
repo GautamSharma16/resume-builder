@@ -3187,10 +3187,12 @@
                         name: block.querySelector('[data-k="name"]')?.value || '',
                         description: block.querySelector('[data-k="description"]')?.value || '',
                     })),
-                    languages: Array.from(document.querySelectorAll('[data-language]')).map(block => ({
+                    languages: (document.getElementById('languages-section') && document.getElementById('languages-section').offsetParent !== null)
+                        ? Array.from(document.querySelectorAll('[data-language]')).map(block => ({
                         name: block.querySelector('[data-k="name"]')?.value || '',
                         level: block.querySelector('[data-k="level"]')?.value || '',
-                    })),
+                    }))
+                        : [],
                     additional_information: Array.from(document.querySelectorAll('[data-additional-information]')).map(block => ({
                         name: block.querySelector('[data-k="name"]')?.value || '',
                         description: block.querySelector('[data-k="description"]')?.value || '',

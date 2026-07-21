@@ -186,7 +186,7 @@
 
         /* Print styles */
         @media print {
-            @page { margin: 0; }
+            @page { margin: 10mm; }
             body { margin: 0; padding: 0; }
             .tpl-resume, .tpl-cover {
                 height: auto !important;
@@ -194,11 +194,24 @@
                 max-height: none !important;
                 overflow: visible !important;
                 page-break-inside: auto;
+                width: 100% !important;
             }
             .tpl-resume *,
             .tpl-cover * {
                 max-height: none !important;
                 overflow: visible !important;
+            }
+            .tpl-resume section,
+            .tpl-cover section {
+                break-inside: avoid-page;
+                page-break-inside: avoid;
+            }
+            .tpl-resume h2,
+            .tpl-cover h2,
+            .tpl-resume h3,
+            .tpl-cover h3 {
+                break-after: avoid-page;
+                page-break-after: avoid;
             }
             .tpl-resume article,
             .tpl-cover article,

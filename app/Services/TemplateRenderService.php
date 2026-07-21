@@ -406,7 +406,6 @@ HTML;
             $this->ensureSectionVisible($html, $data, 'projects', 'Projects');
             $this->ensureSectionVisible($html, $data, 'certifications', 'Certifications');
             $this->ensureSectionVisible($html, $data, 'achievements', 'Achievements');
-            $this->ensureSectionVisible($html, $data, 'languages', 'Languages');
             $this->ensureSectionVisible($html, $data, 'additional_information', 'Additional Information');
         }
 

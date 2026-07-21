@@ -423,7 +423,6 @@
         if (!state.education.length)  state.education.push({ degree:'', stream:'', institution:'', year:'' });
         if (!state.projects.length)   state.projects.push({ name:'', tech_stack:'', link:'', description:'' });
         if (!state.certifications.length) state.certifications.push({ name:'', description:'' });
-        if (!state.languages.length) state.languages.push({ name:'', level:'' });
         state.additional_information = ensureArray(state.additional_information);
         state.achievements = ensureArray(state.achievements);
     };
