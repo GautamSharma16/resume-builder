@@ -514,6 +514,17 @@
         }
         return output;
     }
+    function hasSectionData(value) {
+        if (value === null || value === undefined || value === false) return false;
+        if (typeof value === 'string') {
+            const text = value.replace(/<[^>]*>/g, '').trim().toLowerCase();
+            return text !== '' && text !== 'null' && text !== 'undefined';
+        }
+        if (typeof value === 'number' || typeof value === 'bigint') return String(value).trim() !== '';
+        if (Array.isArray(value)) return value.some(item => hasSectionData(item));
+        if (typeof value === 'object') return Object.values(value).some(item => hasSectionData(item));
+        return Boolean(value);
+    }
     function hasResumePlaceholders(html) {
         const tokens = ['name', 'last_name', 'job_title', 'designation', 'email', 'mobile', 'location', 'contact', 'address', 'summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'social_links', 'linkedin', 'portfolio', 'link', 'profile_image', 'profile_image_url', 'profile_image_tag', 'photo'];
         return new RegExp('\\{\\{\\s*(' + tokens.join('|') + ')\\s*\\}\\}', 'i').test(html)
@@ -584,6 +595,17 @@
         const hasProjectsToken = /\{\{\s*projects\s*\}\}/.test(output) || output.includes('[[projects]]');
         const hasAchievementsToken = /\{\{\s*achievements\s*\}\}/.test(output) || output.includes('[[achievements]]');
         const hasAdditionalInformationToken = /\{\{\s*additional_information\s*\}\}/.test(output) || output.includes('[[additional_information]]');
+        const hasData = {
+            summary: hasSectionData(state.summary),
+            skills: hasSectionData(state.skills),
+            experience: hasSectionData(state.experience),
+            education: hasSectionData(state.education),
+            projects: hasSectionData(state.projects),
+            certifications: hasSectionData(state.certifications),
+            languages: hasSectionData(state.languages),
+            additional_information: hasSectionData(state.additional_information),
+            achievements: hasSectionData(state.achievements),
+        };
         const values = {
             name:         esc(fullName() || state.name || ''),
             last_name:    esc(state.last_name || ''),
@@ -594,20 +616,20 @@
             location:     esc(state.location || ''),
             contact:      esc(state.contact || [state.email, state.mobile].filter(Boolean).join(' | ')),
             address:      esc(state.address || state.location || ''),
-            summary:      state.summary ? (/<[a-z][\s\S]*>/i.test(state.summary) ? state.summary : rich(state.summary)) : '',
+            summary:      hasData.summary ? (/<[a-z][\s\S]*>/i.test(state.summary) ? state.summary : rich(state.summary)) : '',
             social_links: esc([state.linkedin, state.github, state.portfolio || state.link].filter(Boolean).join(' | ')),
             linkedin:     esc(state.linkedin || ''),
             portfolio:    esc(state.portfolio || state.link || ''),
             link:         esc(state.link || state.portfolio || ''),
-            skills:       state.skills.length ? renderSkills() : '',
-            experience:   state.experience.some(e => e.company || e.role || e.period || e.points.some(Boolean)) ? renderExperience() : '',
-            education:    state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ? renderList(state.education) : '',
-            projects:     state.projects.some(p => p?.name || typeof p === 'string') ? renderList(state.projects) : '',
-            certifications: state.certifications.some(c => c?.name || typeof c === 'string') ? renderList(state.certifications) : '',
-            certificates: state.certifications.some(c => c?.name || typeof c === 'string') ? renderList(state.certifications) : '',
-            languages: state.languages.some(l => l?.name || typeof l === 'string') ? renderList(state.languages) : '',
-            additional_information: state.additional_information.some(a => a?.name || typeof a === 'string') ? renderList(state.additional_information) : '',
-            achievements: state.achievements.some(a => a?.name || typeof a === 'string') ? renderList(state.achievements) : '',
+            skills:       hasData.skills ? renderSkills() : '',
+            experience:   hasData.experience ? renderExperience() : '',
+            education:    hasData.education ? renderList(state.education) : '',
+            projects:     hasData.projects ? renderList(state.projects) : '',
+            certifications: hasData.certifications ? renderList(state.certifications) : '',
+            certificates: hasData.certifications ? renderList(state.certifications) : '',
+            languages: hasData.languages ? renderList(state.languages) : '',
+            additional_information: hasData.additional_information ? renderList(state.additional_information) : '',
+            achievements: hasData.achievements ? renderList(state.achievements) : '',
             profile_image: state.profile_image || '',
             profile_image_url: state.profile_image || '',
             profile_image_tag: state.profile_image ? `<img src="${state.profile_image}" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">` : '',
@@ -691,8 +713,8 @@
         // Remove empty sections entirely so clear/delete reflects instantly in preview.
         output = output
             .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary)\s*<\/h[1-6]>\s*(?:<div[^>]*>\s*)?<\/section>/gi, '')
-            .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/gi, '')
-            .replace(/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/gi, '');
+            .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary|About|About Me|Profile|Objective|Skills|Core Skills|Technical Skills|Experience|Professional Experience|Work Experience|Education|Projects|Selected Projects|Certifications|Certificates|Languages|Achievements|Additional Information|Interests|References)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/gi, '')
+            .replace(/<h[1-6][^>]*>\s*(Professional Summary|Summary|About|About Me|Profile|Objective|Skills|Core Skills|Technical Skills|Experience|Professional Experience|Work Experience|Education|Projects|Selected Projects|Certifications|Certificates|Languages|Achievements|Additional Information|Interests|References)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/gi, '');
 
         output = output.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function(match, css) {
             let scoped = css.replace(/(^|\}|\s)body\s*\{/gi, '$1.resume-sheet-preview {');
@@ -731,7 +753,7 @@
         const primaryColor = state.primary_color || '#2563eb';
         const header = [state.email, state.mobile, state.location].filter(Boolean).join(' · ');
         const socials = [state.linkedin, state.github, state.portfolio || state.link].filter(Boolean).join(' · ');
-        const projectsHtml = state.projects.filter(Boolean).map(p => {
+        const projectsHtml = state.projects.filter(hasSectionData).map(p => {
             const name = typeof p === 'string' ? p : (p?.name || '');
             const desc = typeof p === 'string' ? '' : (p?.description || '');
             return desc
@@ -751,15 +773,15 @@
                         ${socials ? `<p style="margin:2px 0 0;font-size:11px;color:#4b5563;">${esc(socials)}</p>` : ''}
                     </div>
                 </div>
-                ${state.summary ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Summary</h2><p style="font-size:11.5px;margin:0 0 14px;">${rich(state.summary)}</p>` : ''}
-                ${state.skills.length ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Skills</h2><p style="font-size:11px;margin:0 0 14px;">${esc(state.skills.join(', '))}</p>` : ''}
-                ${state.experience.some(e=>e.company||e.role) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Experience</h2>${state.experience.map(e => e.company||e.role ? `<div style="margin-bottom:12px;"><strong style="font-size:11.5px;color:${primaryColor};">${esc(e.role)}</strong>${e.period?` <span style="float:right;color:#6b7280;font-size:10px;">${esc(e.period)}</span>`:''}<br><span style="color:#4b5563;font-size:10.5px;">${esc(e.company)}</span>${(e.points.length === 1 && /<[a-z][\s\S]*>/i.test(e.points[0])) ? `<div style="font-size:11px;margin:4px 0 0 14px;">${e.points[0]}</div>` : `<ul style="margin:4px 0 0 14px;padding:0;">${e.points.filter(Boolean).map(p=>`<li style="font-size:11px;margin-bottom:2px;">${rich(p)}</li>`).join('')}</ul>`}</div>` : '').join('')}` : ''}
-                ${state.education.some(e => e?.degree || e?.stream || e?.institution || e?.year) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Education</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.education.filter(e => e?.degree || e?.stream || e?.institution || e?.year).map(e=>`<li style="font-size:11px;"><strong>${esc([e.degree, e.stream].filter(Boolean).join(' - '))}</strong>${[e.institution, e.year].filter(Boolean).length ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc([e.institution, e.year].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>` : ''}
+                ${hasSectionData(state.summary) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Summary</h2><p style="font-size:11.5px;margin:0 0 14px;">${rich(state.summary)}</p>` : ''}
+                ${hasSectionData(state.skills) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Skills</h2><p style="font-size:11px;margin:0 0 14px;">${esc(state.skills.filter(hasSectionData).join(', '))}</p>` : ''}
+                ${hasSectionData(state.experience) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 8px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Experience</h2>${state.experience.map(e => hasSectionData(e) ? `<div style="margin-bottom:12px;"><strong style="font-size:11.5px;color:${primaryColor};">${esc(e.role)}</strong>${e.period?` <span style="float:right;color:#6b7280;font-size:10px;">${esc(e.period)}</span>`:''}<br><span style="color:#4b5563;font-size:10.5px;">${esc(e.company)}</span>${(e.points.length === 1 && /<[a-z][\s\S]*>/i.test(e.points[0])) ? `<div style="font-size:11px;margin:4px 0 0 14px;">${e.points[0]}</div>` : `<ul style="margin:4px 0 0 14px;padding:0;">${e.points.filter(hasSectionData).map(p=>`<li style="font-size:11px;margin-bottom:2px;">${rich(p)}</li>`).join('')}</ul>`}</div>` : '').join('')}` : ''}
+                ${hasSectionData(state.education) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Education</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.education.filter(hasSectionData).map(e=>`<li style="font-size:11px;"><strong>${esc([e.degree, e.stream].filter(Boolean).join(' - '))}</strong>${[e.institution, e.year].filter(Boolean).length ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc([e.institution, e.year].filter(Boolean).join(', '))}</span>` : ''}</li>`).join('')}</ul>` : ''}
                 ${projectsHtml ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Projects</h2><ul style="margin:0 0 14px 14px;padding:0;">${projectsHtml}</ul>` : ''}
-                ${state.certifications.some(c => c?.name || typeof c === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Certifications</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.certifications.map(c => `<li style="font-size:11px;"><strong>${esc(typeof c === 'string' ? c : (c?.name || ''))}</strong>${(typeof c !== 'string' && c?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(c.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
-                ${state.achievements.some(a => a?.name || typeof a === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Achievements</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.achievements.map(a => `<li style="font-size:11px;"><strong>${esc(typeof a === 'string' ? a : (a?.name || ''))}</strong>${(typeof a !== 'string' && a?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(a.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
-                ${state.languages.some(l => l?.name || typeof l === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Languages</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.languages.map(l => `<li style="font-size:11px;"><strong>${esc(typeof l === 'string' ? l : (l?.name || ''))}</strong>${(typeof l !== 'string' && l?.level) ? `<span style="color:#6b7280;font-size:10.5px;"> - ${esc(l.level)}</span>` : ''}</li>`).join('')}</ul>` : ''}
-                ${state.additional_information.some(a => a?.name || typeof a === 'string') ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Additional Information</h2><ul style="margin:0 0 0 14px;padding:0;">${state.additional_information.map(a => `<li style="font-size:11px;"><strong>${esc(typeof a === 'string' ? a : (a?.name || ''))}</strong>${(typeof a !== 'string' && a?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(a.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+                ${hasSectionData(state.certifications) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Certifications</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.certifications.filter(hasSectionData).map(c => `<li style="font-size:11px;"><strong>${esc(typeof c === 'string' ? c : (c?.name || ''))}</strong>${(typeof c !== 'string' && c?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(c.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+                ${hasSectionData(state.achievements) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Achievements</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.achievements.filter(hasSectionData).map(a => `<li style="font-size:11px;"><strong>${esc(typeof a === 'string' ? a : (a?.name || ''))}</strong>${(typeof a !== 'string' && a?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(a.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+                ${hasSectionData(state.languages) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Languages</h2><ul style="margin:0 0 14px 14px;padding:0;">${state.languages.filter(hasSectionData).map(l => `<li style="font-size:11px;"><strong>${esc(typeof l === 'string' ? l : (l?.name || ''))}</strong>${(typeof l !== 'string' && l?.level) ? `<span style="color:#6b7280;font-size:10.5px;"> - ${esc(l.level)}</span>` : ''}</li>`).join('')}</ul>` : ''}
+                ${hasSectionData(state.additional_information) ? `<h2 style="color:${primaryColor};font-size:10px;text-transform:uppercase;letter-spacing:.12em;margin:0 0 6px;border-bottom:1px solid #d1fae5;padding-bottom:3px;">Additional Information</h2><ul style="margin:0 0 0 14px;padding:0;">${state.additional_information.filter(hasSectionData).map(a => `<li style="font-size:11px;"><strong>${esc(typeof a === 'string' ? a : (a?.name || ''))}</strong>${(typeof a !== 'string' && a?.description) ? `<br><span style="color:#6b7280;font-size:10.5px;">${esc(a.description)}</span>` : ''}</li>`).join('')}</ul>` : ''}
             </div>
             </div></div>`;
     }

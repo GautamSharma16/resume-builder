@@ -8,6 +8,36 @@ use Illuminate\Support\HtmlString;
 
 class TemplateRenderService
 {
+    private const RESUME_SECTION_ALIASES = [
+        'summary' => ['summary', 'about', 'profile', 'objective'],
+        'skills' => ['skills'],
+        'experience' => ['experience'],
+        'education' => ['education'],
+        'projects' => ['projects'],
+        'certifications' => ['certifications', 'certificates'],
+        'certificates' => ['certifications', 'certificates'],
+        'languages' => ['languages', 'language', 'language_skills', 'language_proficiency'],
+        'additional_information' => ['additional_information', 'additionalInformation'],
+        'achievements' => ['achievements'],
+        'interests' => ['interests'],
+        'references' => ['references'],
+    ];
+
+    private const RESUME_SECTION_TITLES = [
+        'summary' => ['Professional Summary', 'Summary', 'About', 'About Me', 'Profile', 'Professional Profile', 'Executive Summary', 'Executive Profile', 'Overview', 'Objective', 'Leadership Summary'],
+        'skills' => ['Skills', 'Core Skills', 'Technical Skills', 'Core Competencies', 'Core Expertise', 'Expertise', 'Technical Competencies'],
+        'experience' => ['Experience', 'Professional Experience', 'Work Experience', 'Career History', 'Academic Experience'],
+        'education' => ['Education', 'Academic Background', 'Academic Qualifications', 'Credentials'],
+        'projects' => ['Projects', 'Selected Projects', 'Project Portfolio', 'Projects & Internships'],
+        'certifications' => ['Certifications', 'Certification', 'Certificates', 'Certificate'],
+        'certificates' => ['Certifications', 'Certification', 'Certificates', 'Certificate'],
+        'languages' => ['Languages', 'Language'],
+        'additional_information' => ['Additional Information'],
+        'achievements' => ['Achievements', 'Awards', 'Accomplishments'],
+        'interests' => ['Interests'],
+        'references' => ['References'],
+    ];
+
     public function resumeSampleData(): array
     {
         return [
@@ -209,9 +239,13 @@ class TemplateRenderService
         $data = $data ?: $this->resumeSampleData();
         $html = $template->html ?: '';
         $accentColor = $this->resumeAccentColor($data);
+        $sectionData = $this->resumeSectionData($data);
 
         if ($this->shouldRenderWithBlade($html)) {
-            return new HtmlString($this->withScopedAccent($this->renderBlade($html, $this->bladeRenderDataForResume($data)), $accentColor));
+            $rendered = $this->renderBlade($html, $this->bladeRenderDataForResume($data));
+            $rendered = $this->pruneEmptyResumeSections($rendered, $sectionData);
+
+            return new HtmlString($this->withScopedAccent($rendered, $accentColor));
         }
 
         if (! $this->containsResumePlaceholders($html)) {
@@ -234,7 +268,7 @@ class TemplateRenderService
             $html = str_replace('var(--primary)', '#2563eb', $html);
         }
 
-        return new HtmlString($this->render($html, $this->normalizeResume($data), $allowInjection));
+        return new HtmlString($this->render($html, $this->normalizeResume($data), $allowInjection, $sectionData));
     }
 
     public function containsResumePlaceholders(string $html): bool
@@ -325,9 +359,13 @@ HTML;
         return new HtmlString($this->render($html, $this->normalizeCoverLetter($data)));
     }
 
-    private function render(string $html, array $data, bool $allowInjection = true): string
+    private function render(string $html, array $data, bool $allowInjection = true, array $sectionData = []): string
     {
         $originalHtml = $html;
+        if ($sectionData !== []) {
+            $html = $this->removeEmptyResumeSectionTokens($html, $sectionData);
+        }
+
         $html = $this->renderHandlebarsIfBlocks($html, $data);
 
         foreach ($data as $key => $value) {
@@ -354,20 +392,6 @@ HTML;
             }
         }
 
-        // Dynamic Section Visibility: If a section is empty, remove its header and token
-        foreach (['projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'experience', 'education'] as $key) {
-            $val = $data[$key] ?? '';
-            if (empty($val) || $val === '<ul></ul>' || $val === '""' || $val === 'null') {
-                // Regex to find a section header followed by the token.
-                // We use a non-greedy match and limit the content between them to be safe.
-                $re = '/<(h2|h3|h4|div)[^>]*>[^<]*?' . preg_quote($key, '/') . '[^<]*?<\/\1>\s*(?:<[^>]+>\s*)*?(\{\{\s*' . preg_quote($key, '/') . '\s*\}\}|\[\[' . preg_quote($key, '/') . '\]\])/i';
-                $html = preg_replace($re, '', $html);
-                
-                // Also just remove the token if it's still there
-                $html = str_replace(['{{'.$key.'}}', '[['.$key.']]'], '', $html);
-            }
-        }
-
         if ($allowInjection) {
             // Ensure visible optional sections are present when the selected template omits their tokens.
             // We also check if a section header with the title already exists to avoid duplicates.
@@ -378,13 +402,184 @@ HTML;
             $this->ensureSectionVisible($html, $data, 'additional_information', 'Additional Information');
         }
 
-        $html = preg_replace('/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary)\s*<\/h[1-6]>\s*(?:<div[^>]*>\s*)?<\/section>/i', '', $html);
-        $html = preg_replace('/<section[^>]*>\s*<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/i', '', $html);
-        $html = preg_replace('/<h[1-6][^>]*>\s*(Experience|Education|Projects|Certifications|Certificates|Languages|Achievements|Additional Information)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/i', '', $html);
+        if ($sectionData !== []) {
+            $html = $this->pruneEmptyResumeSections($html, $sectionData);
+        }
 
         $html = $this->withScopedAccent($html, $this->resumeAccentColor($data));
 
         return $html;
+    }
+
+    public function hasSectionData(mixed $sectionData): bool
+    {
+        if ($sectionData === null || $sectionData === false) {
+            return false;
+        }
+
+        if (is_string($sectionData)) {
+            $text = trim(strip_tags(html_entity_decode($sectionData, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+
+            return ! in_array(strtolower($text), ['', 'null', 'undefined'], true);
+        }
+
+        if (is_scalar($sectionData)) {
+            return trim((string) $sectionData) !== '';
+        }
+
+        if (! is_array($sectionData)) {
+            return false;
+        }
+
+        foreach ($sectionData as $value) {
+            if ($this->hasSectionData($value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function resumeSectionData(array $data): array
+    {
+        $sections = [];
+
+        foreach (self::RESUME_SECTION_ALIASES as $section => $aliases) {
+            $values = [];
+
+            foreach ($aliases as $alias) {
+                $value = Arr::get($data, $alias);
+                if ($value !== null) {
+                    $values[] = $value;
+                }
+            }
+
+            $sections[$section] = $values;
+        }
+
+        return $sections;
+    }
+
+    private function removeEmptyResumeSectionTokens(string $html, array $sectionData): string
+    {
+        foreach ($sectionData as $section => $value) {
+            if ($this->hasSectionData($value)) {
+                continue;
+            }
+
+            foreach ($this->resumeSectionTokens($section) as $token) {
+                $titles = $this->resumeSectionTitles($section);
+                $titlePattern = $this->sectionTitlePattern($titles);
+                $tokenPattern = $this->sectionTokenPattern($token);
+
+                $html = preg_replace_callback(
+                    '/<section\b[^>]*>[\s\S]*?<\/section>/i',
+                    function (array $matches) use ($titlePattern, $tokenPattern): string {
+                        $sectionHtml = $matches[0];
+
+                        if (! preg_match('/<h[1-6]\b[^>]*>\s*'.$titlePattern.'\s*<\/h[1-6]>/i', $sectionHtml)) {
+                            return $sectionHtml;
+                        }
+
+                        if (! preg_match('/'.$tokenPattern.'/i', $sectionHtml)) {
+                            return $sectionHtml;
+                        }
+
+                        $headingCount = preg_match_all('/<h[1-6]\b/i', $sectionHtml);
+                        if ($headingCount <= 1) {
+                            return '';
+                        }
+
+                        $sectionHtml = preg_replace(
+                            '/<h[1-6]\b[^>]*>\s*'.$titlePattern.'\s*<\/h[1-6]>\s*(?:<(?:p|div|ul)\b[^>]*>\s*)?'.$tokenPattern.'\s*(?:<\/(?:p|div|ul)>)?/i',
+                            '',
+                            $sectionHtml
+                        );
+
+                        return $sectionHtml ?? '';
+                    },
+                    $html
+                ) ?? $html;
+
+                $html = preg_replace(
+                    '/<h[1-6]\b[^>]*>\s*'.$titlePattern.'\s*<\/h[1-6]>\s*(?:<(?:p|div|ul)\b[^>]*>\s*)?'.$tokenPattern.'\s*(?:<\/(?:p|div|ul)>)?/i',
+                    '',
+                    $html
+                ) ?? $html;
+
+                $html = preg_replace('/'.$tokenPattern.'/i', '', $html) ?? $html;
+            }
+        }
+
+        return $html;
+    }
+
+    private function pruneEmptyResumeSections(string $html, array $sectionData): string
+    {
+        foreach ($sectionData as $section => $value) {
+            if ($this->hasSectionData($value)) {
+                continue;
+            }
+
+            $titlePattern = $this->sectionTitlePattern($this->resumeSectionTitles($section));
+
+            $html = preg_replace_callback(
+                '/<section\b[^>]*>[\s\S]*?<\/section>/i',
+                function (array $matches) use ($titlePattern): string {
+                    $sectionHtml = $matches[0];
+
+                    if (! preg_match('/<h[1-6]\b[^>]*>\s*'.$titlePattern.'\s*<\/h[1-6]>/i', $sectionHtml)) {
+                        return $sectionHtml;
+                    }
+
+                    $headingCount = preg_match_all('/<h[1-6]\b/i', $sectionHtml);
+                    if ($headingCount <= 1) {
+                        return '';
+                    }
+
+                    return preg_replace(
+                        '/<h[1-6]\b[^>]*>\s*'.$titlePattern.'\s*<\/h[1-6]>\s*(?:<(?:p|div|ul)\b[^>]*>\s*(?:<\/(?:p|div|ul)>)?)?/i',
+                        '',
+                        $sectionHtml
+                    ) ?? '';
+                },
+                $html
+            ) ?? $html;
+
+            $html = preg_replace(
+                '/<h[1-6]\b[^>]*>\s*'.$titlePattern.'\s*<\/h[1-6]>\s*(?:<(?:p|div|ul)\b[^>]*>\s*(?:<\/(?:p|div|ul)>)?)?/i',
+                '',
+                $html
+            ) ?? $html;
+        }
+
+        return preg_replace('/<section\b[^>]*>\s*<\/section>/i', '', $html) ?? $html;
+    }
+
+    private function resumeSectionTokens(string $section): array
+    {
+        return self::RESUME_SECTION_ALIASES[$section] ?? [$section];
+    }
+
+    private function resumeSectionTitles(string $section): array
+    {
+        return self::RESUME_SECTION_TITLES[$section] ?? [str_replace('_', ' ', $section)];
+    }
+
+    private function sectionTitlePattern(array $titles): string
+    {
+        $patterns = array_map(function (string $title): string {
+            return preg_quote($title, '/');
+        }, $titles);
+
+        return '(?:'.implode('|', $patterns).')';
+    }
+
+    private function sectionTokenPattern(string $token): string
+    {
+        $quoted = preg_quote($token, '/');
+
+        return '(?:\{\{\s*'.$quoted.'\s*\}\}|\[\[\s*'.$quoted.'\s*\]\])';
     }
 
     private function withScopedAccent(string $html, string $color): string
@@ -411,7 +606,7 @@ HTML;
             return;
         }
 
-        if (empty($data[$key]) || $data[$key] === '<ul></ul>' || $data[$key] === '' || $data[$key] === '""') {
+        if (! $this->hasSectionData($data[$key] ?? null) || $data[$key] === '<ul></ul>' || $data[$key] === '' || $data[$key] === '""') {
             return;
         }
 
