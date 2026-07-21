@@ -21,7 +21,7 @@
         }
 
         .tpl-resume, .tpl-cover {
-            width: 100%; max-width: 794px; margin: 0 auto; background: #fff; padding: 42px; color: #0f172a; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word;
+            width: 210mm; max-width: 794px; margin: 0 auto; background: #fff; padding: 42px; color: #0f172a; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; word-break: break-word;
         }
 
         .tpl-cover {
@@ -186,15 +186,33 @@
 
         /* Print styles */
         @media print {
-            @page { margin: 10mm; }
-            body { margin: 0; padding: 0; }
+            @page { size: A4 portrait; margin: 0; }
+            html,
+            body {
+                width: 210mm;
+                margin: 0;
+                padding: 0;
+                background: #fff !important;
+            }
+            .tpl-resume {
+                width: 210mm !important;
+                max-width: none !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                box-shadow: none !important;
+            }
+            .tpl-cover {
+                width: 210mm !important;
+                max-width: none !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+            }
             .tpl-resume, .tpl-cover {
                 height: auto !important;
                 min-height: 0 !important;
                 max-height: none !important;
                 overflow: visible !important;
                 page-break-inside: auto;
-                width: 100% !important;
             }
             .tpl-resume *,
             .tpl-cover * {

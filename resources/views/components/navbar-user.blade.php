@@ -15,7 +15,7 @@
             </div>
 
             <!-- Navigation Links -->
-            <div class="hidden min-w-0 flex-1 items-center justify-center gap-0 lg:flex 2xl:gap-2">
+            <div class="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex xl:gap-1.5 2xl:gap-3 lg:mr-2">
                 <a href="{{ route('resume-maker') }}" class="group relative whitespace-nowrap rounded-full px-2 py-2.5 text-[13px] font-semibold leading-none tracking-[0.01em] transition duration-200 xl:px-3.5 xl:text-[15px] 2xl:px-4 2xl:text-base {{ request()->routeIs('resume-maker') ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-slate-700 hover:bg-slate-50 hover:text-blue-700' }}">
                     Resume Maker
                     <span class="absolute inset-x-4 -bottom-0.5 h-0.5 origin-center rounded-full bg-blue-600 transition-transform duration-200 {{ request()->routeIs('resume-maker') ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100' }}"></span>
