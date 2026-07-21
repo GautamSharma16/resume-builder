@@ -19,8 +19,12 @@ class TemplateRenderService
         'languages' => ['languages', 'language', 'language_skills', 'language_proficiency'],
         'additional_information' => ['additional_information', 'additionalInformation'],
         'achievements' => ['achievements'],
+        'awards' => ['awards'],
+        'publications' => ['publications'],
+        'volunteer_experience' => ['volunteer_experience', 'volunteerExperience', 'volunteer'],
         'interests' => ['interests'],
         'references' => ['references'],
+        'custom_sections' => ['custom_sections', 'customSections'],
     ];
 
     private const RESUME_SECTION_TITLES = [
@@ -34,8 +38,12 @@ class TemplateRenderService
         'languages' => ['Languages', 'Language'],
         'additional_information' => ['Additional Information'],
         'achievements' => ['Achievements', 'Awards', 'Accomplishments'],
+        'awards' => ['Awards', 'Honors', 'Honours'],
+        'publications' => ['Publications'],
+        'volunteer_experience' => ['Volunteer Experience', 'Volunteering', 'Volunteer Work'],
         'interests' => ['Interests'],
         'references' => ['References'],
+        'custom_sections' => ['Custom Sections', 'Custom Section'],
     ];
 
     public function resumeSampleData(): array
@@ -236,7 +244,7 @@ class TemplateRenderService
 
     public function renderResume(Template $template, ?array $data = null, bool $allowInjection = true): HtmlString
     {
-        $data = $data ?: $this->resumeSampleData();
+        $data = $data ?? $this->resumeSampleData();
         $html = $template->html ?: '';
         $accentColor = $this->resumeAccentColor($data);
         $sectionData = $this->resumeSectionData($data);
@@ -273,7 +281,7 @@ class TemplateRenderService
 
     public function containsResumePlaceholders(string $html): bool
     {
-        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\]\]/i', $html) === 1
+        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|awards|publications|volunteer_experience|interests|references|custom_sections|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|awards|publications|volunteer_experience|interests|references|custom_sections|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\]\]/i', $html) === 1
             || preg_match('/\{\{#if\s+[a-z0-9_.]+\s*\}\}/i', $html) === 1
             || $this->shouldRenderWithBlade($html);
     }
@@ -419,6 +427,7 @@ HTML;
 
         if (is_string($sectionData)) {
             $text = trim(strip_tags(html_entity_decode($sectionData, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+            $text = trim(preg_replace('/[\s\x{00a0}]+/u', ' ', $text) ?? $text);
 
             return ! in_array(strtolower($text), ['', 'null', 'undefined'], true);
         }
@@ -522,6 +531,7 @@ HTML;
             }
 
             $titlePattern = $this->sectionTitlePattern($this->resumeSectionTitles($section));
+            $html = $this->removeEmptyTitledBlocks($html, $titlePattern);
 
             $html = preg_replace_callback(
                 '/<section\b[^>]*>[\s\S]*?<\/section>/i',
@@ -547,13 +557,69 @@ HTML;
             ) ?? $html;
 
             $html = preg_replace(
-                '/<h[1-6]\b[^>]*>\s*'.$titlePattern.'\s*<\/h[1-6]>\s*(?:<(?:p|div|ul)\b[^>]*>\s*(?:<\/(?:p|div|ul)>)?)?/i',
+                '/(?:<(?:div|span)\b(?=[^>]*(?:border|background|width|height|tpl-rule|divider|line|accent))[^>]*>\s*<\/(?:div|span)>\s*)?<h[1-6]\b[^>]*>\s*'.$titlePattern.'\s*<\/h[1-6]>\s*(?:<(?:p|div|ul)\b[^>]*>\s*(?:<\/(?:p|div|ul)>)?)?/i',
                 '',
                 $html
             ) ?? $html;
         }
 
-        return preg_replace('/<section\b[^>]*>\s*<\/section>/i', '', $html) ?? $html;
+        return $this->removeEmptyResumeDecorations($html);
+    }
+
+    private function removeEmptyTitledBlocks(string $html, string $titlePattern): string
+    {
+        $blockTags = 'div|article|aside|main|section|td|li';
+
+        for ($i = 0; $i < 4; $i++) {
+            $changed = false;
+            $html = preg_replace_callback(
+                '/<(?P<tag>'.$blockTags.')\b(?P<attrs>[^>]*)>(?P<body>[\s\S]*?)<\/(?P=tag)>/i',
+                function (array $matches) use ($titlePattern, &$changed): string {
+                    $body = $matches['body'] ?? '';
+
+                    if (! preg_match('/<h[1-6]\b[^>]*>\s*'.$titlePattern.'\s*<\/h[1-6]>/i', $body)) {
+                        return $matches[0];
+                    }
+
+                    if (preg_match_all('/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/i', $body, $headings) > 1) {
+                        return $matches[0];
+                    }
+
+                    $text = trim(strip_tags(html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+                    $text = trim(preg_replace('/\s+/', ' ', $text) ?? $text);
+                    if (! preg_match('/^'.$titlePattern.'$/i', $text)) {
+                        return $matches[0];
+                    }
+
+                    $changed = true;
+                    return '';
+                },
+                $html
+            ) ?? $html;
+
+            if (! $changed) {
+                break;
+            }
+        }
+
+        return $html;
+    }
+
+    private function removeEmptyResumeDecorations(string $html): string
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $before = $html;
+            $html = preg_replace('/<section\b[^>]*>\s*<\/section>/i', '', $html) ?? $html;
+            $html = preg_replace('/<(?:p|span|ul|ol|li)\b[^>]*>\s*<\/(?:p|span|ul|ol|li)>/i', '', $html) ?? $html;
+            $html = preg_replace('/<div\b(?![^>]*(?:border|background|width|height|tpl-rule|divider|line|accent))[^>]*>\s*<\/div>/i', '', $html) ?? $html;
+            $html = preg_replace('/<hr\b[^>]*>\s*(?=<\/(?:div|section|article|aside|main|td|li)>)/i', '', $html) ?? $html;
+
+            if ($html === $before) {
+                break;
+            }
+        }
+
+        return $html;
     }
 
     private function resumeSectionTokens(string $section): array
@@ -729,6 +795,12 @@ HTML;
             'languages' => $this->languageList(Arr::get($data, 'languages', Arr::get($data, 'language', Arr::get($data, 'language_skills', Arr::get($data, 'language_proficiency', []))))),
             'additional_information' => $this->list($additionalInformation),
             'achievements' => $this->list(Arr::get($data, 'achievements', [])),
+            'awards' => $this->list(Arr::get($data, 'awards', [])),
+            'publications' => $this->list(Arr::get($data, 'publications', [])),
+            'volunteer_experience' => $this->list(Arr::get($data, 'volunteer_experience', Arr::get($data, 'volunteerExperience', Arr::get($data, 'volunteer', [])))),
+            'interests' => $this->list(Arr::get($data, 'interests', [])),
+            'references' => $this->list(Arr::get($data, 'references', [])),
+            'custom_sections' => $this->list(Arr::get($data, 'custom_sections', Arr::get($data, 'customSections', []))),
             'primary_color' => $this->text(Arr::get($data, 'primary_color', '')),
             'primary_color_customized' => filter_var(Arr::get($data, 'primary_color_customized', false), FILTER_VALIDATE_BOOLEAN),
             'profile_image' => $profileImage,
@@ -802,6 +874,12 @@ HTML;
             'languages' => $this->normalizeBladeArray(Arr::get($data, 'languages', Arr::get($data, 'language', Arr::get($data, 'language_skills', Arr::get($data, 'language_proficiency', []))))),
             'additional_information' => $this->normalizeBladeArray(Arr::get($data, 'additional_information', Arr::get($data, 'additionalInformation', []))),
             'achievements' => $this->normalizeBladeArray(Arr::get($data, 'achievements', [])),
+            'awards' => $this->normalizeBladeArray(Arr::get($data, 'awards', [])),
+            'publications' => $this->normalizeBladeArray(Arr::get($data, 'publications', [])),
+            'volunteer_experience' => $this->normalizeBladeArray(Arr::get($data, 'volunteer_experience', Arr::get($data, 'volunteerExperience', Arr::get($data, 'volunteer', [])))),
+            'interests' => $this->normalizeBladeArray(Arr::get($data, 'interests', [])),
+            'references' => $this->normalizeBladeArray(Arr::get($data, 'references', [])),
+            'custom_sections' => $this->normalizeBladeArray(Arr::get($data, 'custom_sections', Arr::get($data, 'customSections', []))),
             'social_links' => $this->normalizeBladeArray(Arr::get($data, 'social_links', [])),
             'link' => $this->text(Arr::get($data, 'link', '')),
             'contact' => $this->text(Arr::get($data, 'contact', '')),

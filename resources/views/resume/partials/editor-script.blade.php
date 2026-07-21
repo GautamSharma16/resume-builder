@@ -517,7 +517,7 @@
     function hasSectionData(value) {
         if (value === null || value === undefined || value === false) return false;
         if (typeof value === 'string') {
-            const text = value.replace(/<[^>]*>/g, '').trim().toLowerCase();
+            const text = value.replace(/&nbsp;/gi, ' ').replace(/<[^>]*>/g, '').replace(/\u00a0/g, ' ').trim().toLowerCase();
             return text !== '' && text !== 'null' && text !== 'undefined';
         }
         if (typeof value === 'number' || typeof value === 'bigint') return String(value).trim() !== '';
@@ -525,8 +525,77 @@
         if (typeof value === 'object') return Object.values(value).some(item => hasSectionData(item));
         return Boolean(value);
     }
+    const sectionTitleAliases = {
+        summary: ['Professional Summary', 'Summary', 'About', 'About Me', 'Profile', 'Professional Profile', 'Executive Summary', 'Executive Profile', 'Overview', 'Objective', 'Leadership Summary'],
+        skills: ['Skills', 'Core Skills', 'Technical Skills', 'Core Competencies', 'Core Expertise', 'Expertise', 'Technical Competencies'],
+        experience: ['Experience', 'Professional Experience', 'Work Experience', 'Career History', 'Academic Experience'],
+        education: ['Education', 'Academic Background', 'Academic Qualifications', 'Credentials'],
+        projects: ['Projects', 'Selected Projects', 'Project Portfolio', 'Projects & Internships'],
+        certifications: ['Certifications', 'Certification', 'Certificates', 'Certificate'],
+        certificates: ['Certifications', 'Certification', 'Certificates', 'Certificate'],
+        languages: ['Languages', 'Language'],
+        additional_information: ['Additional Information'],
+        achievements: ['Achievements', 'Awards', 'Accomplishments'],
+        awards: ['Awards', 'Honors', 'Honours'],
+        publications: ['Publications'],
+        volunteer_experience: ['Volunteer Experience', 'Volunteering', 'Volunteer Work'],
+        interests: ['Interests'],
+        references: ['References'],
+        custom_sections: ['Custom Sections', 'Custom Section'],
+    };
+    const escapeRegExp = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const sectionTitlePattern = (key) => '(?:' + (sectionTitleAliases[key] || [key.replace(/_/g, ' ')]).map(escapeRegExp).join('|') + ')';
+    function removeEmptyTitledBlocks(html, titlePattern) {
+        let output = String(html || '');
+        const blockRe = /<(div|article|aside|main|section|td|li)\b([^>]*)>([\s\S]*?)<\/\1>/gi;
+        for (let i = 0; i < 4; i += 1) {
+            let changed = false;
+            output = output.replace(blockRe, (match, tag, attrs, body) => {
+                const headingRe = new RegExp('<h[1-6]\\b[^>]*>\\s*' + titlePattern + '\\s*<\\/h[1-6]>', 'i');
+                if (!headingRe.test(body)) return match;
+                const headings = body.match(/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/gi) || [];
+                if (headings.length > 1) return match;
+                const text = body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+                if (!(new RegExp('^' + titlePattern + '$', 'i')).test(text)) return match;
+                changed = true;
+                return '';
+            });
+            if (!changed) break;
+        }
+        return output;
+    }
+    function removeEmptyResumeDecorations(html) {
+        let output = String(html || '');
+        for (let i = 0; i < 5; i += 1) {
+            const before = output;
+            output = output
+                .replace(/<section\b[^>]*>\s*<\/section>/gi, '')
+                .replace(/<(p|span|ul|ol|li)\b[^>]*>\s*<\/\1>/gi, '')
+                .replace(/<div\b(?![^>]*(?:border|background|width|height|tpl-rule|divider|line|accent))[^>]*>\s*<\/div>/gi, '')
+                .replace(/<hr\b[^>]*>\s*(?=<\/(?:div|section|article|aside|main|td|li)>)/gi, '');
+            if (output === before) break;
+        }
+        return output;
+    }
+    function pruneEmptyResumeSections(html, hasData) {
+        let output = String(html || '');
+        Object.entries(hasData || {}).forEach(([key, visible]) => {
+            if (visible) return;
+            const titlePattern = sectionTitlePattern(key);
+            output = removeEmptyTitledBlocks(output, titlePattern);
+            output = output.replace(/<section\b[^>]*>[\s\S]*?<\/section>/gi, (sectionHtml) => {
+                const headingRe = new RegExp('<h[1-6]\\b[^>]*>\\s*' + titlePattern + '\\s*<\\/h[1-6]>', 'i');
+                if (!headingRe.test(sectionHtml)) return sectionHtml;
+                const headings = sectionHtml.match(/<h[1-6]\b/gi) || [];
+                if (headings.length <= 1) return '';
+                return sectionHtml.replace(new RegExp('<h[1-6]\\b[^>]*>\\s*' + titlePattern + '\\s*<\\/h[1-6]>\\s*(?:<(?:p|div|ul)\\b[^>]*>\\s*(?:<\\/(?:p|div|ul)>)?)?', 'i'), '');
+            });
+            output = output.replace(new RegExp('(?:<(?:div|span)\\b(?=[^>]*(?:border|background|width|height|tpl-rule|divider|line|accent))[^>]*>\\s*<\\/(?:div|span)>\\s*)?<h[1-6]\\b[^>]*>\\s*' + titlePattern + '\\s*<\\/h[1-6]>\\s*(?:<(?:p|div|ul)\\b[^>]*>\\s*(?:<\\/(?:p|div|ul)>)?)?', 'gi'), '');
+        });
+        return removeEmptyResumeDecorations(output);
+    }
     function hasResumePlaceholders(html) {
-        const tokens = ['name', 'last_name', 'job_title', 'designation', 'email', 'mobile', 'location', 'contact', 'address', 'summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'social_links', 'linkedin', 'portfolio', 'link', 'profile_image', 'profile_image_url', 'profile_image_tag', 'photo'];
+        const tokens = ['name', 'last_name', 'job_title', 'designation', 'email', 'mobile', 'location', 'contact', 'address', 'summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'awards', 'publications', 'volunteer_experience', 'interests', 'references', 'custom_sections', 'social_links', 'linkedin', 'portfolio', 'link', 'profile_image', 'profile_image_url', 'profile_image_tag', 'photo'];
         return new RegExp('\\{\\{\\s*(' + tokens.join('|') + ')\\s*\\}\\}', 'i').test(html)
             || new RegExp('\\[\\[\\s*(' + tokens.join('|') + ')\\s*\\]\\]', 'i').test(html)
             || /\{\{#if\s+[a-z0-9_.]+\s*\}\}/i.test(html)
@@ -605,6 +674,12 @@
             languages: hasSectionData(state.languages),
             additional_information: hasSectionData(state.additional_information),
             achievements: hasSectionData(state.achievements),
+            awards: hasSectionData(state.awards),
+            publications: hasSectionData(state.publications),
+            volunteer_experience: hasSectionData(state.volunteer_experience),
+            interests: hasSectionData(state.interests),
+            references: hasSectionData(state.references),
+            custom_sections: hasSectionData(state.custom_sections),
         };
         const values = {
             name:         esc(fullName() || state.name || ''),
@@ -630,6 +705,12 @@
             languages: hasData.languages ? renderList(state.languages) : '',
             additional_information: hasData.additional_information ? renderList(state.additional_information) : '',
             achievements: hasData.achievements ? renderList(state.achievements) : '',
+            awards: hasData.awards ? renderList(state.awards) : '',
+            publications: hasData.publications ? renderList(state.publications) : '',
+            volunteer_experience: hasData.volunteer_experience ? renderList(state.volunteer_experience) : '',
+            interests: hasData.interests ? renderList(state.interests) : '',
+            references: hasData.references ? renderList(state.references) : '',
+            custom_sections: hasData.custom_sections ? renderList(state.custom_sections) : '',
             profile_image: state.profile_image || '',
             profile_image_url: state.profile_image || '',
             profile_image_tag: state.profile_image ? `<img src="${state.profile_image}" class="tpl-profile-img" style="width:100%; height:100%; object-fit:cover;">` : '',
@@ -638,7 +719,7 @@
         output = applyHandlebarsIfBlocks(output, values);
         Object.entries(values).forEach(([k, v]) => { output = replaceToken(output, k, v); });
 
-        ['projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'experience', 'education'].forEach(key => {
+        ['projects', 'certifications', 'certificates', 'languages', 'additional_information', 'achievements', 'awards', 'publications', 'volunteer_experience', 'interests', 'references', 'custom_sections', 'experience', 'education', 'summary', 'skills'].forEach(key => {
             if (!values[key] || values[key] === '<ul></ul>' || values[key] === '') {
                 const re = new RegExp('<(h2|h3|h4|div)[^>]*>[^<]*?' + key + '[^<]*?<\\/\\1>\\s*(?:<[^>]+>\\s*)*?(\\{\\{\\s*' + key + '\\s*\\}\\}|\\[\\[' + key + '\\]\\])', 'gi');
                 output = output.replace(re, '');
@@ -710,11 +791,8 @@
             output = lastDiv !== -1 ? output.slice(0, lastDiv) + section + output.slice(lastDiv) : output + section;
         }
 
-        // Remove empty sections entirely so clear/delete reflects instantly in preview.
-        output = output
-            .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary)\s*<\/h[1-6]>\s*(?:<div[^>]*>\s*)?<\/section>/gi, '')
-            .replace(/<section[^>]*>\s*<h[1-6][^>]*>\s*(Professional Summary|Summary|About|About Me|Profile|Objective|Skills|Core Skills|Technical Skills|Experience|Professional Experience|Work Experience|Education|Projects|Selected Projects|Certifications|Certificates|Languages|Achievements|Additional Information|Interests|References)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>|)\s*<\/section>/gi, '')
-            .replace(/<h[1-6][^>]*>\s*(Professional Summary|Summary|About|About Me|Profile|Objective|Skills|Core Skills|Technical Skills|Experience|Professional Experience|Work Experience|Education|Projects|Selected Projects|Certifications|Certificates|Languages|Achievements|Additional Information|Interests|References)\s*<\/h[1-6]>\s*(?:<ul[^>]*>\s*<\/ul>|<div[^>]*>\s*<\/div>|<p[^>]*>\s*<\/p>)/gi, '');
+        // Remove empty sections as whole blocks so no headings, dividers, borders, or spacers survive.
+        output = pruneEmptyResumeSections(output, hasData);
 
         output = output.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, function(match, css) {
             let scoped = css.replace(/(^|\}|\s)body\s*\{/gi, '$1.resume-sheet-preview {');
