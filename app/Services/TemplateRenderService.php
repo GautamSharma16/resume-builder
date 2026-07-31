@@ -9,6 +9,7 @@ use Illuminate\Support\HtmlString;
 class TemplateRenderService
 {
     private const RESUME_SECTION_ALIASES = [
+        'contact' => ['mobile', 'email', 'location', 'contact', 'address', 'linkedin', 'github', 'portfolio', 'link', 'social_links'],
         'summary' => ['summary', 'about', 'profile', 'objective'],
         'skills' => ['skills'],
         'experience' => ['experience'],
@@ -28,9 +29,10 @@ class TemplateRenderService
     ];
 
     private const RESUME_SECTION_TITLES = [
+        'contact' => ['Contact', 'Contacts', 'Contact Information'],
         'summary' => ['Professional Summary', 'Summary', 'About', 'About Me', 'Profile', 'Professional Profile', 'Executive Summary', 'Executive Profile', 'Overview', 'Objective', 'Leadership Summary'],
         'skills' => ['Skills', 'Core Skills', 'Technical Skills', 'Core Competencies', 'Core Expertise', 'Expertise', 'Technical Competencies'],
-        'experience' => ['Experience', 'Professional Experience', 'Work Experience', 'Career History', 'Academic Experience'],
+        'experience' => ['Experience', 'Professional Experience', 'Work Experience', 'Career History', 'Academic Experience', 'Employment History'],
         'education' => ['Education', 'Academic Background', 'Academic Qualifications', 'Credentials'],
         'projects' => ['Projects', 'Selected Projects', 'Project Portfolio', 'Projects & Internships'],
         'certifications' => ['Certifications', 'Certification', 'Certificates', 'Certificate'],
@@ -281,7 +283,7 @@ class TemplateRenderService
 
     public function containsResumePlaceholders(string $html): bool
     {
-        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|awards|publications|volunteer_experience|interests|references|custom_sections|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|awards|publications|volunteer_experience|interests|references|custom_sections|social_links|linkedin|portfolio|link|profile_image|profile_image_tag|photo)\s*\]\]/i', $html) === 1
+        return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|awards|publications|volunteer_experience|interests|references|custom_sections|social_links|linkedin|github|portfolio|link|profile_image|profile_image_url|profile_image_tag|photo)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|awards|publications|volunteer_experience|interests|references|custom_sections|social_links|linkedin|github|portfolio|link|profile_image|profile_image_url|profile_image_tag|photo)\s*\]\]/i', $html) === 1
             || preg_match('/\{\{#if\s+[a-z0-9_.]+\s*\}\}/i', $html) === 1
             || $this->shouldRenderWithBlade($html);
     }
@@ -383,6 +385,8 @@ HTML;
                 $html = preg_replace_callback('/\[\[\s*'.$quotedKey.'\s*\]\]/', fn () => $value, $html);
             }
         }
+
+        $html = $this->removeEmptyScalarDecorations($html);
         
         // Auto-fix: If user has an image, replace common placeholders in the HTML
         $profileImage = Arr::get($data, 'profile_image_url');
@@ -480,6 +484,8 @@ HTML;
                 $titlePattern = $this->sectionTitlePattern($titles);
                 $tokenPattern = $this->sectionTokenPattern($token);
 
+                $html = $this->removeEmptyTokenTitledBlocks($html, $titlePattern, $tokenPattern);
+
                 $html = preg_replace_callback(
                     '/<section\b[^>]*>[\s\S]*?<\/section>/i',
                     function (array $matches) use ($titlePattern, $tokenPattern): string {
@@ -565,6 +571,27 @@ HTML;
         return $this->removeEmptyResumeDecorations($html);
     }
 
+    private function removeEmptyTokenTitledBlocks(string $html, string $titlePattern, string $tokenPattern): string
+    {
+        $titleTag = '(?:h[1-6]|div|p|span|strong|b)';
+        $contentTag = '(?:div|p|span|ul|ol)';
+
+        for ($i = 0; $i < 4; $i++) {
+            $before = $html;
+            $html = preg_replace(
+                '/<div\b[^>]*>\s*<'.$titleTag.'\b[^>]*>\s*'.$titlePattern.'\s*<\/'.$titleTag.'>\s*<'.$contentTag.'\b[^>]*>\s*'.$tokenPattern.'\s*<\/'.$contentTag.'>\s*<\/div>/i',
+                '',
+                $html
+            ) ?? $html;
+
+            if ($html === $before) {
+                break;
+            }
+        }
+
+        return $html;
+    }
+
     private function removeEmptyTitledBlocks(string $html, string $titlePattern): string
     {
         $blockTags = 'div|article|aside|main|section|td|li';
@@ -576,11 +603,11 @@ HTML;
                 function (array $matches) use ($titlePattern, &$changed): string {
                     $body = $matches['body'] ?? '';
 
-                    if (! preg_match('/<h[1-6]\b[^>]*>\s*'.$titlePattern.'\s*<\/h[1-6]>/i', $body)) {
+                    if (! preg_match('/<(?:h[1-6]|div|p|span|strong|b)\b[^>]*>\s*'.$titlePattern.'\s*<\/(?:h[1-6]|div|p|span|strong|b)>/i', $body)) {
                         return $matches[0];
                     }
 
-                    if (preg_match_all('/<h[1-6]\b[^>]*>[\s\S]*?<\/h[1-6]>/i', $body, $headings) > 1) {
+                    if (preg_match_all('/<(?:h[1-6]|div|p|span|strong|b)\b[^>]*>[\s\S]*?<\/(?:h[1-6]|div|p|span|strong|b)>/i', $body, $headings) > 1) {
                         return $matches[0];
                     }
 
@@ -602,6 +629,34 @@ HTML;
         }
 
         return $html;
+    }
+
+    private function removeEmptyScalarDecorations(string $html): string
+    {
+        $labelsByToken = [
+            'mobile' => ['Phone', 'Mobile', 'Contact'],
+            'email' => ['Email', 'E-mail'],
+            'location' => ['Location', 'Address'],
+            'social_links' => ['Links', 'Social Links'],
+            'linkedin' => ['LinkedIn'],
+            'github' => ['GitHub'],
+            'portfolio' => ['Portfolio', 'Website'],
+            'link' => ['Link', 'Links', 'Website'],
+        ];
+
+        foreach ($labelsByToken as $labels) {
+            $labelPattern = $this->sectionTitlePattern($labels);
+            $html = preg_replace(
+                '/<(?:div|p|span)\b[^>]*>\s*'.$labelPattern.'\s*<\/(?:div|p|span)>\s*<(?:div|p|span)\b[^>]*>\s*<\/(?:div|p|span)>/i',
+                '',
+                $html
+            ) ?? $html;
+        }
+
+        $html = preg_replace('/<img\b[^>]*\bsrc=["\']\s*["\'][^>]*>/i', '', $html) ?? $html;
+        $html = preg_replace('/(?:&nbsp;|\s*\|\s*|\s*·\s*){2,}/i', ' ', $html) ?? $html;
+
+        return $this->removeEmptyResumeDecorations($html);
     }
 
     private function removeEmptyResumeDecorations(string $html): string
@@ -769,7 +824,15 @@ HTML;
         $rawImage = Arr::get($data, 'profile_image', '');
         $profileImage = $rawImage;
         if (empty($profileImage) || $profileImage === 'null' || $profileImage === '""') {
-            $profileImage = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face';
+            $profileImage = '';
+        }
+        $socialLinks = Arr::get($data, 'social_links', []);
+        if (! $this->hasSectionData($socialLinks)) {
+            $socialLinks = array_values(array_filter([
+                $this->text(Arr::get($data, 'linkedin', '')),
+                $this->text(Arr::get($data, 'github', '')),
+                $this->text(Arr::get($data, 'portfolio', Arr::get($data, 'link', ''))),
+            ]));
         }
 
         return [
@@ -782,13 +845,14 @@ HTML;
             'location' => e($this->text(Arr::get($data, 'location', Arr::get($data, 'address', '')))),
             'summary' => preg_match('/<[a-z][\s\S]*>/i', Arr::get($data, 'summary', '')) ? $this->text(Arr::get($data, 'summary', '')) : $this->rich($this->text(Arr::get($data, 'summary', ''))),
             'linkedin' => e($this->text(Arr::get($data, 'linkedin', ''))),
+            'github' => e($this->text(Arr::get($data, 'github', ''))),
             'portfolio' => e($this->text(Arr::get($data, 'portfolio', Arr::get($data, 'link', Arr::get($data, 'social_links.0', ''))))),
             'link' => e($this->text(Arr::get($data, 'link', Arr::get($data, 'portfolio', '')))),
             'skills' => $this->badges(Arr::get($data, 'skills', [])),
             'experience' => $this->experience(Arr::get($data, 'experience', [])),
             'education' => $this->educationList(Arr::get($data, 'education', [])),
             'projects' => $this->projectList(Arr::get($data, 'projects', [])),
-            'social_links' => $this->inline(Arr::get($data, 'social_links', [])),
+            'social_links' => $this->inline($socialLinks),
             'certifications' => $this->list(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
             'certificates' => $this->list(Arr::get($data, 'certifications', Arr::get($data, 'certificates', []))),
             'languages' => $this->languageList(Arr::get($data, 'languages', Arr::get($data, 'language', Arr::get($data, 'language_skills', Arr::get($data, 'language_proficiency', []))))),

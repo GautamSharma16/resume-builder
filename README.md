@@ -4,24 +4,21 @@ A premium, modern web application for building high-fidelity resumes and cover l
 
 ## 🚀 Tech Stack
 
-### **Backend**
-- **Framework:** Laravel 12.x
-- **Language:** PHP 8.2+
-- **Database:** MySQL / PostgreSQL
-- **Authentication:** Laravel Auth & Socialite (Google OAuth)
-- **Payments:** Razorpay API integration
-- **PDF Generation:** `barryvdh/laravel-dompdf` (for standard PDFs) & Puppeteer (for high-fidelity template rendering)
-- **PDF Parsing:** `smalot/pdfparser`
-
-### **Frontend**
-- **Templating:** Blade Templates
-- **Styling:** Tailwind CSS (via Vite)
-- **Interactivity:** Alpine.js & Vanilla JS
-- **Rich Text Editor:** TinyMCE 6
-- **Bundler:** Vite 7
-
-### **AI Features**
-- **Integrations:** REST APIs for AI content generation (OpenAI / Gemini)
+1. Backend Framework: Laravel 12.x
+2. Backend Language: PHP 8.2+
+3. Database: MySQL / PostgreSQL
+4. ORM & Migrations: Laravel Eloquent
+5. Authentication: Laravel Auth, Laravel Socialite, Google OAuth
+6. Frontend Templating: Blade Templates
+7. Styling: Tailwind CSS, Tailwind Forms
+8. Frontend JavaScript: Alpine.js, Vanilla JavaScript
+9. HTTP Client: Axios
+10. Build Tool: Vite 7, Laravel Vite Plugin
+11. Rich Text Editor: TinyMCE
+12. Payment Gateway: Razorpay
+13. PDF Generation: DomPDF, barryvdh/laravel-dompdf, Puppeteer
+14. Document Parsing: Smalot PDFParser, PHPWord
+15. AI Integration: Google Gemini API
 
 ---
 
