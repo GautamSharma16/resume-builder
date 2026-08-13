@@ -23,6 +23,10 @@ class TemplateController extends Controller
         return view('admin.templates.index', [
             'templates' => Template::query()
                 ->when($type, fn ($q) => $q->where('type', $type))
+                ->where(function ($query) {
+                    $query->where('type', '!=', 'resume')
+                        ->orWhere('category', '!=', 'word');
+                })
                 ->latest()
                 ->get(),
             'filterType' => $type,
@@ -198,7 +202,7 @@ class TemplateController extends Controller
     // ── Shared validation ─────────────────────────────────────────────────
     private function validated(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'type'          => ['required', 'in:resume,cover_letter'],
             'name'          => ['required', 'string', 'max:160'],
             'category'      => ['required', 'string', 'max:80'],
@@ -206,6 +210,12 @@ class TemplateController extends Controller
             'is_active'     => ['nullable', 'boolean'],
             'has_image'     => ['nullable', 'boolean'],
         ]) + ['is_active' => false, 'has_image' => false];
+
+        if (($data['type'] ?? null) === 'resume' && ($data['category'] ?? null) === 'word') {
+            abort(422, 'MS Word resume category has been removed.');
+        }
+
+        return $data;
     }
 
     private function editableHtmlForUpload(array $data, string $html): string

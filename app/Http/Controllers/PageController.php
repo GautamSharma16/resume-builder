@@ -15,6 +15,7 @@ class PageController extends Controller
         $renderedCover = [];
         $templates = Template::where('is_active', true)
             ->where('type', 'resume')
+            ->where('category', '!=', 'word')
             ->orderBy('name')
             ->limit(10)
             ->get();
@@ -44,6 +45,10 @@ class PageController extends Controller
     {
         $rendered = [];
         $templates = Template::where('is_active', true)
+            ->where(function ($query) {
+                $query->where('type', '!=', 'resume')
+                    ->orWhere('category', '!=', 'word');
+            })
             ->orderBy('category')
             ->orderBy('name')
             ->get();

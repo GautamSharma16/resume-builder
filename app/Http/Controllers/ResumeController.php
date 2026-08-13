@@ -41,6 +41,7 @@ class ResumeController extends Controller
     {
         $templates = Template::where('type', 'resume')
             ->where('is_active', true)
+            ->where('category', '!=', 'word')
             ->get();
 
         return view('pages.improve', [

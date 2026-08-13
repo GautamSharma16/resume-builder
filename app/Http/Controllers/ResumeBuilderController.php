@@ -46,13 +46,19 @@ class ResumeBuilderController extends Controller
 
     public function create(Request $request)
     {
-        $templates = Template::where('type', 'resume')->where('is_active', true)->get();
+        $templates = Template::where('type', 'resume')
+            ->where('is_active', true)
+            ->where('category', '!=', 'word')
+            ->get();
         $selectedTemplateId = $request->query('template_id');
         $selectedTemplate = null;
         $initialResume = null;
 
         if ($selectedTemplateId) {
-            $selectedTemplate = Template::where('type', 'resume')->where('is_active', true)->findOrFail($selectedTemplateId);
+            $selectedTemplate = Template::where('type', 'resume')
+                ->where('is_active', true)
+                ->where('category', '!=', 'word')
+                ->findOrFail($selectedTemplateId);
             $selectedTemplateId = $selectedTemplate->id;
         } else {
             $savedTemplateId = $request->user()
@@ -457,7 +463,10 @@ class ResumeBuilderController extends Controller
             $resume->forceFill(['user_id' => auth()->id(), 'session_id' => null])->save();
         }
 
-        $templates = Template::where('type', 'resume')->where('is_active', true)->get();
+        $templates = Template::where('type', 'resume')
+            ->where('is_active', true)
+            ->where('category', '!=', 'word')
+            ->get();
 
         return view('resume.create', [
             'templates' => $templates,

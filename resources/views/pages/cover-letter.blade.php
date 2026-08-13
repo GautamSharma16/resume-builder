@@ -334,6 +334,31 @@
         align-items: center;
         gap: 0.6rem;
     }
+    .ai-instruction-card h2 {
+        color: var(--blue);
+    }
+    .ai-instruction-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+        margin-top: 0.85rem;
+    }
+    .ai-instruction-hint {
+        color: var(--muted);
+        font-size: 0.76rem;
+        line-height: 1.35;
+        margin: 0;
+        flex: 1 1 180px;
+    }
+    .btn-ai-apply {
+        width: auto;
+        margin-top: 0;
+        border-radius: var(--r-md);
+        padding: 0.72rem 1rem;
+        white-space: nowrap;
+    }
 
     .field-grid {
         display: grid;
@@ -1077,6 +1102,21 @@
                 </div>
             </div>
 
+            <div class="input-card ai-instruction-card">
+                <h2>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
+                    AI Instruction
+                </h2>
+                <div class="field-group" style="margin-bottom: 0;">
+                    <label>Tell AI what to change</label>
+                    <textarea id="cl-ai-instruction" class="form-input" placeholder="Example: Make it shorter, more confident, and highlight Laravel experience." style="min-height: 110px;"></textarea>
+                    <div class="ai-instruction-actions">
+                        <p class="ai-instruction-hint">The template will stay the same. AI will only update the cover letter content.</p>
+                        <button id="apply-ai-instruction" class="btn-generate btn-ai-apply" type="button">Apply Changes</button>
+                    </div>
+                </div>
+            </div>
+
             {{-- 2. About You (PRIORITY 2) --}}
             <div class="input-card">
                 <h2>
@@ -1663,6 +1703,7 @@
         // Generate flow
         $('generate-letter-main').addEventListener('click', () => triggerGeneration(true));
         $('regenerate-letter').addEventListener('click', () => triggerGeneration(false));
+        $('apply-ai-instruction')?.addEventListener('click', () => applyAiInstruction());
 
         async function triggerGeneration(isFirst) {
             if (!state.templateId) {
@@ -1726,6 +1767,67 @@
                 notify(AI_FAILURE_MESSAGE, 'error');
             } finally {
                 hideCoverScanOverlay();
+            }
+        }
+
+        async function applyAiInstruction() {
+            const instruction = $('cl-ai-instruction')?.value.trim() || '';
+            if (!instruction) {
+                notify('Please write an instruction first.', 'error');
+                return;
+            }
+            if (!state.body || !String(state.body).trim()) {
+                notify('Please write or generate the letter first.', 'error');
+                return;
+            }
+
+            const button = $('apply-ai-instruction');
+            const originalText = button?.textContent || 'Apply Changes';
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Applying...';
+            }
+
+            showCoverScanOverlay();
+            try {
+                const response = await fetch('{{ route("cover-letter.improve") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        letter: state,
+                        instruction,
+                        template_id: state.templateId
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    notify(data.message || AI_FAILURE_MESSAGE, 'error');
+                    return;
+                }
+
+                const oldId = state.id;
+                const oldTemplateId = state.templateId;
+                Object.assign(state, data.letter || {});
+                state.id = oldId;
+                state.templateId = oldTemplateId;
+                state.body = enforceSignatureBreak(state.body);
+                syncStateToFields();
+                render();
+                if ($('cl-ai-instruction')) $('cl-ai-instruction').value = '';
+                notify('AI changes applied.');
+            } catch (err) {
+                notify(AI_FAILURE_MESSAGE, 'error');
+            } finally {
+                hideCoverScanOverlay();
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
             }
         }
 

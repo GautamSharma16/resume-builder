@@ -41,10 +41,9 @@
         <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
         <select name="category" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm">
             @foreach([
-                'ats'          => 'ATS Resume',
-                'fresher'      => 'Fresher Resume',
-                'experienced'  => 'Resume for Experienced',
-                'word'         => 'MS Word Resume',
+                'ats'          => 'ATS Optimized Resume',
+                'fresher'      => 'Entry Level Resume',
+                'experienced'  => 'Senior Level Resume',
                 'professional' => 'Professional Cover Letter',
                 'modern'       => 'Modern Cover Letter',
                 'executive'    => 'Executive Cover Letter',

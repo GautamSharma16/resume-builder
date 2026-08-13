@@ -40,8 +40,9 @@ class SaasSeeder extends Seeder
             'ats' => 'ATS Resume',
             'fresher' => 'Fresher Resume',
             'experienced' => 'Resume for Experienced',
-            'word' => 'MS Word Resume',
         ];
+
+        Template::where('type', 'resume')->where('category', 'word')->delete();
 
         foreach ($resumeCategories as $category => $label) {
             for ($i = 1; $i <= 10; $i++) {
@@ -129,7 +130,7 @@ class SaasSeeder extends Seeder
             ['#3f3f46', '#18181b', '#fafafa'],
         ];
         [$dark, $accent, $soft] = $palettes[$index - 1];
-        $font = $category === 'word' ? 'Georgia, Times New Roman, serif' : 'Inter, Arial, sans-serif';
+        $font = 'Inter, Arial, sans-serif';
         $dense = $category === 'ats';
         $fresh = $category === 'fresher';
         $experienced = $category === 'experienced';

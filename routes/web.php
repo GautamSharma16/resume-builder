@@ -63,6 +63,7 @@ Route::get('/enhance-cv', [ResumeController::class, 'index'])->name('enhance-cv'
 Route::get('/cover-letter', [CoverLetterController::class, 'create'])->name('cover-letter');
 Route::post('/cover-letter', [CoverLetterController::class, 'store'])->name('cover-letter.store');
 Route::post('/cover-letter/generate', [CoverLetterController::class, 'generate'])->name('cover-letter.generate');
+Route::post('/cover-letter/improve', [CoverLetterController::class, 'improve'])->name('cover-letter.improve');
 Route::patch('/cover-letter/{coverLetter}', [CoverLetterController::class, 'save'])->name('cover-letter.save');
 Route::patch('/cover-letter/{coverLetter}/rename', [CoverLetterController::class, 'rename'])->name('cover-letter.rename');
 Route::delete('/cover-letter/{coverLetter}', [CoverLetterController::class, 'destroy'])->name('cover-letter.destroy');

@@ -212,6 +212,43 @@ class CoverLetterController extends Controller
         }
     }
 
+    public function improve(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'letter' => ['required', 'array'],
+                'instruction' => ['required', 'string', 'min:3', 'max:2000'],
+                'template_id' => ['nullable', 'exists:templates,id'],
+            ]);
+
+            $letter = $this->normalizeLetterPayload($validated['letter']);
+            $instruction = $this->cleanText($validated['instruction']);
+            $result = $this->applyInstructionWithGemini($letter, $instruction);
+
+            if (! Arr::get($result, 'success', true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => GeminiService::BUSY_MESSAGE,
+                ], 503);
+            }
+
+            $letter['body'] = $this->normalizeSignatureBreak((string) Arr::get($result, 'body', Arr::get($letter, 'body', '')));
+
+            if (! empty($validated['template_id'])) {
+                $letter['template_id'] = (int) $validated['template_id'];
+                $letter['templateId'] = (int) $validated['template_id'];
+            }
+
+            return response()->json([
+                'success' => true,
+                'letter' => $letter,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Cover Letter Instruction Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to apply instruction.'], 500);
+        }
+    }
+
     private function extractResumeContact(string $text): array
     {
         $lines = collect(preg_split('/\R+/', $text))
@@ -500,6 +537,38 @@ class CoverLetterController extends Controller
             ];
         } catch (\Exception $e) {
             \Log::error('Gemini Cover Letter Exception: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'AI Connection Error: ' . $e->getMessage()];
+        }
+    }
+
+    private function applyInstructionWithGemini(array $letter, string $instruction): array
+    {
+        $body = (string) Arr::get($letter, 'body', '');
+        $prompt = "Edit this cover letter using the user's instruction. Update only the letter body/content. Keep the selected template/design unchanged and do not change applicant facts unless instructed. Return only JSON: {\"body\":\"...\"}.\n\nInstruction: {$instruction}\n\nLetter JSON: ".json_encode($letter)."\n\nCurrent body:\n{$body}";
+
+        try {
+            $result = $this->gemini->generateContent($prompt, [
+                'temperature'     => 0.45,
+                'maxOutputTokens' => min(1700, (int) config('services.gemini.max_output_tokens', 1400)),
+            ]);
+
+            if (! ($result['success'] ?? false)) {
+                return ['success' => false, 'message' => $result['message'] ?? GeminiService::BUSY_MESSAGE];
+            }
+
+            $json = $this->decodeGeminiJson((string) ($result['text'] ?? ''));
+            if (empty($json) || ! isset($json['body'])) {
+                return ['success' => false, 'message' => 'Could not parse AI response.'];
+            }
+
+            $body = $json['body'];
+            if (is_array($body)) {
+                $body = implode("\n\n", array_map(fn ($val) => is_array($val) ? json_encode($val) : (string) $val, $body));
+            }
+
+            return ['success' => true, 'body' => (string) $body];
+        } catch (\Exception $e) {
+            \Log::error('Gemini Cover Letter Instruction Exception: ' . $e->getMessage());
             return ['success' => false, 'message' => 'AI Connection Error: ' . $e->getMessage()];
         }
     }

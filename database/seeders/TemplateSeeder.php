@@ -31,13 +31,6 @@ class TemplateSeeder extends Seeder
             ['name' => 'Advanced', 'category' => 'experienced', 'type' => 'resume', 'html' => $this->advanced()],
             ['name' => 'Master', 'category' => 'experienced', 'type' => 'resume', 'html' => $this->master()],
 
-            // Word Templates
-            ['name' => 'Word Blue', 'category' => 'word', 'type' => 'resume', 'html' => $this->wordBlue()],
-            ['name' => 'Word Green', 'category' => 'word', 'type' => 'resume', 'html' => $this->wordGreen()],
-            ['name' => 'Word Red', 'category' => 'word', 'type' => 'resume', 'html' => $this->wordRed()],
-            ['name' => 'Word Gray', 'category' => 'word', 'type' => 'resume', 'html' => $this->wordGray()],
-            ['name' => 'Word Purple', 'category' => 'word', 'type' => 'resume', 'html' => $this->wordPurple()],
-
             // Cover Letter Templates
             ['name' => 'Cover Letter Classic', 'category' => 'professional', 'type' => 'cover_letter', 'html' => $this->coverLetterClassic()],
             ['name' => 'Cover Letter Modern', 'category' => 'professional', 'type' => 'cover_letter', 'html' => $this->coverLetterModern()],
