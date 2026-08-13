@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManualTestActivationController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\RazorpayWebhookController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\ArticleController as AdminArticleController;
 use App\Http\Controllers\Admin\LeadController as AdminLeadController;
@@ -25,6 +26,8 @@ use App\Http\Controllers\GoogleAuthController;
 */
 
 Route::get('/', [PageController::class, 'home'])->name('home');
+Route::get('/sitemap.xml', [SitemapController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [SitemapController::class, 'robots'])->name('robots');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
