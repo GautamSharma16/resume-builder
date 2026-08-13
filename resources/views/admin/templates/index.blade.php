@@ -8,13 +8,19 @@
         $pageTitle = $filterType === 'cover_letter' ? 'Cover Letter Templates' : ($filterType === 'resume' ? 'Resume Templates' : 'Templates');
         $createUrl = $filterType ? route('admin.templates.create', ['type' => $filterType]) : route('admin.templates.create');
         $categoryLabels = [
-            'ats' => 'ATS Optimized Resume',
-            'fresher' => 'Entry Level Resume',
-            'experienced' => 'Senior Level Resume',
-            'professional' => 'Professional Cover Letter',
-            'modern' => 'Modern Cover Letter',
-            'executive' => 'Executive Cover Letter',
-            'minimal' => 'Minimal Cover Letter',
+            'resume' => [
+                'ats' => 'ATS Optimized Resume',
+                'fresher' => 'Entry Level Resume',
+                'experienced' => 'Senior Level Resume',
+            ],
+            'cover_letter' => [
+                'professional' => 'Professional Cover Letter',
+                'modern' => 'Modern Cover Letter',
+                'executive' => 'Executive Cover Letter',
+                'fresher' => 'Fresher Cover Letter',
+                'career-change' => 'Career Change Cover Letter',
+                'minimal' => 'Minimal Cover Letter',
+            ],
         ];
     @endphp
 
@@ -103,7 +109,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-700">
-                                    {{ $categoryLabels[$template->category] ?? $template->category }}
+                                    {{ $categoryLabels[$template->type][$template->category] ?? $template->category }}
                                 </td>
                                 <td class="px-6 py-4">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $statusClass }}">
@@ -172,7 +178,7 @@
                                 </span>
                             </div>
                             <div class="mt-2 text-xs text-gray-500">
-                                Category: <span class="font-medium text-gray-700">{{ $categoryLabels[$template->category] ?? $template->category }}</span>
+                                Category: <span class="font-medium text-gray-700">{{ $categoryLabels[$template->type][$template->category] ?? $template->category }}</span>
                             </div>
                         </div>
                         <div class="flex flex-col gap-2 shrink-0">

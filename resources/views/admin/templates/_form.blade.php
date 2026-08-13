@@ -11,6 +11,21 @@
     $defaultType = old('type', $template->type ?: request('type', 'resume'));
     $defaultType = in_array($defaultType, ['resume', 'cover_letter'], true) ? $defaultType : 'resume';
     $defaultCategory = $defaultType === 'cover_letter' ? 'professional' : 'ats';
+    $categoryOptions = [
+        'resume' => [
+            'ats' => 'ATS Optimized Resume',
+            'fresher' => 'Entry Level Resume',
+            'experienced' => 'Senior Level Resume',
+        ],
+        'cover_letter' => [
+            'professional' => 'Professional Cover Letter',
+            'modern' => 'Modern Cover Letter',
+            'executive' => 'Executive Cover Letter',
+            'fresher' => 'Fresher Cover Letter',
+            'career-change' => 'Career Change Cover Letter',
+            'minimal' => 'Minimal Cover Letter',
+        ],
+    ];
 @endphp
 
 <div class="space-y-5">
@@ -18,7 +33,7 @@
     {{-- ── Type ──────────────────────────────────────────────────────────── --}}
     <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-        <select name="type" class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm">
+        <select name="type" id="template-type-select" class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm">
             <option value="resume"       @selected($defaultType === 'resume')>Resume</option>
             <option value="cover_letter" @selected($defaultType === 'cover_letter')>Cover Letter</option>
         </select>
@@ -39,16 +54,8 @@
     {{-- ── Category ────────────────────────────────────────────────────────── --}}
     <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
-        <select name="category" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm">
-            @foreach([
-                'ats'          => 'ATS Optimized Resume',
-                'fresher'      => 'Entry Level Resume',
-                'experienced'  => 'Senior Level Resume',
-                'professional' => 'Professional Cover Letter',
-                'modern'       => 'Modern Cover Letter',
-                'executive'    => 'Executive Cover Letter',
-                'minimal'      => 'Minimal Cover Letter',
-            ] as $value => $label)
+        <select name="category" id="template-category-select" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 text-sm">
+            @foreach($categoryOptions[$defaultType] as $value => $label)
                 <option value="{{ $value }}" @selected(old('category', $template->category ?: $defaultCategory) === $value)>
                     {{ $label }}
                 </option>
@@ -189,6 +196,31 @@
 
 {{-- Toggle preview script --}}
 <script>
+const templateCategoryOptions = @json($categoryOptions);
+
+function syncTemplateCategoryOptions() {
+    const typeSelect = document.getElementById('template-type-select');
+    const categorySelect = document.getElementById('template-category-select');
+    if (!typeSelect || !categorySelect) return;
+
+    const options = templateCategoryOptions[typeSelect.value] || templateCategoryOptions.resume || {};
+    const current = categorySelect.value;
+    categorySelect.innerHTML = '';
+
+    Object.entries(options).forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        categorySelect.appendChild(option);
+    });
+
+    categorySelect.value = Object.prototype.hasOwnProperty.call(options, current)
+        ? current
+        : Object.keys(options)[0] || '';
+}
+
+document.getElementById('template-type-select')?.addEventListener('change', syncTemplateCategoryOptions);
+
 function togglePreview() {
     const wrapper = document.getElementById('preview-wrapper');
     const btn     = document.getElementById('toggle-preview-btn');

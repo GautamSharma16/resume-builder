@@ -215,6 +215,15 @@ class TemplateController extends Controller
             abort(422, 'MS Word resume category has been removed.');
         }
 
+        $allowedCategories = [
+            'resume' => ['ats', 'fresher', 'experienced'],
+            'cover_letter' => ['professional', 'modern', 'executive', 'fresher', 'career-change', 'minimal'],
+        ];
+
+        if (! in_array($data['category'], $allowedCategories[$data['type']] ?? [], true)) {
+            abort(422, 'Selected category is not valid for this template type.');
+        }
+
         return $data;
     }
 
