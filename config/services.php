@@ -78,4 +78,9 @@ return [
     'executable_path' => env('PUPPETEER_EXECUTABLE_PATH', ''),
 ],
 
+    'analytics' => [
+        'google_id' => env('GOOGLE_ANALYTICS_ID'),
+        'clarity_id' => env('MICROSOFT_CLARITY_ID'),
+    ],
+
 ];
