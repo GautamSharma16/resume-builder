@@ -1499,7 +1499,7 @@
         <div class="resume-preview">
             <div class="preview-ring"></div>
             <div class="resume-preview-card">
-                <img src="{{ asset('resume.png') }}" alt="Resume Preview"
+                <img src="{{ asset('resume.webp') }}" alt="Resume Preview"
                      onerror="this.src='https://placehold.co/400x520/e2e8f0/64748b?text=Resume+Preview'">
             </div>
 
