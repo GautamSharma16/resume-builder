@@ -250,6 +250,7 @@
         background: linear-gradient(135deg, #ffffff 0%, #fafcff 100%);
         position: relative;
         overflow: hidden;
+        contain: layout style;
     }
 
     .hero-orb-1 {
