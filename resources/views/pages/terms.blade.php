@@ -293,7 +293,10 @@
             <p>Please read these terms carefully before using CVBliss. They explain your rights and responsibilities when using our platform.</p>
         </div>
         <div class="hero-image">
-            <img src="{{ asset('images/terms-legal.png') }}" alt="Terms Illustration">
+            <picture>
+                <source srcset="{{ asset('images/terms-legal.webp') }}" type="image/webp">
+                <img src="{{ asset('images/terms-legal.png') }}" alt="Terms Illustration" loading="lazy">
+            </picture>
         </div>
     </header>
 

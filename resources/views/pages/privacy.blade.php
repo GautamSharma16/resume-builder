@@ -293,7 +293,10 @@
             <p>At CVBliss, we believe your data belongs to you. Here's how we protect it and keep your information secure.</p>
         </div>
         <div class="hero-image">
-            <img src="{{ asset('images/privacy-legal.png') }}" alt="Privacy Illustration">
+            <picture>
+                <source srcset="{{ asset('images/privacy-legal.webp') }}" type="image/webp">
+                <img src="{{ asset('images/privacy-legal.png') }}" alt="Privacy Illustration" loading="lazy">
+            </picture>
         </div>
     </header>
 

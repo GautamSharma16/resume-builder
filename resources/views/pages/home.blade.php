@@ -1499,8 +1499,11 @@
         <div class="resume-preview">
             <div class="preview-ring"></div>
             <div class="resume-preview-card">
-                <img src="{{ asset('resume.webp') }}" alt="Resume Preview"
-                     onerror="this.src='https://placehold.co/400x520/e2e8f0/64748b?text=Resume+Preview'">
+                <picture>
+                    <source srcset="{{ asset('resume.webp') }}" type="image/webp">
+                    <img src="{{ asset('resume.jpg') }}" alt="Resume Preview" loading="lazy"
+                         onerror="this.src='https://placehold.co/400x520/e2e8f0/64748b?text=Resume+Preview'">
+                </picture>
             </div>
 
             <div class="float-chip chip-ats">
