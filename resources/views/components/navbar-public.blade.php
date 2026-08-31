@@ -11,7 +11,8 @@
                     <img src="{{ asset('Logo.webp') }}"
                          alt="Cvbliss Logo"
                          class="cvb-logo cvb-logo-nav w-auto transition duration-300 group-hover:scale-[1.03]"
-                         loading="lazy"
+                         fetchpriority="high"
+                         decoding="async"
                          width="150"
                          height="40">
                 </a>

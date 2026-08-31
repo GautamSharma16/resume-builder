@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'Resume Builder') }}</title>
-<link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    <title>@yield('title', config('app.name', 'Resume Builder'))</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon-32.png') }}" sizes="32x32">
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -100,9 +100,12 @@
         @include('components.footer')
     @endif
 
-    @include('components.plan-download-modal')
+    @if(request()->routeIs('resume.index', 'resume.create', 'resume.edit', 'resume-maker', 'cover-letter'))
+        @include('components.plan-download-modal')
+    @endif
 
     <!-- Custom Delete Confirmation Modal -->
+    @if(request()->routeIs('dashboard', 'resume.index', 'cover-letter'))
     <div id="delete-confirm-modal" class="fixed inset-0 z-[1250] hidden items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm">
         <div class="modal-fade-in w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-2xl">
             <div class="flex items-start gap-4">
@@ -169,21 +172,35 @@
         });
     })();
     </script>
+    @endif
 
     @stack('scripts')
     
     <!--Start of Tawk.to Script-->
     <script type="text/javascript">
     if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
-    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-    (function(){
-    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-    s1.async=true;
-    s1.src='https://embed.tawk.to/69f9b85c04c2b71c3575813b/1jnrngaim';
-    s1.charset='UTF-8';
-    s1.setAttribute('crossorigin','*');
-    s0.parentNode.insertBefore(s1,s0);
-    })();
+        const loadTawk = () => {
+            if (window.__tawkLoaded) return;
+            window.__tawkLoaded = true;
+            window.Tawk_API = window.Tawk_API || {};
+            window.Tawk_LoadStart = new Date();
+            const s1 = document.createElement("script");
+            const s0 = document.getElementsByTagName("script")[0];
+            s1.async = true;
+            s1.src = 'https://embed.tawk.to/69f9b85c04c2b71c3575813b/1jnrngaim';
+            s1.charset = 'UTF-8';
+            s1.setAttribute('crossorigin', '*');
+            s0.parentNode.insertBefore(s1, s0);
+        };
+        const idleLoad = () => setTimeout(loadTawk, 10000);
+        ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach((eventName) => {
+            window.addEventListener(eventName, loadTawk, { once: true, passive: true });
+        });
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(idleLoad, { timeout: 5000 });
+        } else {
+            window.addEventListener('load', idleLoad, { once: true });
+        }
     }
     </script>
     <!--End of Tawk.to Script-->

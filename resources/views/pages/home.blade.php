@@ -578,6 +578,8 @@
         padding: 6rem 8%;
         position: relative;
         overflow: hidden;
+        content-visibility: auto;
+        contain-intrinsic-size: 800px;
     }
     .features-strip-header {
         max-width: 550px;
@@ -657,6 +659,8 @@
         overflow: hidden;
         position: relative;
         width: 100%;
+        content-visibility: auto;
+        contain-intrinsic-size: 900px;
     }
     .templates-section::before,
     .templates-section::after {
@@ -994,6 +998,8 @@
         background: linear-gradient(135deg, #0b1221 0%, #0f172a 100%);
         position: relative;
         overflow: hidden;
+        content-visibility: auto;
+        contain-intrinsic-size: 800px;
     }
     .pricing-glow {
         position: absolute;
@@ -1501,7 +1507,7 @@
             <div class="resume-preview-card">
                 <picture>
                     <source srcset="{{ asset('resume.webp') }}" type="image/webp">
-                    <img src="{{ asset('resume.jpg') }}" alt="Resume Preview" loading="lazy"
+                    <img src="{{ asset('resume.jpg') }}" alt="Resume Preview" width="400" height="520" fetchpriority="high" decoding="async"
                          onerror="this.src='https://placehold.co/400x520/e2e8f0/64748b?text=Resume+Preview'">
                 </picture>
             </div>
@@ -1691,8 +1697,8 @@ const carouselTemplates = [
     {
         name: @json($tpl->name),
         url:  "{{ route('resume.create', ['template_id' => $tpl->id]) }}",
-        html: @json($rendered[$tpl->id] ?? null),
-        isReal: true
+        html: null,
+        isReal: false
     },
     @empty
     @endforelse
@@ -1703,8 +1709,8 @@ const coverLetterTemplates = [
     {
         name: @json($tpl->name),
         url: "{{ route('cover-letter', ['template_id' => $tpl->id]) }}",
-        html: @json($renderedCover[$tpl->id] ?? null),
-        isReal: true
+        html: null,
+        isReal: false
     },
     @empty
     @endforelse
@@ -1793,8 +1799,29 @@ function fitTemplatePreview(stage) {
     });
 }
 
-buildMarquee('ts-stage', templates);
-buildMarquee('cl-stage', coverTemplates);
+const templateStages = [
+    { id: 'ts-stage', items: templates },
+    { id: 'cl-stage', items: coverTemplates }
+];
+
+if ('IntersectionObserver' in window) {
+    const templateObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            const stage = entry.target;
+            const config = templateStages.find((item) => item.id === stage.id);
+            if (config) buildMarquee(config.id, config.items);
+            templateObserver.unobserve(stage);
+        });
+    }, { rootMargin: '350px 0px' });
+
+    templateStages.forEach(({ id }) => {
+        const stage = document.getElementById(id);
+        if (stage) templateObserver.observe(stage);
+    });
+} else {
+    templateStages.forEach(({ id, items }) => buildMarquee(id, items));
+}
 let previewResizeFrame = null;
 window.addEventListener('resize', () => {
     if (previewResizeFrame) cancelAnimationFrame(previewResizeFrame);
