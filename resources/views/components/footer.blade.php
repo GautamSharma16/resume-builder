@@ -170,7 +170,7 @@
     <!-- Top bar: Logo left, Social icons right -->
     <div class="ft-topbar">
         <a href="{{ route('home') }}" class="ft-logo">
-            <img src="{{ asset('Logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo">
+            <img src="{{ asset('Logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo" loading="lazy" width="150" height="40">
         </a>
 
         <div class="ft-socials">

@@ -9,7 +9,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display:wght@400&display=swap" rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -26,7 +26,7 @@
 
     <!-- Microsoft Clarity -->
     @if(config('services.analytics.clarity_id'))
-        <script type="text/javascript">
+        <script async defer type="text/javascript">
             (function(c,l,a,r,i,t,y){
                 c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
                 t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
@@ -50,7 +50,7 @@
             --white:       #ffffff;
             
             --font-display: 'DM Serif Display', serif;
-            --font-body:    'Bricolage Grotesque', sans-serif;
+            --font-body:    'Inter', sans-serif;
 
             --r-md:  12px;
             --r-lg:  18px;

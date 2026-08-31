@@ -627,7 +627,7 @@
                    onclick="window.location='{{ route('blog.show', $article->slug) }}'">
             <div class="card-img-wrap">
               @if($article->thumbnail ?? false)
-                <img src="{{ asset('storage/' . $article->thumbnail) }}" alt="{{ $article->title }}" loading="eager">
+                <img src="{{ asset('storage/' . $article->thumbnail) }}" alt="{{ $article->title }}" loading="lazy" width="600" height="400">
               @else
                 <div class="card-img-placeholder">{{ substr($article->title, 0, 1) }}</div>
               @endif

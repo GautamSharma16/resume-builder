@@ -9,8 +9,9 @@
         <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
 
         <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -51,7 +52,7 @@
                 <!-- Mobile Logo Area -->
                 <div class="flex h-20 shrink-0 items-center justify-between border-b border-slate-100 px-5">
                     <a href="{{ route('home') }}" class="flex min-w-0 items-center">
-                        <img src="{{ asset('Logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-drawer">
+                        <img src="{{ asset('Logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-drawer" loading="lazy" width="150" height="40">
                     </a>
                     <button @click="sidebarOpen = false" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-slate-400 transition duration-200 hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-100">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,7 +98,7 @@
                     <!-- Logo -->
                     <div class="flex items-center px-8 h-20 border-b border-slate-100 shrink-0">
                         <a href="{{ route('home') }}" class="flex items-center">
-                            <img src="{{ asset('Logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-admin-sidebar">
+                            <img src="{{ asset('Logo.webp') }}" alt="Cvbliss Logo" class="cvb-logo cvb-logo-admin-sidebar" loading="lazy" width="150" height="40">
                         </a>
                     </div>
 

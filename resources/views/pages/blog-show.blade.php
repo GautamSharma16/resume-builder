@@ -567,6 +567,8 @@ body { background: var(--paper); color: var(--ink); }
                 alt="{{ $post->title }}"
                 class="post-featured-image"
                 loading="eager"
+                width="800"
+                height="600"
             >
             @endif
         </div>
