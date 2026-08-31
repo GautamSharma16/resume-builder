@@ -335,15 +335,15 @@
         color: var(--navy);
         line-height: 1.1;
         margin-bottom: 1.5rem;
-        animation: fadeUp 0.7s var(--ease-out) 0.2s both;
+        animation: fadeUp 0.7s var(--ease-out) 0s both; /* Reduced delay from 0.2s to 0s */
     }
     .hero-headline .gradient-text {
         background: linear-gradient(135deg, var(--blue), var(--purple), var(--pink));
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
-        animation: gradient-shift 6s ease infinite;
         background-size: 200% 200%;
+        animation: gradient-shift 6s ease infinite;
     }
 
     .hero-sub {
