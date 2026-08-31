@@ -1697,8 +1697,8 @@ const carouselTemplates = [
     {
         name: @json($tpl->name),
         url:  "{{ route('resume.create', ['template_id' => $tpl->id]) }}",
-        html: null,
-        isReal: false
+        html: @json($rendered[$tpl->id] ?? null),
+        isReal: true
     },
     @empty
     @endforelse
@@ -1709,8 +1709,8 @@ const coverLetterTemplates = [
     {
         name: @json($tpl->name),
         url: "{{ route('cover-letter', ['template_id' => $tpl->id]) }}",
-        html: null,
-        isReal: false
+        html: @json($renderedCover[$tpl->id] ?? null),
+        isReal: true
     },
     @empty
     @endforelse
