@@ -3,7 +3,6 @@
 @section('title', 'Sign In | CvBliss - AI Resume Engine')
 
 @section('content')
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Bricolage+Grotesque:wght@300;400;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 
 <style>
@@ -189,6 +188,7 @@
 
     /* — Inputs — */
     .field-group { margin-bottom: 1.5rem; }
+    .cf-turnstile { min-height: 65px; }
     .field-label { display: block; font-size: 12px; font-weight: 600; color: var(--on-surface-variant); margin-bottom: 8px; margin-left: 4px; }
     .input-wrapper { position: relative; }
     .input-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--outline); transition: color 0.3s; }
@@ -349,7 +349,7 @@
         
         <div class="lp-content">
             <a href="{{ route('home') }}" class="lp-logo">
-                <img src="{{ asset('Logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
+                <img src="{{ asset('Logo.webp') }}" alt="CvBliss Logo" class="cvb-logo" width="150" height="40" fetchpriority="high" decoding="async">
             </a>
 
             <h1 class="lp-headline">Build resumes that get you hired faster</h1>
@@ -359,7 +359,7 @@
 
             <div class="space-y-6">
                 <div class="glass-card" style="transform: translateX(16px);">
-                    <img src="{{ asset('shreya-sharma.png') }}" class="card-img" alt="shreya sharma">
+                    <img src="{{ asset('shreya-sharma.png') }}" class="card-img" alt="shreya sharma" width="48" height="48" loading="lazy" decoding="async">
                     <div>
                         <div class="flex items-center gap-2 mb-1">
                             <span class="font-bold text-white">Shreya Sharma</span>
@@ -390,7 +390,7 @@
     <div class="lp-right">
         <div class="form-shell">
             <a href="{{ route('home') }}" class="mobile-brand">
-                <img src="{{ asset('Logo.webp') }}" alt="CvBliss Logo" class="cvb-logo">
+                <img src="{{ asset('Logo.webp') }}" alt="CvBliss Logo" class="cvb-logo" width="150" height="40" fetchpriority="high" decoding="async">
             </a>
             
             @php $activeTab = $activeTab ?? 'login'; @endphp
@@ -458,6 +458,8 @@
                         <label for="remember" class="remember-label">Keep me logged in</label>
                     </div>
 
+                    <x-captcha-turnstile />
+
                     <button class="btn-submit" type="submit">
                         Sign in to CvBliss
                         <span class="material-symbols-outlined" style="font-size: 20px;">arrow_forward</span>
@@ -501,6 +503,7 @@
                             <span class="material-symbols-outlined input-icon">lock_reset</span>
                         </div>
                     </div>
+                    <x-captcha-turnstile />
                     <button class="btn-submit" type="submit">Create Account</button>
                 </form>
             @else

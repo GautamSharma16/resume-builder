@@ -33,6 +33,9 @@
                 <label class="block text-sm font-semibold text-gray-800 mb-1">Confirm Password</label>
                 <input name="password_confirmation" type="password" required class="w-full rounded-md border-gray-300 text-sm focus:border-teal-600 focus:ring-teal-600">
             </div>
+            <div class="md:col-span-2">
+                <x-captcha-turnstile />
+            </div>
             <button class="md:col-span-2 rounded-md bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800">Register and Send OTP</button>
         </form>
 

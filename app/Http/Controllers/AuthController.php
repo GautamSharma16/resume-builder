@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\OtpMail;
 use App\Models\User;
 use App\Services\PendingDownloadService;
+use App\Services\TurnstileCaptcha;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -44,14 +45,28 @@ class AuthController extends Controller
         ]);
     }
 
-    public function login(Request $request)
+    public function login(Request $request, TurnstileCaptcha $captcha)
     {
-        $validated = $request->validate([
+        $rules = [
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
             'role_scope' => ['nullable', 'in:user,staff'],
             'remember' => ['nullable', 'boolean'],
+        ];
+
+        if ($request->input('role_scope', 'user') === 'user' && $captcha->enabled()) {
+            $rules['cf-turnstile-response'] = ['required', 'string'];
+        }
+
+        $validated = $request->validate($rules, [
+            'cf-turnstile-response.required' => 'Please complete the CAPTCHA challenge.',
         ]);
+
+        if (($validated['role_scope'] ?? 'user') === 'user' && ! $captcha->verify($request->input('cf-turnstile-response'), $request->ip())) {
+            throw ValidationException::withMessages([
+                'cf-turnstile-response' => 'CAPTCHA verification failed. Please try again.',
+            ]);
+        }
 
         $key = 'login:'.Str::lower($validated['email']).'|'.$request->ip();
 
@@ -123,14 +138,28 @@ class AuthController extends Controller
         return view('auth.login', ['activeTab' => 'register']);
     }
 
-    public function register(Request $request)
+    public function register(Request $request, TurnstileCaptcha $captcha)
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => ['required', 'string', 'max:160'],
             'email' => ['required', 'email', 'max:190', 'unique:users,email'],
             'mobile' => ['required', 'string', 'max:30'],
             'password' => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()],
+        ];
+
+        if ($captcha->enabled()) {
+            $rules['cf-turnstile-response'] = ['required', 'string'];
+        }
+
+        $validated = $request->validate($rules, [
+            'cf-turnstile-response.required' => 'Please complete the CAPTCHA challenge.',
         ]);
+
+        if (! $captcha->verify($request->input('cf-turnstile-response'), $request->ip())) {
+            throw ValidationException::withMessages([
+                'cf-turnstile-response' => 'CAPTCHA verification failed. Please try again.',
+            ]);
+        }
 
         $user = User::create([
             'name' => $validated['name'],

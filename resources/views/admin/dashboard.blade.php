@@ -43,7 +43,7 @@
     </div>
 
     {{-- Stats Grid --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6 mb-10">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 xl:grid-cols-5 gap-6 mb-10">
         {{-- Total Users --}}
         <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-300 group relative overflow-hidden">
             <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -95,6 +95,19 @@
                 <span class="text-[10px] text-slate-400">unique today</span>
             </div>
         </div>
+
+        {{-- Today's Registrations --}}
+        <a href="{{ route('admin.registrations') }}" class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-300 group relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <svg class="w-24 h-24 text-cyan-600" fill="currentColor" viewBox="0 0 20 20"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 00-6 6 1 1 0 001 1h10a1 1 0 001-1 6 6 0 00-6-6zM16 8a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V8z"></path></svg>
+            </div>
+            <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-2">New Accounts Today</p>
+            <h3 class="text-4xl font-black text-slate-900 mb-2" id="todayRegistrations">{{ $todayRegistrations ?? 0 }}</h3>
+            <div class="flex items-center gap-1.5">
+                <span class="text-[11px] font-bold text-cyan-500">Daily</span>
+                <span class="text-[10px] text-slate-400">registration report</span>
+            </div>
+        </a>
 
        
     </div>
@@ -182,6 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('totalPurchases').textContent = data.totalPurchases;
             document.getElementById('totalVisitors').textContent = data.totalVisitors;
             document.getElementById('todayVisitors').textContent = data.todayVisitors;
+            document.getElementById('todayRegistrations').textContent = data.todayRegistrations;
         })
         .catch(error => console.error('Error fetching dashboard data:', error));
     }

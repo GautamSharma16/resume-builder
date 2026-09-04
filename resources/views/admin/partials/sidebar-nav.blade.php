@@ -10,6 +10,11 @@
         Visitor Logs
     </a>
     @endif
+    @if(Auth::user()->role === 'admin')
+    <a href="{{ route('admin.registrations') }}" class="group flex min-h-[48px] items-center px-4 py-3 rounded-xl font-medium transition-all duration-200 @if(request()->routeIs('admin.registrations')) bg-blue-600 text-white shadow-lg shadow-blue-200 @else text-slate-600 hover:bg-slate-50 hover:text-blue-600 @endif">
+        Daily Registrations
+    </a>
+    @endif
     
     @if(Auth::user()->hasPermission('transactions') || Auth::user()->hasPermission('pricing'))
     <div class="pt-6 pb-2">

@@ -12,6 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
+            \App\Http\Middleware\CanonicalHost::class,
+            \App\Http\Middleware\SecurityAndCacheHeaders::class,
             \App\Http\Middleware\TrackVisitor::class,
         ]);
 

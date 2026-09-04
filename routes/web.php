@@ -134,6 +134,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
         // Analytics
         Route::get('/analytics', fn() => view('admin.analytics'))->name('analytics')->middleware('permission:analytics');
         Route::get('/visits', [DashboardController::class, 'visits'])->name('visits')->middleware('permission:visits');
+        Route::get('/registrations', [DashboardController::class, 'registrations'])->name('registrations')->middleware('admin');
 
         // Content Management
         Route::middleware('permission:templates')->group(function () {

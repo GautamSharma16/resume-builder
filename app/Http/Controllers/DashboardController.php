@@ -12,6 +12,9 @@ use App\Models\User;
 use App\Models\VisitorLog;
 use App\Services\PendingDownloadService;
 use App\Services\TemplateRenderService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -143,6 +146,49 @@ class DashboardController extends Controller
         ]));
     }
 
+    public function registrations(Request $request)
+    {
+        $timezone = config('app.timezone', 'Asia/Kolkata');
+        $scope = $request->query('scope', 'all');
+        $today = Carbon::today($timezone);
+        $firstRegistration = User::query()->where('role', 'user')->min('created_at');
+        $defaultFrom = $firstRegistration
+            ? Carbon::parse($firstRegistration)->timezone($timezone)->toDateString()
+            : $today->toDateString();
+        $fromDate = $request->query('from', $scope === 'today' ? $today->toDateString() : $defaultFrom);
+        $toDate = $request->query('to', $scope === 'today' ? $today->toDateString() : $today->toDateString());
+        $from = Carbon::parse($fromDate, $timezone)->startOfDay();
+        $to = Carbon::parse($toDate, $timezone)->endOfDay();
+
+        if ($from->gt($to)) {
+            [$from, $to] = [$to->copy()->startOfDay(), $from->copy()->endOfDay()];
+        }
+
+        $registeredUsers = User::query()
+            ->select(['id', 'name', 'email', 'created_at'])
+            ->where('role', 'user')
+            ->whereBetween('created_at', [$from, $to])
+            ->orderByDesc('created_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        $allUsersCount = User::where('role', 'user')->count();
+        $todayUsersCount = User::where('role', 'user')
+            ->whereBetween('created_at', [$today->copy()->startOfDay(), $today->copy()->endOfDay()])
+            ->count();
+
+        return view('admin.registrations', [
+            'registeredUsers' => $registeredUsers,
+            'allUsersCount' => $allUsersCount,
+            'todayUsersCount' => $todayUsersCount,
+            'selectedUsersCount' => $registeredUsers->total(),
+            'scope' => $scope,
+            'from' => $from,
+            'to' => $to,
+            'timezone' => $timezone,
+        ]);
+    }
+
     private function dashboardStats(): array
     {
         return array_merge($this->visitorStats(), [
@@ -164,6 +210,7 @@ class DashboardController extends Controller
             'todayVisitors' => (int) VisitorLog::whereDate('last_visited_at', today())
                 ->selectRaw($this->uniqueVisitorSql().' as visitor_count')
                 ->value('visitor_count'),
+            'todayRegistrations' => User::where('role', 'user')->whereDate('created_at', today())->count(),
         ];
     }
 

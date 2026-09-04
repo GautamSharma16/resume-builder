@@ -83,4 +83,10 @@ return [
         'clarity_id' => env('MICROSOFT_CLARITY_ID'),
     ],
 
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+        'timeout' => (int) env('TURNSTILE_TIMEOUT', 5),
+    ],
+
 ];

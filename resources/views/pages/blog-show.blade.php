@@ -16,7 +16,7 @@
     --paper:      #faf8f5;
     --paper-warm: #f2ede6;
     --rule:       rgba(26,22,19,.10);
-    --accent:     #c0392b;
+    --accent:     #2563eb;
     --accent-2:   #1d3461;
     --serif:      'Playfair Display', Georgia, serif;
     --sans:       'Instrument Sans', system-ui, sans-serif;
@@ -519,8 +519,8 @@ body { background: var(--paper); color: var(--ink); }
 
 /* ─── SCROLL ANIMATION ───────────────────────────────────── */
 .fade-up {
-    opacity: 0;
-    transform: translateY(18px);
+    opacity: 1;
+    transform: none;
     transition: opacity .55s var(--ease), transform .55s var(--ease);
 }
 .fade-up.visible {

@@ -272,12 +272,12 @@
 
   /* Featured */
   .article-card.featured { grid-column: span 7; }
-  .article-card.featured .card-img-wrap { height: 300px; }
+  .article-card.featured .card-img-wrap { aspect-ratio: 4 / 3; }
   .article-card.featured .card-title { font-size: 24px; }
 
   /* Second (sidebar) */
   .article-card.regular { grid-column: span 5; }
-  .article-card.regular .card-img-wrap { height: 210px; }
+  .article-card.regular .card-img-wrap { aspect-ratio: 4 / 3; }
 
   /* Small cards */
   .article-card.small {
@@ -287,6 +287,7 @@
   .article-card.small .card-img-wrap {
     width: 130px;
     min-width: 130px;
+    aspect-ratio: 4 / 3;
     height: auto;
   }
   .article-card.small .card-body { padding: 16px; }

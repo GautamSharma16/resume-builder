@@ -5,7 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', config('app.name', 'Resume Builder'))</title>
+    @if($seoShouldIndex ?? false)
+        <link rel="canonical" href="{{ $seoCanonicalUrl }}">
+    @else
+        <meta name="robots" content="noindex, nofollow">
+    @endif
     <link rel="icon" type="image/png" href="{{ asset('favicon-32.png') }}" sizes="32x32">
+    @if(request()->routeIs('home'))
+        <link rel="preload" as="image" href="{{ asset('resume.jpg') }}" imagesizes="(max-width: 768px) 82vw, 400px" fetchpriority="high">
+    @endif
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

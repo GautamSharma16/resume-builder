@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title') | {{ config('app.name', 'Resume Builder') }}</title>
-    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+        <title>@yield('title') | {{ config('app.name', 'Resume Builder') }}</title>
+        <meta name="robots" content="noindex, nofollow">
+        <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,19 +43,5 @@
 
     @stack('scripts')
     
-    <!-- Tawk.to Script -->
-    <script type="text/javascript">
-    if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) {
-    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-    (function(){
-    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-    s1.async=true;
-    s1.src='https://embed.tawk.to/69f9b85c04c2b71c3575813b/1jnrngaim';
-    s1.charset='UTF-8';
-    s1.setAttribute('crossorigin','*');
-    s0.parentNode.insertBefore(s1,s0);
-    })();
-    }
-    </script>
 </body>
 </html>
