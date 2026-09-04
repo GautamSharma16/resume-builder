@@ -12,7 +12,7 @@
     @endif
     <link rel="icon" type="image/png" href="{{ asset('favicon-32.png') }}" sizes="32x32">
     @if(request()->routeIs('home'))
-        <link rel="preload" as="image" href="{{ asset('resume.jpg') }}" imagesizes="(max-width: 768px) 82vw, 400px" fetchpriority="high">
+        <link rel="preload" as="image" href="{{ asset('resume.webp') }}" type="image/webp" imagesizes="(max-width: 768px) 82vw, 400px" fetchpriority="high">
     @endif
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

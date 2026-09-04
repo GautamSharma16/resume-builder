@@ -1505,7 +1505,8 @@
             <div class="preview-ring"></div>
             <div class="resume-preview-card">
                 <picture>
-                    <img src="{{ asset('resume.jpg') }}" alt="Resume Preview" width="400" height="520" fetchpriority="high" decoding="auto" sizes="(max-width: 768px) 82vw, 400px"
+                    <source srcset="{{ asset('resume.webp') }}" type="image/webp">
+                    <img src="{{ asset('resume.jpg') }}" alt="Resume Preview" width="400" height="520" fetchpriority="high" decoding="async" sizes="(max-width: 768px) 82vw, 400px"
                          onerror="this.src='https://placehold.co/400x520/e2e8f0/64748b?text=Resume+Preview'">
                 </picture>
             </div>
