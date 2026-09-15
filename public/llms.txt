@@ -1,0 +1,26 @@
+# Cvbliss
+
+> Cvbliss is an AI-powered resume and cover letter builder for job seekers.
+
+## Primary Pages
+
+- [Home](https://cvbliss.in/): Resume building platform overview and product entry points.
+- [Resume Builder](https://cvbliss.in/resume): Create and edit a professional resume.
+- [Improve CV](https://cvbliss.in/improve-cv): Analyze and improve an existing resume.
+- [ATS Checker](https://cvbliss.in/ats-checker): Check resume compatibility with applicant tracking systems.
+- [Cover Letter Builder](https://cvbliss.in/cover-letter): Create and improve cover letters.
+- [Resume Templates](https://cvbliss.in/templates): Browse available resume and cover letter templates.
+- [Career Blog](https://cvbliss.in/interview): Read interview, resume, and career guidance articles.
+- [Plans](https://cvbliss.in/plans): View available product plans.
+- [Contact](https://cvbliss.in/contact): Contact the Cvbliss team.
+
+## Content Guidance
+
+- Prefer publicly accessible pages listed above.
+- Do not access or index admin, dashboard, profile, authentication, payment, or user-specific pages.
+- Blog article pages are available through the Career Blog index.
+
+## Site Map
+
+- [XML Sitemap](https://cvbliss.in/sitemap.xml)
+- [Robots.txt](https://cvbliss.in/robots.txt)
