@@ -632,12 +632,12 @@
         return `<style>
             .resume-sheet-preview, .resume-maker-preview { --primary: ${accent}; }
             .resume-sheet-preview .tpl-resume { border-color: var(--primary) !important; }
-            .resume-sheet-preview .tpl-resume h1,
-            .resume-sheet-preview .tpl-resume h2,
-            .resume-sheet-preview .tpl-resume h3,
+            .resume-sheet-preview .tpl-resume:not(.tpl-no-pad) h1,
+            .resume-sheet-preview .tpl-resume:not(.tpl-no-pad) h2,
+            .resume-sheet-preview .tpl-resume:not(.tpl-no-pad) h3,
             .resume-sheet-preview .tpl-resume a,
             .resume-sheet-preview .tpl-role-head strong { color: var(--primary) !important; border-color: var(--primary) !important; }
-            .resume-sheet-preview .tpl-badge { background: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important; }
+            .resume-sheet-preview .tpl-resume:not(.tpl-no-pad) .tpl-badge { background: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important; }
             .resume-sheet-preview .tpl-rule,
             .resume-sheet-preview .tpl-accentbox header > div,
             .resume-sheet-preview .tpl-two aside,
@@ -646,10 +646,15 @@
             .resume-sheet-preview .tpl-resume > header[style*="background"],
             .resume-sheet-preview .tpl-resume h2[style*="background"] { background: var(--primary) !important; color: #fff !important; }
             .resume-sheet-preview .tpl-profile-img { display:block; max-width:150px; max-height:150px; margin-bottom:15px; border:2px solid var(--primary); border-radius:8px; }
-            .resume-sheet-preview .tpl-resume h1,
-            .resume-sheet-preview .tpl-resume h2,
-            .resume-sheet-preview .tpl-resume h3 { color: var(--primary) !important; }
+            .resume-sheet-preview .tpl-resume:not(.tpl-no-pad) h1,
+            .resume-sheet-preview .tpl-resume:not(.tpl-no-pad) h2,
+            .resume-sheet-preview .tpl-resume:not(.tpl-no-pad) h3 { color: var(--primary) !important; }
             .resume-sheet-preview .tpl-resume hr { border-top: 2px solid var(--primary) !important; }
+            /* tpl-no-pad: full-bleed custom layout — never override its colors */
+            .resume-sheet-preview .tpl-no-pad { padding: 0 !important; }
+            .resume-sheet-preview .tpl-no-pad h1,
+            .resume-sheet-preview .tpl-no-pad h2,
+            .resume-sheet-preview .tpl-no-pad h3 { color: inherit !important; border-color: inherit !important; font-size: inherit !important; margin: 0 !important; font-weight: inherit !important; border-bottom: none !important; text-transform: none !important; padding-bottom: 0 !important; }
         </style>`;
     }
 
@@ -1843,7 +1848,21 @@
         );
     }
 
-    function templateChooserSampleData() {
+    const templateChooserSampleImages = ['/Men_Photo.png', '/Woman_Photo.png'];
+    const templateChooserSamplePhotoCache = new Map();
+
+    function templateChooserSamplePhotoFor(template, id = '') {
+        const key = String(id || template?.id || template?.name || 'default');
+        if (!templateChooserSamplePhotoCache.has(key)) {
+            let hash = 0;
+            for (let i = 0; i < key.length; i += 1) hash += key.charCodeAt(i);
+            templateChooserSamplePhotoCache.set(key, templateChooserSampleImages[hash % templateChooserSampleImages.length]);
+        }
+        return templateChooserSamplePhotoCache.get(key);
+    }
+
+    function templateChooserSampleData(template, id = '') {
+        const samplePhotoUrl = templateChooserSamplePhotoFor(template, id);
         return {
             name: 'James Smith',
             email: 'james.smith@example.com',
@@ -1868,29 +1887,59 @@
             languages: '<ul><li>English - Native</li><li>Spanish - Professional</li></ul>',
             achievements: '<ul><li>Winner - National Hackathon 2024</li><li>Top Performer Award 2023</li><li>Built platform serving 100K+ users</li></ul>',
             additional_information: '<ul><li>Open Source Contributor</li><li>Tech Conference Speaker</li><li>Mentor for Junior Developers</li></ul>',
-            profile_image: '<div style="width:80px; height:80px; background:#e2e8f0; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#94a3b8;"><svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></div>',
-            profile_image_url: '',
-            profile_image_tag: '',
-            photo: '',
+            profile_image: '<img src="' + samplePhotoUrl + '" style="width:100%;height:100%;object-fit:cover;display:block;">',
+            profile_image_url: samplePhotoUrl,
+            profile_image_tag: '<img src="' + samplePhotoUrl + '" class="tpl-profile-img" style="width:100%;height:100%;object-fit:cover;display:block;">',
+            photo: samplePhotoUrl,
         };
     }
 
-    function renderTemplateChooserSampleHtml(template) {
+    function renderTemplateChooserSampleHtml(template, id = '') {
         const html = String(template?.html || '');
-        const sampleData = templateChooserSampleData();
+        const sampleData = templateChooserSampleData(template, id);
         let filled = hasResumePlaceholders(html) ? html : editableTemplateShell();
+
+        // Step 1: Process handlebars #if blocks using string patterns (Blade-safe)
+        const lb = '{' + '{';
+        const rb = '}' + '}';
+        const processHandlebarsIf = (str) => {
+            let result = str;
+            let safety = 0;
+            const ifPat = new RegExp(lb + '#if\\s+([a-z0-9_.]+)\\s*' + rb + '([\\s\\S]*?)(?:' + lb + 'else' + rb + '([\\s\\S]*?))?' + lb + '\\/if' + rb, 'i');
+            while (safety++ < 30) {
+                const match = result.match(ifPat);
+                if (!match) break;
+                const key = match[1];
+                const truthy = match[2] || '';
+                const falsy  = match[3] || '';
+                const val = sampleData[key];
+                const isTruthy = val !== undefined && val !== null && val !== '' && val !== false;
+                result = result.slice(0, match.index) + (isTruthy ? truthy : falsy) + result.slice(match.index + match[0].length);
+            }
+            return result;
+        };
+        filled = processHandlebarsIf(filled);
+
+        // Step 2: Replace brace and bracket placeholder tokens with sample values
         Object.entries(sampleData).forEach(([k, v]) => {
-            filled = filled.replace(new RegExp('\\{\\{\\s*' + k + '\\s*\\}\\}', 'g'), v);
+            filled = filled.replace(new RegExp(lb + '\\s*' + k + '\\s*' + rb, 'g'), v);
             filled = filled.split('[[' + k + ']]').join(v);
         });
+
+        // Step 3: Remove any leftover unresolved #if blocks and bare tokens
+        const leftoverIf  = new RegExp(lb + '#if\\s+[a-z0-9_.]+\\s*' + rb + '[\\s\\S]*?' + lb + '\\/if' + rb, 'gi');
+        const leftoverTok = new RegExp(lb + '\\s*[a-z0-9_.]+\\s*' + rb, 'gi');
+        filled = filled.replace(leftoverIf, '');
+        filled = filled.replace(leftoverTok, '');
+
         return resumeAccentStyle(state.primary_color_customized ? state.primary_color : '') + filled;
     }
 
-    function renderTemplateChooserHtml(template) {
+    function renderTemplateChooserHtml(template, id = '') {
         if (hasTemplateChooserUserData()) {
             return renderTemplateHtml(template);
         }
-        return renderTemplateChooserSampleHtml(template);
+        return renderTemplateChooserSampleHtml(template, id);
     }
 
     function updateTemplatePreviewPageControls() {
@@ -1936,7 +1985,7 @@
         if (animate) templatePreviewPage.classList.add('is-swapping');
         templatePreviewPageNum = 1;
         requestAnimationFrame(() => {
-            templatePreviewPage.innerHTML = `<div class="rp-template-preview-sheet">${renderTemplateChooserHtml(template)}</div>`;
+            templatePreviewPage.innerHTML = `<div class="rp-template-preview-sheet">${renderTemplateChooserHtml(template, id)}</div>`;
             templatePreviewPage.classList.remove('is-swapping');
             applyTemplatePreviewPage();
             setTimeout(applyTemplatePreviewPage, 120);
@@ -1957,7 +2006,7 @@
         thumb.appendChild(check);
         const inner = document.createElement('div');
         inner.className = 'rp-tpl-thumb-inner';
-        inner.innerHTML = renderTemplateChooserSampleHtml(template);
+        inner.innerHTML = renderTemplateChooserSampleHtml(template, id);
         thumb.appendChild(inner);
         const name = document.createElement('div');
         name.className = 'rp-tpl-name';

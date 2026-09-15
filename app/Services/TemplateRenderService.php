@@ -109,6 +109,9 @@ class TemplateRenderService
                 'Top Performer Award 2023',
             ],
             'social_links' => ['linkedin.com/in/jamessmith', 'github.com/jamessmith'],
+            'profile_image' => '/Men_Photo.png',
+            'profile_image_url' => '/Men_Photo.png',
+            'photo' => '/Men_Photo.png',
         ];
 
         return [
@@ -754,12 +757,12 @@ HTML;
 
         return '<style>
             '.$prefix.'.tpl-resume, '.$prefix.'.tpl-cover, '.$scope.' { --primary: '.$primaryColor.'; }
-            '.$prefix.'.tpl-resume h2, '.$prefix.'.tpl-cover h2 {
+            '.$prefix.'.tpl-resume:not(.tpl-no-pad) h2, '.$prefix.'.tpl-cover h2 {
                 border-color: var(--primary) !important;
                 color: var(--primary) !important;
             }
-            '.$prefix.'.tpl-resume h1,
-            '.$prefix.'.tpl-resume h3,
+            '.$prefix.'.tpl-resume:not(.tpl-no-pad) h1,
+            '.$prefix.'.tpl-resume:not(.tpl-no-pad) h3,
             '.$prefix.'.tpl-resume a,
             '.$prefix.'.tpl-cover h1,
             '.$prefix.'.tpl-cover h3,
@@ -768,7 +771,7 @@ HTML;
                 color: var(--primary) !important;
             }
 
-            '.$prefix.'.tpl-badge {
+            '.$prefix.'.tpl-resume:not(.tpl-no-pad) .tpl-badge {
                 background: var(--primary) !important;
                 border-color: var(--primary) !important;
                 color: #fff !important;
@@ -799,6 +802,21 @@ HTML;
                 color: #fff !important;
                 border-color: rgba(255,255,255,0.45) !important;
             }
+            /* tpl-no-pad: custom layout templates — never override their colors */
+            '.$prefix.'.tpl-no-pad h1,
+            '.$prefix.'.tpl-no-pad h2,
+            '.$prefix.'.tpl-no-pad h3 {
+                color: inherit !important;
+                border-color: inherit !important;
+                font-size: inherit !important;
+                margin: 0 !important;
+                font-weight: inherit !important;
+                border-bottom: none !important;
+                text-transform: none !important;
+                padding-bottom: 0 !important;
+                line-height: inherit !important;
+            }
+            '.$prefix.'.tpl-no-pad { padding: 0 !important; }
         </style>';
     }
 

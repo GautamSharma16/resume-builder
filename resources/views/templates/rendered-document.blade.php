@@ -93,6 +93,12 @@
         .tpl-dense h2 { margin: 8px 0 4px; }
         .tpl-dense p { margin: 0 0 4px; }
 
+        /* No padding — for templates that manage their own layout (full-bleed headers, sidebars) */
+        .tpl-no-pad { padding: 0 !important; }
+        .tpl-no-pad h1 { font-size: inherit; line-height: inherit; margin: 0; font-weight: inherit; }
+        .tpl-no-pad h2 { font-size: inherit; text-transform: none; margin: 0; border-bottom: none; padding-bottom: 0; font-weight: inherit; }
+        .tpl-no-pad h3 { font-size: inherit; margin: 0; font-weight: inherit; }
+
         /* Cover letters */
         .tpl-cover {
             background: #fff;

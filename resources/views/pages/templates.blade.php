@@ -185,6 +185,27 @@
         box-shadow: none !important;
     }
 
+    /* tpl-no-pad: templates that manage their own full-bleed layout */
+    .template-card-preview-frame .tpl-no-pad,
+    #template-modal-body .tpl-no-pad {
+        padding: 0 !important;
+    }
+    .template-card-preview-frame .tpl-no-pad h1,
+    .template-card-preview-frame .tpl-no-pad h2,
+    .template-card-preview-frame .tpl-no-pad h3,
+    #template-modal-body .tpl-no-pad h1,
+    #template-modal-body .tpl-no-pad h2,
+    #template-modal-body .tpl-no-pad h3 {
+        font-size: inherit !important;
+        line-height: inherit !important;
+        margin: 0 !important;
+        font-weight: inherit !important;
+        border-bottom: none !important;
+        color: inherit !important;
+        text-transform: none !important;
+        padding-bottom: 0 !important;
+    }
+
     @media (max-width: 640px) {
         .section-heading {
             font-size: clamp(2.25rem, 14vw, 3.25rem);
@@ -408,8 +429,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function resumeAccentStyle(color) {
+    function resumeAccentStyle(color, templateHtml) {
         const accent = String(color || '');
+        // tpl-no-pad templates manage their own colors — skip override entirely
+        const isCustomLayout = templateHtml && templateHtml.includes('tpl-no-pad');
+        if (isCustomLayout) return '';
         if (!/^#[0-9a-f]{6}$/i.test(accent)) return '';
         return `<style>
             #template-modal-body { --primary: ${accent}; }
@@ -430,7 +454,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderModalPreview() {
         if (!currentTemplateId || !rendered[currentTemplateId]) return;
-        modalBody.innerHTML = resumeAccentStyle(selectedColor) + rendered[currentTemplateId];
+        const html = rendered[currentTemplateId];
+        modalBody.innerHTML = resumeAccentStyle(selectedColor, html) + html;
         if (applyBtn) {
             const url = applyBase.replace('__ID__', currentTemplateId);
             applyBtn.href = selectedColor ? `${url}&primary_color=${encodeURIComponent(selectedColor)}` : url;
