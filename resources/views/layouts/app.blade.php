@@ -44,6 +44,9 @@
         </script>
     @endif
 
+    <!-- Ahrefs Analytics -->
+    <script src="https://analytics.ahrefs.com/analytics.js" data-key="mihaxILf36OhK6yWWwk4kQ" async></script>
+
     <style>
         :root {
             --blue:        #2563eb;
