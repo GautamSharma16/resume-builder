@@ -16,7 +16,6 @@ class SitemapController extends Controller
             $this->url(route('resume.create'), now(), 'weekly', '0.9'),
             $this->url(route('resume-maker'), now(), 'weekly', '0.9'),
             $this->url(route('improve-cv'), now(), 'weekly', '0.9'),
-            $this->url(route('ats-checker'), now(), 'weekly', '0.85'),
             $this->url(route('cover-letter'), now(), 'weekly', '0.85'),
             $this->url(route('interview'), now(), 'daily', '0.8'),
             $this->url(route('plans'), now(), 'weekly', '0.7'),

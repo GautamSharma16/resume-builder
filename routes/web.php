@@ -54,7 +54,6 @@ Route::put('/password', [AuthController::class, 'updatePassword'])->name('passwo
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 Route::get('/improve-cv', [ResumeController::class, 'index'])->name('improve-cv');
-Route::get('/ats-checker', [ResumeController::class, 'atsChecker'])->name('ats-checker');
 Route::post('/analyze-resume', [ResumeController::class, 'analyze'])->name('resume.analyze');
 Route::post('/improve-resume', [ResumeController::class, 'improveAgain'])->name('resume.improve');
 Route::post('/grammar-fix-resume', [ResumeController::class, 'grammarFix'])->name('resume.grammar');
