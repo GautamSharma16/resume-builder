@@ -164,7 +164,7 @@
         grid-template-columns: 1fr 1fr;
         align-items: center;
         gap: 3rem;
-        padding: 6rem 4% 4rem;
+        padding: 2rem 4% 4rem;
         background: linear-gradient(135deg, #ffffff 0%, #fafcff 100%);
         position: relative;
         overflow: hidden;
@@ -207,7 +207,7 @@
 
     .eyebrow {
         display: inline-flex;
-        align-items: center;
+        /* align-items: ; */
         gap: 0.5rem;
         background: var(--blue-light);
         padding: 0.2rem 0.9rem 0.2rem 0.65rem;
@@ -226,17 +226,15 @@
         animation: pulse-ring 1.8s infinite;
     }
 
-    .enhance-hero h1 {
-       
+   .enhance-hero h1 {
     font-family: var(--font-display);
     font-size: clamp(2.8rem, 5vw, 3.6rem);
     line-height: 1.1;
-
-        color: var(--navy);
-        font-weight: 400;
-        line-height: 1.1;
-        margin-bottom: 1rem;
-    }
+    color: var(--navy);
+    font-weight: 400;
+    margin-bottom: 1rem;
+    text-align: left;
+}
     .enhance-hero h1 em {
         font-style: italic;
         background: linear-gradient(135deg, var(--blue), var(--purple));
@@ -1328,7 +1326,7 @@
     /* ─── RESPONSIVE ──────────────────────────────────────────── */
     @media (max-width: 1024px) {
         .enhance-hero { grid-template-columns: 1fr; padding: 1.5rem 5% 2rem; }
-        .enhance-hero-content { text-align: center; }
+        /* .enhance-hero-content { text-align: center; } */
         .hero-trust-row { justify-content: center; }
         .badge-group { justify-content: center; }
         .enhance-hero-right { max-width: 520px; margin: 0 auto; }
