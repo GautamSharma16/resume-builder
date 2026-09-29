@@ -530,12 +530,14 @@ document.addEventListener('DOMContentLoaded', function() {
         currentTemplateId = null;
     }
 
-    document.querySelectorAll('.template-preview-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.template-preview-btn');
+        if (btn) {
+            e.preventDefault();
             const tid = btn.dataset.templateId;
             const tname = btn.dataset.templateName;
             if (tid) openModal(tid, tname);
-        });
+        }
     });
 
     closeBtn?.addEventListener('click', closeModal);
