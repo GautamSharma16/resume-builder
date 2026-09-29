@@ -1,5 +1,8 @@
 @extends('layouts.app')
 
+@section('title', 'Resume Builder Plans | CvBliss')
+@section('meta_description', 'Compare CvBliss resume builder plans and choose the option that fits your resume, cover letter, and download needs.')
+
 @section('content')
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap');
@@ -372,7 +375,7 @@
     <div class="plans-inner">
 
         <div class="plans-header">
-            <h1>Choose the Plan<br>That Works for <em>You</em></h1>
+            <h1>Choose a Resume Builder Plan<br>That Works for <em>You</em></h1>
             <p>No hidden fees. Cancel anytime. Start with a free preview.</p>
             @if(session('status'))
                 <p style="margin-top:14px;color:#818cf8;font-weight:600">{{ session('status') }}</p>

@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Enhance Your Resume - AI-Powered Optimization')
+@section('title', 'AI Resume Optimizer | Improve Your Resume')
+@section('meta_description', 'Improve your resume with focused AI suggestions for stronger content, relevant keywords, and clearer experience sections.')
 
 @section('content')
 

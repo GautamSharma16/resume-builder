@@ -159,6 +159,28 @@
        
 
 
+    {{-- ── Custom Sample Preview Data (JSON Only) ────────────────────────────────────── --}}
+    <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3">
+        <div>
+            <div class="flex items-center justify-between mb-1">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-800">Sample Preview Data (JSON)</h3>
+                    <p class="text-xs text-slate-500">Provide sample data JSON for this template's preview card. Leave blank to use default (James Smith).</p>
+                </div>
+                <button type="button" onclick="fillDonnaSampleData()" class="text-xs text-teal-700 hover:text-teal-900 underline font-medium">
+                    ✨ Auto-Fill "Donna Stroupe" Sample JSON
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <textarea id="sample_data_json_input" name="sample_data_json"
+                      rows="6"
+                      placeholder='{"name": "Donna", "last_name": "Stroupe", "job_title": "Sales Representative", ...}'
+                      class="w-full rounded-md border-slate-300 font-mono text-xs shadow-sm focus:border-teal-500 focus:ring-teal-500">{{ old('sample_data_json', !empty($template->sample_data) ? json_encode($template->sample_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : '') }}</textarea>
+        </div>
+    </div>
+
     {{-- ── Active Toggle & Features ───────────────────────────────────────── --}}
     <div class="flex flex-col gap-3">
         <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
@@ -227,5 +249,68 @@ function togglePreview() {
     if (!wrapper) return;
     const hidden = wrapper.classList.toggle('hidden');
     btn.textContent = hidden ? 'Show Preview' : 'Hide Preview';
+}
+
+function fillDonnaSampleData() {
+    const donnaData = {
+        "name": "Donna",
+        "last_name": "Stroupe",
+        "job_title": "Sales Representative",
+        "email": "hello@reallygreatsite.com",
+        "mobile": "123-456-7890",
+        "location": "123 Anywhere St., Any City",
+        "linkedin": "linkedin.com/in/Donna",
+        "summary": "Sales Representative with 8+ years of experience initiating and managing client relationships across the B2B consumer goods sector. Skilled at consultative selling, account growth, and building long-term partnerships that turn first contact into repeat business. Known for a consistent track record of exceeding quota and mentoring newer members of the sales team.",
+        "skills": ["Client Acquisition", "B2B Sales", "Negotiation", "Relationship Management", "Market Analysis", "Problem-Solving", "Time Management", "Presentation Skills", "Networking", "Market Research"],
+        "experience": [
+            {
+                "role": "Sales Representative",
+                "company": "Timmerman Industries",
+                "duration": "2020 - 2023",
+                "highlights": [
+                    "Manage 40+ B2B accounts, exceeding quarterly sales targets by 15-20%.",
+                    "Meet with key clients quarterly to review performance and renew service contracts.",
+                    "Mentor and train 3 junior sales agents on company consultative selling process.",
+                    "Negotiate and close contracts worth up to $150K with corporate clients."
+                ]
+            },
+            {
+                "role": "FMCG Sales Agent",
+                "company": "Timmerman Industries",
+                "duration": "2017 - 2019",
+                "highlights": [
+                    "Pitch new FMCG product lines to corporate offices across the region.",
+                    "Grew territory revenue by 22% over two years via targeted client outreach."
+                ]
+            }
+        ],
+        "education": [
+            {
+                "degree": "Bachelor of Business Management",
+                "institution": "Borcelle University",
+                "duration": "2020 - 2023"
+            },
+            {
+                "degree": "Bachelor of Business Management",
+                "institution": "Wardiere University",
+                "duration": "2016 - 2020"
+            }
+        ],
+        "achievements": [
+            "Top Sales Performer, Timmerman Industries (2022) — exceeded annual quota by 28%.",
+            "Recognized for outstanding client retention across a 40+ account portfolio (2021)."
+        ],
+        "languages": [
+            {"name": "English", "level": "Native"},
+            {"name": "Spanish", "level": "Fluent"},
+            {"name": "French", "level": "Conversational"},
+            {"name": "Arabic", "level": "Conversational"}
+        ]
+    };
+
+    const input = document.getElementById('sample_data_json_input');
+    if (input) {
+        input.value = JSON.stringify(donnaData, null, 2);
+    }
 }
 </script>

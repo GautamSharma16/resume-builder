@@ -1,7 +1,8 @@
 {{-- resources/views/pages/home.blade.php --}}
 @extends('layouts.app')
 
-@section('title', 'Cvbliss - Build a Resume That Commands Attention')
+@section('title', 'AI Resume Builder | Create a Resume')
+@section('meta_description', 'Build an ATS-friendly resume with AI guidance, professional templates, and practical tools for your next job application.')
 
 @section('content')
 

@@ -74,6 +74,7 @@ Route::get('/cover-letter/{coverLetter}/download/{format?}', [CoverLetterControl
 Route::get('/templates', [PageController::class, 'templates'])->name('templates');
 Route::get('/interview', [PageController::class, 'interview'])->name('interview');
 Route::get('/interview/{slug}', [PageController::class, 'blogShow'])->name('blog.show');
+Route::view('/career-resources', 'pages.resources')->name('resources');
 Route::get('/contact', fn() => view('pages.contact'))->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
 Route::get('/privacy-policy', fn() => view('pages.privacy'))->name('privacy');

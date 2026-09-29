@@ -15,11 +15,13 @@ class Template extends Model
         'html',
         'preview_image',
         'pdf_path',
+        'sample_data',
         'is_active',
         'has_image',
     ];
 
     protected $casts = [
+        'sample_data' => 'array',
         'is_active' => 'boolean',
         'has_image' => 'boolean',
     ];

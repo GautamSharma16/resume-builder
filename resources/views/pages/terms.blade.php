@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Terms of Use - CVBliss')
+@section('title', 'Terms of Use | CvBliss')
+@section('meta_description', 'Review the CvBliss terms of use for our resume, cover letter, and career tool services.')
 
 @section('content')
 

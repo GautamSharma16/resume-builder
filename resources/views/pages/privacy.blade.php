@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Privacy Policy - CVBliss')
+@section('title', 'Privacy Policy | CvBliss')
+@section('meta_description', 'Read the CvBliss privacy policy to understand how we collect, use, and protect your personal information.')
 
 @section('content')
 

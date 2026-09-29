@@ -17,19 +17,19 @@ class PageController extends Controller
             ->where('type', 'resume')
             ->where('category', '!=', 'word')
             ->orderBy('name')
-            ->limit(10)
+            ->limit(4)
             ->get();
         $coverTemplates = Template::where('is_active', true)
             ->whereIn('type', ['cover_letter', 'cover'])
             ->orderBy('name')
-            ->limit(10)
+            ->limit(4)
             ->get();
 
         foreach ($templates as $template) {
-            $rendered[$template->id] = (string) $renderer->renderResume($template, null, false);
+            $rendered[$template->id] = $renderer->previewMarkup($renderer->renderResume($template, null, false));
         }
         foreach ($coverTemplates as $template) {
-            $renderedCover[$template->id] = (string) $renderer->renderCoverLetter($template);
+            $renderedCover[$template->id] = $renderer->previewMarkup($renderer->renderCoverLetter($template));
         }
 
         return view('pages.home', [
@@ -55,9 +55,9 @@ class PageController extends Controller
 
         foreach ($templates as $template) {
             if ($template->type === 'resume') {
-                $rendered[$template->id] = (string) $renderer->renderResume($template, null, false);
+                $rendered[$template->id] = $renderer->previewMarkup($renderer->renderResume($template, null, false));
             } else {
-                $rendered[$template->id] = (string) $renderer->renderCoverLetter($template);
+                $rendered[$template->id] = $renderer->previewMarkup($renderer->renderCoverLetter($template));
             }
         }
 

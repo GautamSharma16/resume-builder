@@ -1,6 +1,35 @@
 @extends('layouts.app')
 
-@section('title', 'Resume Templates - ResuMint')
+@section('title', 'ATS Resume Templates | CvBliss')
+@section('meta_description', 'Browse ATS-friendly resume templates for entry-level, experienced, and senior professionals. Choose a clear design and start building your resume.')
+
+@push('structured-data')
+    @php
+        $templateSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'CollectionPage',
+                    '@id' => route('templates'),
+                    'name' => 'ATS Resume Templates',
+                    'description' => 'A collection of professional, ATS-friendly resume templates for different career stages.',
+                    'url' => route('templates'),
+                    'isPartOf' => ['@type' => 'WebSite', 'name' => 'CvBliss', 'url' => route('home')],
+                    'breadcrumb' => ['@id' => route('templates').'#breadcrumb'],
+                ],
+                [
+                    '@type' => 'BreadcrumbList',
+                    '@id' => route('templates').'#breadcrumb',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Resume Templates', 'item' => route('templates')],
+                    ],
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($templateSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
 <style>
@@ -259,9 +288,14 @@
                     Resume 
                     <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Templates</span>
                 </h1>
-                <p class="text-base text-gray-500 max-w-2xl mx-auto">Choose from our collection of ATS-friendly and modern designs to create your perfect resume that stands out</p>
+                <p class="text-base text-gray-500 max-w-2xl mx-auto">Choose an ATS-friendly resume template that fits your career stage, then customize it with focused, recruiter-ready content.</p>
             </div>
         </div>
+
+        <section class="mx-auto mb-8 max-w-3xl text-center" aria-labelledby="template-stage-title">
+            <h2 id="template-stage-title" class="text-2xl font-bold text-slate-900">Choose a resume template by career stage</h2>
+            <p class="mt-3 text-gray-600">Start with a clear layout for your experience level. Every template is designed to keep your skills, achievements, and contact details easy to scan.</p>
+        </section>
 
         {{-- CATEGORY TABS WITH BLUEISH THEME --}}
         <div class="relative mb-12">
@@ -304,14 +338,8 @@
 
        
         @foreach($categories as $category)
-            <div 
-                x-show="tab === '{{ $category }}'" 
-                class="transition-all d uration-300"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4"
-                x-transition:enter-end="opacity-100 translate-y-0"
-                x-cloak
-            >
+            <template x-if="tab === '{{ $category }}'">
+            <div class="transition-all duration-300">
                 <div class="template-grid-list">
                     @php
                         $filteredTemplates = $templates->where('type', 'resume');
@@ -366,12 +394,33 @@
                     @endforelse
                 </div>
             </div>
+            </template>
         @endforeach
 
         {{-- FOOTER NOTE --}}
         <div class="mt-20 text-center pt-8 border-t border-gray-100">
             <p class="text-xs text-gray-400">All templates are fully customizable. Create your professional resume in minutes.</p>
         </div>
+
+        <section class="mx-auto mt-16 max-w-5xl border-t border-slate-200 pt-12" aria-labelledby="template-guide-title">
+            <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Resume Template Guide</p>
+            <h2 id="template-guide-title" class="mt-3 text-3xl font-bold text-slate-950">How to choose the right resume template</h2>
+            <div class="mt-8 grid gap-8 md:grid-cols-3">
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-950">Prioritize readability</h3>
+                    <p class="mt-2 leading-7 text-slate-600">Use a clean structure with clear section headings so hiring teams can find your experience, skills, and education quickly.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-950">Match the template to your experience</h3>
+                    <p class="mt-2 leading-7 text-slate-600">Entry-level candidates can foreground education and skills, while experienced professionals should make results and progression easy to see.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-950">Tailor the content before applying</h3>
+                    <p class="mt-2 leading-7 text-slate-600">After choosing a design, use the <a class="font-semibold text-blue-700 underline" href="{{ route('enhance-cv') }}">ATS resume checker</a> and pair it with a <a class="font-semibold text-blue-700 underline" href="{{ route('cover-letter') }}">tailored cover letter</a>.</p>
+                </div>
+            </div>
+            <p class="mt-8 text-sm text-slate-600">Need help with the full application? Visit our <a class="font-semibold text-blue-700 underline" href="{{ route('resources') }}">career resources hub</a> for resume, cover letter, and job search guidance.</p>
+        </section>
 
         {{-- QUICK VIEW OVERLAY --}}
         <div id="template-modal" class="qv-overlay">

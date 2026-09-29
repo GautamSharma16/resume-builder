@@ -141,16 +141,15 @@ class TemplateController extends Controller
             }
         } else {
             $renderer = app(\App\Services\TemplateRenderService::class);
-            if ($template->type === 'cover_letter' && ! $renderer->containsCoverLetterPlaceholders($html)) {
-                $html = $renderer->editableCoverLetterTemplateHtml();
-            }
-            if ($template->type === 'resume' && ! $renderer->containsResumePlaceholders($html)) {
-                $html = $renderer->editableResumeTemplateHtml();
+            if (blank(trim($html))) {
+                $html = $template->type === 'cover_letter'
+                    ? $renderer->editableCoverLetterTemplateHtml()
+                    : $renderer->editableResumeTemplateHtml();
             }
             if ($template->type === 'cover_letter') {
-                $html = (string) $renderer->renderCoverLetter($template, $renderer->coverLetterSampleData());
+                $html = (string) $renderer->renderCoverLetter($template, $renderer->getSampleDataForTemplate($template));
             } else {
-                $html = (string) $renderer->renderResume($template, $renderer->resumeSampleData(), false);
+                $html = (string) $renderer->renderResume($template, $renderer->getSampleDataForTemplate($template), false);
             }
         }
 
@@ -203,12 +202,13 @@ class TemplateController extends Controller
     private function validated(Request $request): array
     {
         $data = $request->validate([
-            'type'          => ['required', 'in:resume,cover_letter'],
-            'name'          => ['required', 'string', 'max:160'],
-            'category'      => ['required', 'string', 'max:80'],
-            'html'          => ['nullable', 'string'],
-            'is_active'     => ['nullable', 'boolean'],
-            'has_image'     => ['nullable', 'boolean'],
+            'type'              => ['required', 'in:resume,cover_letter'],
+            'name'              => ['required', 'string', 'max:160'],
+            'category'          => ['required', 'string', 'max:80'],
+            'html'              => ['nullable', 'string'],
+            'is_active'         => ['nullable', 'boolean'],
+            'has_image'         => ['nullable', 'boolean'],
+            'sample_data_json'  => ['nullable', 'string'],
         ]) + ['is_active' => false, 'has_image' => false];
 
         if (($data['type'] ?? null) === 'resume' && ($data['category'] ?? null) === 'word') {
@@ -224,6 +224,17 @@ class TemplateController extends Controller
             abort(422, 'Selected category is not valid for this template type.');
         }
 
+        $sampleData = null;
+        if ($request->filled('sample_data_json')) {
+            $decoded = json_decode($request->input('sample_data_json'), true);
+            if (is_array($decoded)) {
+                $sampleData = $decoded;
+            }
+        }
+
+        unset($data['sample_data_json']);
+        $data['sample_data'] = $sampleData;
+
         return $data;
     }
 
@@ -231,16 +242,12 @@ class TemplateController extends Controller
     {
         $renderer = app(TemplateRenderService::class);
 
-        if (($data['type'] ?? null) === 'cover_letter') {
-            if ($renderer->containsCoverLetterPlaceholders($html)) {
-                return $html;
-            }
-
-            return $renderer->editableCoverLetterTemplateHtml();
+        if (filled(trim($html))) {
+            return $html;
         }
 
-        if ($renderer->containsResumePlaceholders($html)) {
-            return $html;
+        if (($data['type'] ?? null) === 'cover_letter') {
+            return $renderer->editableCoverLetterTemplateHtml();
         }
 
         return $renderer->editableResumeTemplateHtml();

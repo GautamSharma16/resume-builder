@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'ATS Checker - CVBliss')
+@section('title', 'ATS Resume Checker | Improve Your Resume')
+@section('meta_description', 'Check your resume for ATS readiness and get practical suggestions to improve clarity, keywords, and recruiter appeal.')
 
 @section('content')
 <style>
@@ -43,7 +44,7 @@
         <section class="ats-hero">
             <div>
                 <span class="ats-kicker">ATS Checker</span>
-                <h1 class="ats-title">Score your resume before recruiters do.</h1>
+                <h1 class="ats-title">ATS resume checker for a stronger application.</h1>
                 <p class="ats-copy">Upload a PDF, DOC, DOCX, PPT, or PPTX resume and get a dynamic ATS score, missing keyword analysis, and suggestions based on the content you actually provide.</p>
             </div>
             <form id="atsForm" class="ats-card ats-form-grid">

@@ -70,7 +70,7 @@ class CoverLetterController extends Controller
             'resumes' => Resume::where('user_id', auth()->id())->latest()->get(),
             'templates' => $templates,
             'renderedTemplates' => $templates->mapWithKeys(fn(Template $template) => [
-                $template->id => (string) $renderer->renderCoverLetter($template, $sample),
+                $template->id => $renderer->previewMarkup($renderer->renderCoverLetter($template, $sample)),
             ]),
             'prefill' => $prefill,
             'selectedTemplateId' => $selectedTemplateId,

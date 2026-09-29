@@ -215,7 +215,7 @@
             <div>
                 <p class="ft-col-title">Resume</p>
                 <ul class="ft-links">
-                    <li><a class="ft-link" href="{{ route('resume-maker') }}">Resume Maker</a></li>
+                    <li><a class="ft-link" href="{{ route('resume.create') }}">Resume Maker</a></li>
                     
                     <li><a class="ft-link" href="{{ route('templates') }}">Resume Templates</a></li>
          
@@ -239,7 +239,8 @@
                 <ul class="ft-links">
                     <li><a class="ft-link" href="{{ route('interview') }}">Interview Preparation</a></li>
                     <li><a class="ft-link" href="{{ route('interview') }}">Career Blog</a></li>
-                    <li><a class="ft-link" href="{{ route('interview') }}">Job Search Tips</a></li>
+                    <li><a class="ft-link" href="{{ route('resources') }}#job-search-tips">Job Search Tips</a></li>
+                    <li><a class="ft-link" href="{{ route('resources') }}">Career Resources</a></li>
                     
                 </ul>
             </div>

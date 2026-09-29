@@ -1,6 +1,24 @@
 @extends('layouts.app')
 
-@section('title', $post->title . ' - Cvbliss Blog')
+@section('title', 'Career Guide: ' . \Illuminate\Support\Str::limit($post->title, 34, '') . ' | CvBliss')
+@section('meta_description', \Illuminate\Support\Str::limit(strip_tags($post->excerpt ?: $post->body), 155))
+
+@push('structured-data')
+    @php
+        $articleSchema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Article',
+            'headline' => $post->title,
+            'description' => strip_tags($post->excerpt ?: $post->body),
+            'mainEntityOfPage' => route('blog.show', $post->slug),
+            'datePublished' => optional($post->published_at ?? $post->created_at)->toIso8601String(),
+            'dateModified' => optional($post->updated_at)->toIso8601String(),
+            'author' => ['@type' => 'Organization', 'name' => 'CvBliss'],
+            'publisher' => ['@type' => 'Organization', 'name' => 'CvBliss'],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($articleSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
 

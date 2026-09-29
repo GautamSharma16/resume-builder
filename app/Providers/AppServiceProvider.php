@@ -31,27 +31,26 @@ class AppServiceProvider extends ServiceProvider
         View::composer('*', function ($view) {
             $request = request();
             $routeName = optional($request->route())->getName();
-            $noindexRoutes = [
-                'login',
-                'login.store',
-                'register',
-                'register.store',
-                'password.*',
-                'otp.*',
-                'admin.*',
-                'dashboard',
-                'dashboard.*',
-                'profile.*',
-                'resume.index',
-                'resume.edit',
-                'resume.preview',
-                'resume.preview.*',
-                'cover-letter.download',
+            // Only evergreen public content is indexable. Workspace, auth, payment,
+            // and duplicate builder URLs remain available but do not compete in search.
+            $indexableRoutes = [
+                'home',
+                'enhance-cv',
+                'cover-letter',
+                'templates',
+                'interview',
+                'blog.show',
+                'resources',
+                'contact',
+                'privacy',
+                'terms',
+                'plans',
+                'resume.create',
             ];
 
             $shouldIndex = $routeName
                 && $request->isMethod('GET')
-                && ! collect($noindexRoutes)->contains(fn (string $pattern) => $routeName && Str::is($pattern, $routeName));
+                && collect($indexableRoutes)->contains(fn (string $pattern) => Str::is($pattern, $routeName));
 
             $canonical = null;
 

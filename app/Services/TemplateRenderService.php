@@ -247,9 +247,20 @@ class TemplateRenderService
         ], $overrides ?? []);
     }
 
+    public function getSampleDataForTemplate(Template $template): array
+    {
+        $base = $template->type === 'cover_letter' ? $this->coverLetterSampleData() : $this->resumeSampleData();
+
+        if (is_array($template->sample_data) && ! empty($template->sample_data)) {
+            return array_merge($base, array_filter($template->sample_data, fn ($v) => $v !== null && $v !== ''));
+        }
+
+        return $base;
+    }
+
     public function renderResume(Template $template, ?array $data = null, bool $allowInjection = true): HtmlString
     {
-        $data = $data ?? $this->resumeSampleData();
+        $data = $data ?? $this->getSampleDataForTemplate($template);
         $html = $template->html ?: '';
         $accentColor = $this->resumeAccentColor($data);
         $sectionData = $this->resumeSectionData($data);
@@ -261,7 +272,7 @@ class TemplateRenderService
             return new HtmlString($this->withScopedAccent($rendered, $accentColor));
         }
 
-        if (! $this->containsResumePlaceholders($html)) {
+        if (blank(trim($html))) {
             $html = $this->editableResumeTemplateHtml();
         }
 
@@ -289,6 +300,22 @@ class TemplateRenderService
         return preg_match('/\{\{\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|awards|publications|volunteer_experience|interests|references|custom_sections|social_links|linkedin|github|portfolio|link|profile_image|profile_image_url|profile_image_tag|photo)\s*\}\}|\[\[\s*(?:name|last_name|job_title|designation|email|mobile|location|contact|address|summary|skills|experience|education|projects|certifications|certificates|languages|additional_information|achievements|awards|publications|volunteer_experience|interests|references|custom_sections|social_links|linkedin|github|portfolio|link|profile_image|profile_image_url|profile_image_tag|photo)\s*\]\]/i', $html) === 1
             || preg_match('/\{\{#if\s+[a-z0-9_.]+\s*\}\}/i', $html) === 1
             || $this->shouldRenderWithBlade($html);
+    }
+
+    /**
+     * Template previews are visual samples, not document headings for the host page.
+     */
+    public function previewMarkup(HtmlString|string $html): string
+    {
+        $preview = (string) $html;
+
+        $preview = preg_replace_callback('/<style\\b[^>]*>.*?<\\/style>/is', function (array $match): string {
+            return preg_replace('/(?<![a-z0-9_-])h1(?![a-z0-9_-])/i', '[data-preview-heading="h1"]', $match[0]) ?? $match[0];
+        }, $preview) ?? $preview;
+
+        $preview = preg_replace('/<h1\\b([^>]*)>/i', '<div$1 data-preview-heading="h1">', $preview) ?? $preview;
+
+        return preg_replace('/<\\/h1>/i', '</div>', $preview) ?? $preview;
     }
 
     public function editableResumeTemplateHtml(): string
@@ -348,7 +375,7 @@ HTML;
 
     public function renderCoverLetter(Template $template, ?array $data = null): HtmlString
     {
-        $data = $data ?: $this->coverLetterSampleData();
+        $data = $data ?: $this->getSampleDataForTemplate($template);
         $html = $template->html ?: '';
 
         if ($this->shouldRenderWithBlade($html)) {
@@ -356,7 +383,7 @@ HTML;
             return new HtmlString($this->withScopedAccent($this->renderBlade($html, $this->bladeRenderDataForCoverLetter($data)), $accentColor));
         }
 
-        if (! $this->containsCoverLetterPlaceholders($html)) {
+        if (blank(trim($html))) {
             $html = $this->editableCoverLetterTemplateHtml();
         }
 

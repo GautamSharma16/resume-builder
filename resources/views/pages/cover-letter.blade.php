@@ -1,7 +1,51 @@
 {{-- resources/views/pages/cover-letter/index.blade.php --}}
 @extends('layouts.app')
 
-@section('title', 'AI Cover Letter Builder | Cvbliss')
+@section('title', 'AI Cover Letter Generator | CvBliss')
+@section('meta_description', 'Create a tailored cover letter with AI guidance, a professional layout, and focused details for the role you want.')
+
+@push('structured-data')
+    @php
+        $coverLetterSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'WebPage',
+                    '@id' => route('cover-letter'),
+                    'name' => 'AI Cover Letter Generator',
+                    'description' => 'Create a tailored, professional cover letter for a specific job application.',
+                    'url' => route('cover-letter'),
+                    'isPartOf' => ['@type' => 'WebSite', 'name' => 'CvBliss', 'url' => route('home')],
+                    'breadcrumb' => ['@id' => route('cover-letter').'#breadcrumb'],
+                ],
+                [
+                    '@type' => 'BreadcrumbList',
+                    '@id' => route('cover-letter').'#breadcrumb',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Cover Letter Generator', 'item' => route('cover-letter')],
+                    ],
+                ],
+                [
+                    '@type' => 'FAQPage',
+                    'mainEntity' => [
+                        [
+                            '@type' => 'Question',
+                            'name' => 'What should a cover letter include?',
+                            'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'A strong cover letter introduces your fit for the role, connects relevant experience to the employer needs, and ends with a clear next step.'],
+                        ],
+                        [
+                            '@type' => 'Question',
+                            'name' => 'How do I tailor a cover letter for a job?',
+                            'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'Use the job title, company name, and job description to highlight the skills and achievements that best match the role.'],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    @endphp
+    <script type="application/ld+json">{!! json_encode($coverLetterSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 
 @section('content')
 
@@ -323,18 +367,20 @@
         border-color: rgba(15, 118, 110, 0.3);
         transform: translateY(-2px);
     }
-    .input-card h2 {
+    .input-card h2,
+    .input-card h3 {
         font-size: 0.85rem;
         font-weight: 800;
         letter-spacing: 0.1em;
         color: var(--emerald);
         margin-bottom: 1.5rem;
         text-transform: uppercase;
-        display: flex;
+        
         align-items: center;
         gap: 0.6rem;
     }
-    .ai-instruction-card h2 {
+    .ai-instruction-card h2,
+    .ai-instruction-card h3 {
         color: var(--blue);
     }
     .ai-instruction-actions {
@@ -643,7 +689,8 @@
     .scan-paper-line.short { width: 62%; }
     .scan-paper-line.tiny { width: 46%; }
 
-    .scan-header h2 {
+    .scan-header h2,
+    .scan-header h3 {
         font-family: var(--font-body);
         font-size: 16px;
         font-weight: 700;
@@ -966,8 +1013,8 @@
 
     <div class="pick-header">
         <div class="section-label">Professional Designs</div>
-        <h1 class="section-heading">Choose your <em>template</em></h1>
-        <p style="color: var(--muted); max-width: 550px; margin: 0 auto;">Pick a professional design to start your cover letter. You can switch styles anytime.</p>
+        <h1 class="section-heading">AI Cover Letter <em>Generator</em></h1>
+        <p style="color: var(--muted); max-width: 550px; margin: 0 auto;">Choose a professional template, then tailor a focused cover letter to the role and employer.</p>
     </div>
 
     <div class="template-grid">
@@ -993,11 +1040,11 @@
 {{-- STEP 2: ONBOARDING CHOICE --}}
 <div id="step-onboarding" style="display: none; padding: 6rem 2rem; max-width: 900px; margin: 0 auto; text-align: center;">
     <div class="section-label">Getting Started</div>
-    <h1 class="section-heading">How would you like to <em>begin</em>?</h1>
+    <h2 class="section-heading">How would you like to <em>begin</em>?</h2>
     <p style="color: var(--muted); margin-bottom: 3rem;">Upload your resume for AI-tailored content or start from scratch with a professional layout.</p>
     
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
-        <div class="input-card" onclick="chooseOnboarding('upload')" style="cursor: pointer; padding: 3rem 2rem; border: 2px solid var(--border); transition: all 0.3s var(--ease-spring);">
+        <div class="input-card" onclick="chooseOnboarding('upload')" style="cursor: pointer; padding: 3rem 2rem; border: 2px solid var(--border); transition: all 0.3s var(--ease-spring); text-align: center;">
             <div style="width: 60px; height: 60px; background: var(--blue-light); color: var(--blue); border-radius: var(--r-lg); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
                 <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
             </div>
@@ -1005,7 +1052,7 @@
             <p style="font-size: 0.9rem; color: var(--muted);">We'll extract your details and match them to the job description using AI.</p>
         </div>
 
-        <div class="input-card" onclick="chooseOnboarding('scratch')" style="cursor: pointer; padding: 3rem 2rem; border: 2px solid var(--border); transition: all 0.3s var(--ease-spring);">
+        <div class="input-card" onclick="chooseOnboarding('scratch')" style="cursor: pointer; padding: 3rem 2rem; border: 2px solid var(--border); transition: all 0.3s var(--ease-spring); text-align: center;">
             <div style="width: 60px; height: 60px; background: var(--purple-light); color: var(--purple); border-radius: var(--r-lg); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
                 <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
             </div>
@@ -1081,10 +1128,10 @@
             {{-- 1. Letter Body (PRIORITY 1) --}}
             <div class="input-card" id="edit-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <h2 style="margin: 0;">
+                    <h3 style="margin: 0;">
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         Letter Content
-                    </h2>
+                    </h3>
                     <button id="regenerate-letter" class="btn-generate" style="margin-top: 0; padding: 0.6rem 1.2rem; font-size: 0.85rem; width: auto; border-radius: var(--r-full);">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="margin-right: 4px;"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                         Regenerate
@@ -1103,10 +1150,10 @@
             </div>
 
             <div class="input-card ai-instruction-card">
-                <h2>
+                <h3>
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
                     AI Instruction
-                </h2>
+                </h3>
                 <div class="field-group" style="margin-bottom: 0;">
                     <label>Tell AI what to change</label>
                     <textarea id="cl-ai-instruction" class="form-input" placeholder="Example: Make it shorter, more confident, and highlight Laravel experience." style="min-height: 110px;"></textarea>
@@ -1119,10 +1166,10 @@
 
             {{-- 2. About You (PRIORITY 2) --}}
             <div class="input-card">
-                <h2>
+                <h3>
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     Your Details
-                </h2>
+                </h3>
                 <div class="field-grid">
                     <div class="field-group">
                         <label>Full Name</label>
@@ -1145,10 +1192,10 @@
 
             {{-- 3. The Opportunity (PRIORITY 3) --}}
             <div class="input-card">
-                <h2>
+                <h3>
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     Job Opportunity
-                </h2>
+                </h3>
                 <div class="field-grid">
                     <div class="field-group">
                         <label>Company Name</label>
@@ -1201,11 +1248,39 @@
     </div>
 </div>
 
+<section class="mx-auto max-w-5xl px-4 py-16 sm:px-6" aria-labelledby="cover-letter-guide-title">
+    <div class="border-t border-slate-200 pt-12">
+        <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Cover Letter Guide</p>
+        <h2 id="cover-letter-guide-title" class="mt-3 text-3xl font-bold text-slate-950">Write a cover letter that connects your experience to the role</h2>
+        <p class="mt-4 max-w-3xl text-base leading-7 text-slate-600">A useful cover letter is specific, concise, and easy to scan. Use the role details to explain the value you can bring instead of repeating your resume line by line.</p>
+
+        <div class="mt-10 grid gap-8 md:grid-cols-3">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-950">Start with the employer's need</h3>
+                <p class="mt-2 leading-7 text-slate-600">Name the role and show that you understand the problem, team, or outcome the employer is hiring for.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-slate-950">Use evidence, not broad claims</h3>
+                <p class="mt-2 leading-7 text-slate-600">Select one or two relevant achievements, skills, or projects that make your interest in the role credible.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-slate-950">Keep the application consistent</h3>
+                <p class="mt-2 leading-7 text-slate-600">Match your letter with an <a class="font-semibold text-blue-700 underline" href="{{ route('templates') }}">ATS-friendly resume template</a> and use the <a class="font-semibold text-blue-700 underline" href="{{ route('enhance-cv') }}">resume checker</a> before applying.</p>
+            </div>
+        </div>
+
+        <div class="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold">
+            <a class="text-blue-700 underline" href="{{ route('resources') }}">Explore career resources</a>
+            <a class="text-blue-700 underline" href="{{ route('interview') }}">Read job search advice</a>
+        </div>
+    </div>
+</section>
+
 {{-- MODALS & LOADING --}}
 <div id="loading-overlay" class="loading-overlay">
     <div class="scan-card">
         <div class="scan-header">
-            <h2>AI is Writing...</h2>
+            <h3>AI is Writing...</h3>
             <p id="coverScanStageLabel">Creating a tailored cover letter</p>
         </div>
         <div class="scan-paper" aria-hidden="true">
@@ -1231,25 +1306,12 @@
 <div id="tmpl-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2 style="font-weight: 700; font-size: 1.2rem;">Select Template</h2>
+            <h3 style="font-weight: 700; font-size: 1.2rem;">Select Template</h3>
             <button onclick="closeModal()" style="background: none; border: none; cursor: pointer; color: var(--soft);">
                 <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
-        <div class="modal-grid">
-            @foreach($templates as $template)
-            <div class="modal-tmpl-card" data-id="{{ $template->id }}" onclick="applyTemplate('{{ $template->id }}')">
-                <div class="modal-thumb">
-                    <div class="modal-scaler">
-                        <div class="modal-paper">
-                            {!! $renderedTemplates[$template->id] !!}
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-tmpl-footer">{{ $template->name }}</div>
-            </div>
-            @endforeach
-        </div>
+        <div class="modal-grid" id="modal-template-grid"></div>
     </div>
 </div>
 
@@ -1303,6 +1365,7 @@
         let quill = null;
 
         const $ = id => document.getElementById(id);
+        const modalTemplateGrid = $('modal-template-grid');
         const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         const nl2br = v => esc(v).replace(/\n/g, '<br>');
         const AI_FAILURE_MESSAGE = "We're unable to process your request right now. Please try again after some time.";
@@ -1584,8 +1647,39 @@
             closeModal();
         };
 
-        window.closeModal = () => $('tmpl-modal').classList.remove('open');
+        function renderModalTemplateGrid() {
+            if (!modalTemplateGrid || modalTemplateGrid.childElementCount) return;
+
+            Object.entries(tplNames).forEach(([id, name]) => {
+                const card = document.createElement('div');
+                const thumb = document.createElement('div');
+                const scaler = document.createElement('div');
+                const paper = document.createElement('div');
+                const footer = document.createElement('div');
+
+                card.className = 'modal-tmpl-card';
+                card.dataset.id = id;
+                thumb.className = 'modal-thumb';
+                scaler.className = 'modal-scaler';
+                paper.className = 'modal-paper';
+                paper.innerHTML = renderedTplHtml[id] || '';
+                footer.className = 'modal-tmpl-footer';
+                footer.textContent = name;
+
+                scaler.appendChild(paper);
+                thumb.appendChild(scaler);
+                card.append(thumb, footer);
+                card.addEventListener('click', () => applyTemplate(id));
+                modalTemplateGrid.appendChild(card);
+            });
+        }
+
+        window.closeModal = () => {
+            $('tmpl-modal').classList.remove('open');
+            modalTemplateGrid?.replaceChildren();
+        };
         $('btn-change-tmpl').addEventListener('click', () => {
+            renderModalTemplateGrid();
             setActiveModalTemplate(state.templateId);
             $('tmpl-modal').classList.add('open');
             scheduleTemplatePickerScale();

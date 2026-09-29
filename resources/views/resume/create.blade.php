@@ -1,6 +1,7 @@
 @extends('layouts.bare') {{-- use a layout with NO navbar/footer --}}
 
-@section('title', 'Resume Maker | Cvbliss')
+@section('title', 'AI Resume Maker | Build Your Resume')
+@section('meta_description', 'Create an ATS-friendly resume with an AI resume maker, professional templates, and guided sections for every career stage.')
 
 @section('content')
     @php
@@ -2279,7 +2280,7 @@
 
         {{-- ══ ONBOARDING ══ --}}
         <div id="rp-onboarding-view" class="rp-onboarding" style="padding: 6rem 1.5rem 4rem;">
-            <h1>How will you make your resume?</h1>
+            <h1>Build your resume with AI</h1>
             <p class="ob-sub">Choose how you'd like to get started</p>
             <div class="ob-cards">
                 <div class="ob-card" onclick="document.getElementById('resume-autofill-file').click()">

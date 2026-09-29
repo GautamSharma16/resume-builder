@@ -1,5 +1,8 @@
 @extends('layouts.app')
 
+@section('title', 'Career Blog | Job Search Advice')
+@section('meta_description', 'Read practical job search advice, interview preparation guidance, resume tips, and career insights from CvBliss.')
+
 @section('content')
 
 <style>
@@ -592,7 +595,7 @@
       </div>
 
       <div class="masthead-title-row">
-        <h1 class="masthead-title">Ideas worth<br><em>reading.</em></h1>
+        <h1 class="masthead-title">Career advice worth<br><em>reading.</em></h1>
         <div class="masthead-right">
           <p class="masthead-sub">Fresh perspectives and expert insights to help you grow — curated by our team.</p>
           <div class="masthead-count-pill">
