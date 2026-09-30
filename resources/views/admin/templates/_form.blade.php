@@ -64,6 +64,44 @@
         @error('category')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
 
+
+    {{-- ── Profile Photo Placeholder (Inside Template) ────────────────────── --}}
+    <div class="rounded-lg border border-teal-200 bg-teal-50/50 p-4">
+        <div class="flex items-start gap-3">
+            <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-teal-900">Default Profile Photo (Inside Template Header)</p>
+                <p class="text-xs text-teal-700 mt-0.5">
+                    Upload a custom profile photo file to display inside this template's header as the default photo placeholder.
+                </p>
+                <input type="file"
+                       name="template_profile_image"
+                       accept="image/png,image/jpeg,image/webp,image/jpg"
+                       class="mt-3 block w-full text-sm text-gray-600
+                              file:mr-3 file:rounded file:border-0
+                              file:bg-teal-700 file:px-3 file:py-1.5
+                              file:text-sm file:font-medium file:text-white
+                              hover:file:bg-teal-800 cursor-pointer">
+                @error('template_profile_image')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+
+                @php
+                    $currentProfilePhoto = $template->sample_data['profile_image_url'] ?? $template->sample_data['profile_image'] ?? null;
+                @endphp
+                @if($currentProfilePhoto)
+                    <div class="mt-3 flex items-center gap-3">
+                        <img src="{{ $currentProfilePhoto }}" alt="Profile Photo" class="h-14 w-14 rounded-full object-cover border-2 border-teal-500 shadow-sm">
+                        <div>
+                            <p class="text-xs font-medium text-teal-900">Current Default Profile Photo</p>
+                            <p class="text-[11px] text-teal-600 truncate max-w-md">{{ $currentProfilePhoto }}</p>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
     {{-- ── PDF Upload ──────────────────────────────────────────────────────── --}}
     <div class="rounded-lg border-2 border-dashed border-teal-300 bg-teal-50 p-4">
         <div class="flex items-start gap-3">

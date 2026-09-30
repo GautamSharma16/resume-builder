@@ -50,6 +50,20 @@ class TemplateController extends Controller
                 ->store('template-previews', 'public');
         }
 
+        // Custom Profile Photo Placeholder inside template
+        if ($request->hasFile('template_profile_image')) {
+            $photoPath = $request->file('template_profile_image')->store('template-profile-photos', 'public');
+            $photoUrl  = Storage::url($photoPath);
+
+            $sampleData = $data['sample_data'] ?? [];
+            $sampleData['profile_image']     = $photoUrl;
+            $sampleData['profile_image_url'] = $photoUrl;
+            $sampleData['profile_image_tag'] = '<img src="' . $photoUrl . '" class="tpl-profile-img" style="width:100%;height:100%;object-fit:cover;">';
+            $sampleData['photo']             = $photoUrl;
+
+            $data['sample_data'] = $sampleData;
+        }
+
         // PDF upload → convert to HTML (overrides manually typed HTML)
         if ($request->hasFile('pdf_file')) {
             $request->validate([
@@ -92,6 +106,20 @@ class TemplateController extends Controller
             }
             $data['preview_image'] = $request->file('preview_image')
                 ->store('template-previews', 'public');
+        }
+
+        // Custom Profile Photo Placeholder inside template
+        if ($request->hasFile('template_profile_image')) {
+            $photoPath = $request->file('template_profile_image')->store('template-profile-photos', 'public');
+            $photoUrl  = Storage::url($photoPath);
+
+            $sampleData = $data['sample_data'] ?? ($template->sample_data ?? []);
+            $sampleData['profile_image']     = $photoUrl;
+            $sampleData['profile_image_url'] = $photoUrl;
+            $sampleData['profile_image_tag'] = '<img src="' . $photoUrl . '" class="tpl-profile-img" style="width:100%;height:100%;object-fit:cover;">';
+            $sampleData['photo']             = $photoUrl;
+
+            $data['sample_data'] = $sampleData;
         }
 
         // Replace PDF → re-convert
@@ -208,7 +236,9 @@ class TemplateController extends Controller
             'html'              => ['nullable', 'string'],
             'is_active'         => ['nullable', 'boolean'],
             'has_image'         => ['nullable', 'boolean'],
-            'sample_data_json'  => ['nullable', 'string'],
+            'sample_data_json'          => ['nullable', 'string'],
+            'preview_image'             => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
+            'template_profile_image'    => ['nullable', 'image', 'mimes:png,jpg,jpeg,webp', 'max:5120'],
         ]) + ['is_active' => false, 'has_image' => false];
 
         if (($data['type'] ?? null) === 'resume' && ($data['category'] ?? null) === 'word') {
