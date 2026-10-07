@@ -92,6 +92,18 @@
         @error('body')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
 
+    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Publish date</label>
+            <input type="datetime-local"
+                   name="published_at"
+                   value="{{ old('published_at', $article->published_at?->timezone(config('app.timezone'))->format('Y-m-d\TH:i')) }}"
+                   class="w-full rounded-xl border-gray-200 bg-gray-50 px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-teal-500">
+            <p class="mt-1 text-xs text-gray-500">Blank chhodne par published article ka date current time hoga.</p>
+            @error('published_at')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        </div>
+    </div>
+
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2 border-t border-gray-100">
         <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 select-none">
             <input type="checkbox"

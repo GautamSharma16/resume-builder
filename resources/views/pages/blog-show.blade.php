@@ -11,7 +11,7 @@
             'headline' => $post->title,
             'description' => strip_tags($post->excerpt ?: $post->body),
             'mainEntityOfPage' => route('blog.show', $post->slug),
-            'datePublished' => optional($post->published_at ?? $post->created_at)->toIso8601String(),
+            'datePublished' => ($post->published_at ?? $post->created_at)?->timezone(config('app.timezone'))->toIso8601String(),
             'dateModified' => optional($post->updated_at)->toIso8601String(),
             'author' => ['@type' => 'Organization', 'name' => 'CvBliss'],
             'publisher' => ['@type' => 'Organization', 'name' => 'CvBliss'],
@@ -572,7 +572,7 @@ body { background: var(--paper); color: var(--ink); }
             @endif
 
             <div class="post-meta-row">
-                <time>{{ $post->published_at?->format('M d, Y') ?? $post->created_at->format('M d, Y') }}</time>
+                <time>{{ ($post->published_at ?? $post->created_at)?->timezone(config('app.timezone'))->format('M d, Y') }}</time>
                 <span class="dot">·</span>
                 <span class="reading-time">{{ ceil(str_word_count(strip_tags($post->body)) / 200) }} min read</span>
             </div>
@@ -650,7 +650,7 @@ body { background: var(--paper); color: var(--ink); }
                     </div>
                     <p class="related-card-meta">{{ $popular->category ?? 'Career Advice' }}</p>
                     <h4>{{ $popular->title }}</h4>
-                    <p>{{ $popular->published_at?->format('M d, Y') ?? $popular->created_at->format('M d, Y') }}</p>
+                    <p>{{ ($popular->published_at ?? $popular->created_at)?->timezone(config('app.timezone'))->format('M d, Y') }}</p>
                 </a>
                 @endforeach
             </div>

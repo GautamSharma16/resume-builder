@@ -32,7 +32,7 @@ class ArticleController extends Controller
         $data = $this->validated($request);
         $data['slug'] = Str::slug($data['title']).'-'.Str::random(5);
         $data['author_id'] = $request->user()->id;
-        $data['published_at'] = $data['is_published'] ? now() : null;
+        $data['published_at'] = $this->publishedAt($data);
 
         if ($request->hasFile('thumbnail')) {
             $data['thumbnail'] = $request->file('thumbnail')->store('articles', 'public');
@@ -55,7 +55,7 @@ class ArticleController extends Controller
     public function update(Request $request, Article $article)
     {
         $data = $this->validated($request);
-        $data['published_at'] = $data['is_published'] ? ($article->published_at ?? now()) : null;
+        $data['published_at'] = $this->publishedAt($data, $article);
 
         if ($request->hasFile('thumbnail')) {
             // Delete old thumbnail if exists
@@ -79,7 +79,17 @@ class ArticleController extends Controller
             'body' => ['required', 'string'],
             'thumbnail' => ['nullable', 'image', 'max:2048'],
             'is_published' => ['nullable', 'boolean'],
+            'published_at' => ['nullable', 'date'],
         ]) + ['is_published' => false];
+    }
+
+    private function publishedAt(array $data, ?Article $article = null): mixed
+    {
+        if (! $data['is_published']) {
+            return null;
+        }
+
+        return $data['published_at'] ?: ($article?->published_at ?? now());
     }
 }
 

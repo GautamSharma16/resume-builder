@@ -646,7 +646,7 @@
                   <div class="card-avatar">{{ strtoupper(substr($article->author ?? 'A', 0, 1)) }}</div>
                   <div>
                     <div class="card-author-name">{{ $article->author ?? 'Editorial Team' }}</div>
-                    <div class="card-date">{{ optional($article->published_at ?? $article->created_at)->format('M d, Y') }}</div>
+                    <div class="card-date">{{ ($article->published_at ?? $article->created_at)?->timezone(config('app.timezone'))->format('M d, Y') }}</div>
                   </div>
                 </div>
                 <a href="{{ route('blog.show', $article->slug) }}" class="card-read-btn">
@@ -679,7 +679,7 @@
                   </div>
                   <div>
                     <div class="card-author-name">{{ $article->author ?? 'Editorial Team' }}</div>
-                    <div class="card-date">{{ optional($article->published_at ?? $article->created_at)->format('M d, Y') }}</div>
+                    <div class="card-date">{{ ($article->published_at ?? $article->created_at)?->timezone(config('app.timezone'))->format('M d, Y') }}</div>
                   </div>
                 </div>
                 <a href="{{ route('blog.show', $article->slug) }}" class="card-read-btn">
@@ -709,7 +709,7 @@
               <h2 class="card-title">{{ $article->title }}</h2>
               <p class="card-excerpt">{{ $article->excerpt }}</p>
               <div class="card-footer">
-                <div class="card-date">{{ optional($article->published_at ?? $article->created_at)->format('M d, Y') }}</div>
+                <div class="card-date">{{ ($article->published_at ?? $article->created_at)?->timezone(config('app.timezone'))->format('M d, Y') }}</div>
                 <span style="font-size:11px;color:var(--muted-lt);">{{ ceil(str_word_count(strip_tags($article->body ?? '')) / 200) }} min</span>
               </div>
             </div>

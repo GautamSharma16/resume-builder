@@ -352,6 +352,46 @@
 }
 .plan-btn:hover .btn-arrow{transform:translateX(4px)}
 
+.pricing-promise{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    max-width:1120px;
+    margin:0 auto 46px;
+    padding:26px 30px;
+    text-align:center;
+    border-radius:22px;
+    background:linear-gradient(180deg,rgba(16,24,82,.72),rgba(9,14,48,.86));
+    border:1px solid rgba(84,104,255,.48);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.09), 0 0 24px rgba(67,88,255,.2), 0 18px 50px rgba(0,0,0,.28);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    opacity:0;
+    transform:translateY(30px);
+    animation:fadeUp .72s cubic-bezier(.22,1,.36,1) .2s forwards;
+}
+.pricing-promise-item{
+    min-width:0;
+    padding:0 26px;
+}
+.pricing-promise-item + .pricing-promise-item{
+    border-left:1px solid rgba(122,139,255,.26);
+}
+.pricing-promise h2{
+    margin-bottom:8px;
+    color:#fff;
+    font-family:'Inter',sans-serif;
+    font-size:1.18rem;
+    font-weight:800;
+    line-height:1.25;
+    letter-spacing:0;
+}
+.pricing-promise p{
+    margin:0 auto;
+    color:#b8c2df;
+    font-size:.95rem;
+    line-height:1.45;
+}
+
 /* ── Keyframes ───────────────────────────────────── */
 @keyframes fadeUp{
     from{opacity:0;transform:translateY(40px)}
@@ -363,6 +403,19 @@
     .plan-grid{grid-template-columns:1fr;max-width:460px;margin:auto}
     .plan-card.featured{transform:none}
     .plan-card.featured:hover{transform:translateY(-8px)}
+    .pricing-promise{
+        grid-template-columns:1fr;
+        max-width:460px;
+        margin-bottom:34px;
+        padding:10px 22px;
+    }
+    .pricing-promise-item{
+        padding:20px 0;
+    }
+    .pricing-promise-item + .pricing-promise-item{
+        border-left:0;
+        border-top:1px solid rgba(122,139,255,.26);
+    }
 }
 </style>
 
@@ -376,7 +429,7 @@
 
         <div class="plans-header">
             <h1>Choose a Resume Builder Plan<br>That Works for <em>You</em></h1>
-            <p>No hidden fees. Cancel anytime. Start with a free preview.</p>
+            <p>One payment. No hidden charges. No subscriptions. No automatic renewals.</p>
             @if(session('status'))
                 <p style="margin-top:14px;color:#818cf8;font-weight:600">{{ session('status') }}</p>
             @endif
@@ -387,6 +440,21 @@
             $currentPlanSlug = $activeSubscription?->plan_slug;
             $latestPlanSlug = $latestSubscription?->plan_slug;
         @endphp
+
+        <div class="pricing-promise">
+            <div class="pricing-promise-item">
+                <h2>One-Time Payment</h2>
+                <p>Pay only once for your purchase.</p>
+            </div>
+            <div class="pricing-promise-item">
+                <h2>No Hidden Charges</h2>
+                <p>The price you see is the price you pay.</p>
+            </div>
+            <div class="pricing-promise-item">
+                <h2>No Subscriptions or Renewals</h2>
+                <p>No automatic renewals. Ever.</p>
+            </div>
+        </div>
 
         <div class="plan-grid">
             @foreach($plans as $plan)
