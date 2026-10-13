@@ -12,7 +12,7 @@
 
 .plans-root{
     min-height:100vh;
-    padding:90px 20px 100px;
+    padding:30px 20px 48px;
     font-family:'Inter',sans-serif;
     position:relative;
     overflow:hidden;
@@ -76,14 +76,14 @@
 /* ── Header ──────────────────────────────────────── */
 .plans-header{
     text-align:center;
-    margin-bottom:64px;
+    margin-bottom:22px;
     opacity:0;
     transform:translateY(32px);
     animation:fadeUp .8s cubic-bezier(.22,1,.36,1) .1s forwards;
 }
 .plans-header h1{
     font-family:'Playfair Display',serif;
-    font-size:clamp(2.8rem,5.5vw,4.5rem);
+    font-size:clamp(2.1rem,4.2vw,3.25rem);
     font-weight:800;
     color:#fff;
     line-height:1.1;
@@ -97,7 +97,7 @@
     background-clip:text;
 }
 .plans-header p{
-    margin-top:16px;
+    margin-top:10px;
     color:#7a8aab;
     font-size:1.05rem;
     letter-spacing:.01em;
@@ -107,15 +107,15 @@
 .plan-grid{
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:24px;
+    gap:20px;
     align-items:center;
 }
 
 /* ── Card ────────────────────────────────────────── */
 .plan-card{
     position:relative;
-    border-radius:28px;
-    padding:38px 30px 32px;
+    border-radius:22px;
+    padding:24px 24px 22px;
     display:flex;
     flex-direction:column;
     background:linear-gradient(160deg,rgba(255,255,255,.065) 0%,rgba(255,255,255,.018) 100%);
@@ -206,7 +206,7 @@
     letter-spacing:.18em;
     text-transform:uppercase;
     color:#6c7ea8;
-    margin-bottom:20px;
+    margin-bottom:10px;
 }
 
 /* ── Price ───────────────────────────────────────── */
@@ -224,14 +224,14 @@
 }
 .amount{
     font-family:'Playfair Display',serif;
-    font-size:clamp(3.2rem,5vw,4.2rem);
+    font-size:clamp(2.45rem,3.8vw,3.2rem);
     font-weight:800;
     color:#fff;
     line-height:1;
     /* counter animation handled by JS */
 }
 .plan-validity{
-    margin:8px 0 24px;
+    margin:5px 0 14px;
     color:#5f6e8e;
     font-size:.875rem;
 }
@@ -240,7 +240,7 @@
 .plan-divider{
     height:1px;
     background:linear-gradient(90deg,transparent,rgba(255,255,255,.09),transparent);
-    margin-bottom:26px;
+    margin-bottom:16px;
 }
 
 /* ── Features ────────────────────────────────────── */
@@ -249,14 +249,14 @@
     flex:1;
     display:flex;
     flex-direction:column;
-    gap:14px;
-    margin-bottom:28px;
+    gap:9px;
+    margin-bottom:16px;
 }
 .plan-features li{
     display:flex;
     align-items:center;
     gap:12px;
-    font-size:.97rem;
+    font-size:.92rem;
     color:#c8d0e4;
     font-weight:500;
     opacity:0;
@@ -274,7 +274,7 @@
 
 .check-icon{
     flex-shrink:0;
-    width:22px;height:22px;
+    width:20px;height:20px;
     border-radius:50%;
     background:rgba(34,197,120,.14);
     border:1px solid rgba(34,197,120,.25);
@@ -302,7 +302,7 @@
     width:100%;
     text-decoration:none;
     border-radius:999px;
-    padding:15px 20px;
+    padding:11px 16px;
     font-size:.95rem;
     font-weight:700;
     transition:transform .25s ease, box-shadow .25s ease, background .25s ease;
@@ -356,8 +356,8 @@
     display:grid;
     grid-template-columns:repeat(3,1fr);
     max-width:1120px;
-    margin:0 auto 46px;
-    padding:26px 30px;
+    margin:0 auto 24px;
+    padding:13px 22px;
     text-align:center;
     border-radius:22px;
     background:linear-gradient(180deg,rgba(16,24,82,.72),rgba(9,14,48,.86));
@@ -377,10 +377,10 @@
     border-left:1px solid rgba(122,139,255,.26);
 }
 .pricing-promise h2{
-    margin-bottom:8px;
+    margin-bottom:6px;
     color:#fff;
     font-family:'Inter',sans-serif;
-    font-size:1.18rem;
+    font-size:1rem;
     font-weight:800;
     line-height:1.25;
     letter-spacing:0;
@@ -388,8 +388,8 @@
 .pricing-promise p{
     margin:0 auto;
     color:#b8c2df;
-    font-size:.95rem;
-    line-height:1.45;
+    font-size:.86rem;
+    line-height:1.35;
 }
 
 /* ── Keyframes ───────────────────────────────────── */

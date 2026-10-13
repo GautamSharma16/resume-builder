@@ -268,7 +268,7 @@
     }
 </style>
 
-<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 py-12 px-4 sm:px-6 lg:px-8" x-data="{ 
+<div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 py-4 px-4 sm:px-6 lg:px-8" x-data="{ 
     tab: 'ats'
 }">
     <div class="max-w-7xl mx-auto">
@@ -292,10 +292,12 @@
             </div>
         </div>
 
+        {{--
         <section class="mx-auto mb-8 max-w-3xl text-center" aria-labelledby="template-stage-title">
             <h2 id="template-stage-title" class="text-2xl font-bold text-slate-900">Choose a resume template by career stage</h2>
             <p class="mt-3 text-gray-600">Start with a clear layout for your experience level. Every template is designed to keep your skills, achievements, and contact details easy to scan.</p>
         </section>
+        --}}
 
         {{-- CATEGORY TABS WITH BLUEISH THEME --}}
         <div class="relative mb-12">
