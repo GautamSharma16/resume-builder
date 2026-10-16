@@ -36,6 +36,7 @@ class AppServiceProvider extends ServiceProvider
             $indexableRoutes = [
                 'home',
                 'enhance-cv',
+                'improve-cv',
                 'cover-letter',
                 'templates',
                 'interview',
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
                 'terms',
                 'plans',
                 'resume.create',
+                'resume-maker',
             ];
 
             $shouldIndex = $routeName

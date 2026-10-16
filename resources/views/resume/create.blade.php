@@ -1,7 +1,29 @@
 @extends('layouts.bare') {{-- use a layout with NO navbar/footer --}}
 
-@section('title', 'AI Resume Maker | Build Your Resume')
-@section('meta_description', 'Create an ATS-friendly resume with an AI resume maker, professional templates, and guided sections for every career stage.')
+@php
+    $resumeCategory = request()->route('category');
+    $categoryMeta = [
+        'ats' => [
+            'title' => 'ATS Resume Maker | Build ATS-Friendly Resumes - CvBliss',
+            'desc'  => 'Create an ATS-friendly resume optimized for applicant tracking systems with AI recommendations, clean formatting, and tested templates.',
+        ],
+        'fresher' => [
+            'title' => 'Resume Maker for Freshers | Entry-Level Resume Builder - CvBliss',
+            'desc'  => 'Build a job-winning entry-level resume with step-by-step guidance, skill highlights, and modern templates designed for freshers.',
+        ],
+        'experienced' => [
+            'title' => 'Resume Maker for Experienced Professionals | CvBliss',
+            'desc'  => 'Design an executive or experienced professional resume highlighting leadership, measurable impact, and career progression.',
+        ],
+    ];
+    $activeMeta = $categoryMeta[$resumeCategory] ?? [
+        'title' => 'AI Resume Maker | Build Your Resume Online - CvBliss',
+        'desc'  => 'Create an ATS-friendly resume with an AI resume maker, professional templates, and guided sections for every career stage.',
+    ];
+@endphp
+
+@section('title', $activeMeta['title'])
+@section('meta_description', $activeMeta['desc'])
 
 @section('content')
     @php
