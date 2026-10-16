@@ -376,10 +376,10 @@
                     <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
                 </div>
                 <h2>6. Governing Law</h2>
-                <p>Any claim relating to CVBliss's website shall be governed by the laws of the State of Haryana, India without regard to its conflict of law provisions.</p>
+                <p>Any claim relating to CVBliss's website shall be governed by the court of state of Karnataka, India without regard to its conflict of law provisions.</p>
                 <div style="background: var(--emerald-light); padding: 20px; border-radius: 16px; border: 1px dashed var(--emerald);">
                     <p style="margin: 0; font-weight: 600; color: var(--emerald-dark);">Legal Department</p>
-                    <p style="margin: 5px 0 0; color: var(--muted);">Email: terms@cvbliss.in</p>
+                    <p style="margin: 5px 0 0; color: var(--muted);">Email: support@cvbliss.in</p>
                 </div>
             </section>
         </div>
