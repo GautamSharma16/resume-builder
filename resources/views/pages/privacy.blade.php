@@ -382,7 +382,7 @@
                 <h2>6. Contact Us</h2>
                 <p>If you have any questions about this privacy policy or our privacy practices, please contact us at:</p>
                 <div style="background: var(--blue-light); padding: 20px; border-radius: 16px; border: 1px dashed var(--blue);">
-                    <p style="margin: 0; font-weight: 600; color: var(--blue);">Email: support@cvbliss.in</p>
+                    <p style="margin: 0; font-weight: 600; color: var(--blue);">Email: support@cvbliss.com</p>
                     <p style="margin: 5px 0 0; color: var(--muted);">Available: Mon-Sat, 10 AM - 7 PM IST</p>
                 </div>
             </section>

@@ -379,7 +379,7 @@
                 <p>Any claim relating to CVBliss's website shall be governed by the court of state of Karnataka, India without regard to its conflict of law provisions.</p>
                 <div style="background: var(--emerald-light); padding: 20px; border-radius: 16px; border: 1px dashed var(--emerald);">
                     <p style="margin: 0; font-weight: 600; color: var(--emerald-dark);">Legal Department</p>
-                    <p style="margin: 5px 0 0; color: var(--muted);">Email: support@cvbliss.in</p>
+                    <p style="margin: 5px 0 0; color: var(--muted);">Email: support@cvbliss.com</p>
                 </div>
             </section>
         </div>

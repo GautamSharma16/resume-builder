@@ -258,9 +258,9 @@
             <!-- Customer Service -->
             <div>
                 <p class="ft-col-title">Customer Service</p>
-                <p class="ft-contact-email"><a href="mailto:support@cvbliss.in" style="color: inherit; text-decoration: none;">support@cvbliss.in</a></p>
+                <p class="ft-contact-email"><a href="mailto:support@cvbliss.com" style="color: inherit; text-decoration: none;">support@cvbliss.com</a></p>
                 <p class="ft-contact-hours">
-                    +91 98765 43210<br>
+                    <a href="tel:+919972063768" style="color: inherit; text-decoration: none;">+91 9972063768</a><br>
                     Mon–Sat 10am – 7pm IST
                 </p>
             </div>

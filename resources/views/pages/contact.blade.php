@@ -87,7 +87,8 @@
         </section>
 
         <section class="contact-info-row" aria-label="Contact details">
-            <div class="contact-info"><strong>Email</strong><a href="mailto:support@cvbliss.in">support@cvbliss.in</a></div>
+            <div class="contact-info"><strong>Email</strong><a href="mailto:support@cvbliss.com">support@cvbliss.com</a></div>
+            <div class="contact-info"><strong>Customer care</strong><a href="tel:+919972063768">+91 9972063768</a></div>
             <div class="contact-info"><strong>Hours</strong><span>Monday to Saturday, 10 AM to 7 PM</span></div>
             <div class="contact-info"><strong>Response</strong><span>Usually within one business day</span></div>
         </section>
