@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Privacy Policy & User Data Protection | CvBliss')
-@section('meta_description', 'Read the CvBliss privacy policy to understand how we collect, use, and protect your personal information.')
+@section('meta_description', 'Read the CvBliss privacy policy to learn how personal information is collected, used, and protected when you use our resume builder and career tools.')
+@section('meta_keywords', 'CvBliss Privacy Policy, Resume Builder Privacy, AI Resume Builder Privacy, Online Resume Maker Privacy, CV Data Privacy, Personal Information Policy, Cover Letter Tool Privacy, CvBliss Data Protection')
 
 @section('content')
 
@@ -290,7 +291,7 @@
     <header class="legal-hero">
         <div class="hero-text">
             <div class="last-updated-badge">Last Updated: May 7, 2024</div>
-            <h1>Your <span>Privacy</span> is our top priority.</h1>
+            <h1>CvBliss Privacy Policy</h1>
             <p>At CVBliss, we believe your data belongs to you. Here's how we protect it and keep your information secure.</p>
         </div>
         <div class="hero-image">

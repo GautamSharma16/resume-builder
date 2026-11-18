@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Google Tag Manager -->
+    <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-NW5H52MZ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    </script>
+    <!-- End Google Tag Manager -->
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-S11T6PG3GQ"></script>
     <script>
@@ -15,6 +23,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'AI Resume Builder | CvBliss')</title>
     <meta name="description" content="@yield('meta_description', 'Create an ATS-friendly resume, tailored cover letter, and job-ready application with CvBliss.')">
+    @hasSection('meta_keywords')
+        <meta name="keywords" content="@yield('meta_keywords')">
+    @endif
     @if($seoShouldIndex ?? false)
         <link rel="canonical" href="{{ $seoCanonicalUrl }}">
     @else

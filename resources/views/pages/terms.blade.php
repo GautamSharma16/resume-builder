@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Terms of Use & Service Agreement | CvBliss')
-@section('meta_description', 'Review the CvBliss terms of use for our resume, cover letter, and career tool services.')
+@section('meta_description', 'Read the CvBliss terms of use for the online resume maker, AI resume builder, cover letter generator, and related career tools before using our services.')
+@section('meta_keywords', 'CvBliss Terms of Use, Resume Builder Terms, AI Resume Builder Terms, Online Resume Maker Terms, CV Maker Terms, Cover Letter Generator Terms, CvBliss User Agreement, CvBliss Service Terms')
 
 @section('content')
 
@@ -290,7 +291,7 @@
     <header class="legal-hero">
         <div class="hero-text">
             <div class="last-updated-badge">Last Updated: May 7, 2024</div>
-            <h1>Clear <span>Terms</span> for a better experience.</h1>
+            <h1>CvBliss Terms of Use</h1>
             <p>Please read these terms carefully before using CVBliss. They explain your rights and responsibilities when using our platform.</p>
         </div>
         <div class="hero-image">

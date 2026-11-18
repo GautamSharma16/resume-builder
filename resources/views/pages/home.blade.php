@@ -2,7 +2,8 @@
 @extends('layouts.app')
 
 @section('title', 'AI Resume Builder | Create a Resume')
-@section('meta_description', 'Build an ATS-friendly resume with AI guidance, professional templates, and practical tools for your next job application.')
+@section('meta_description', 'Create an ATS-friendly resume with CvBliss. Use AI writing support and professional resume templates for your first job or next career move.')
+@section('meta_keywords', 'AI Resume Builder, Resume Maker, AI Resume Maker, Professional Resume Builder, ATS Friendly Resume, Online Resume Maker, Resume Templates, Professional Resume Templates, Resume Builder Online, CV Maker Online')
 
 @section('content')
 
@@ -1450,8 +1451,7 @@
     <div class="hero-content">
 
         <h1 class="hero-headline">
-            Get Hired Faster<br>with
-            <span class="gradient-text">AI-Optimized</span><br>Resumes
+            AI Resume Builder for ATS-Friendly Resumes
         </h1>
 
         <p class="hero-sub">

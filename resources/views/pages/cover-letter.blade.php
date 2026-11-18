@@ -2,7 +2,8 @@
 @extends('layouts.app')
 
 @section('title', 'AI Cover Letter Generator | CvBliss')
-@section('meta_description', 'Create a tailored cover letter with AI guidance, a professional layout, and focused details for the role you want.')
+@section('meta_description', 'Create a tailored cover letter with CvBliss. Use AI guidance to highlight your skills, experience, and interest in the role with a professional layout.')
+@section('meta_keywords', 'AI Cover Letter Generator, Cover Letter Maker Online, AI Cover Letter Maker, Online Cover Letter Builder, Cover Letter Writer, Professional Cover Letter, Tailored Cover Letter, CvBliss Cover Letter Generator')
 
 @push('structured-data')
     @php
@@ -1013,7 +1014,7 @@
 
     <div class="pick-header">
         <div class="section-label">Professional Designs</div>
-        <h1 class="section-heading">AI Cover Letter <em>Generator</em></h1>
+        <h1 class="section-heading">AI Cover Letter Generator for Your Job Application</h1>
         <p style="color: var(--muted); max-width: 550px; margin: 0 auto;">Choose a professional template, then tailor a focused cover letter to the role and employer.</p>
     </div>
 

@@ -1,7 +1,13 @@
 @extends('layouts.app')
 
 @section('title', 'AI Resume Optimizer | Improve Your Resume')
-@section('meta_description', 'Improve your resume with focused AI suggestions for stronger content, relevant keywords, and clearer experience sections.')
+@if(request()->routeIs('enhance-cv'))
+    @section('meta_description', 'Improve your existing CV with AI suggestions for clearer content, relevant keywords, and stronger experience sections. Refine your resume with CvBliss.')
+    @section('meta_keywords', 'AI Resume Writer, AI Resume Maker, AI Resume Builder, Professional Resume Builder, CV Enhancement, Resume Content Improvement, Resume Keyword Optimization, CvBliss AI Resume Writer')
+@else
+    @section('meta_description', 'Improve your resume content, keyword relevance, and experience sections with CvBliss. Use focused AI suggestions to prepare a clearer CV for applications.')
+    @section('meta_keywords', 'AI Resume Writer, AI Resume Optimizer, Resume Improvement, CV Optimization, Resume Keyword Optimization, Professional Resume Builder, AI Resume Builder, CvBliss Resume Optimizer')
+@endif
 
 @section('content')
 
@@ -1350,7 +1356,11 @@
     {{-- Left: Copy --}}
     <div class="enhance-hero-content">
        
-        <h1>Elevate your<br><em>Resume</em> with AI</h1>
+        @if(request()->routeIs('enhance-cv'))
+            <h1>Enhance Your CV with an AI Resume Writer</h1>
+        @else
+            <h1>Improve Your Resume with AI Suggestions</h1>
+        @endif
         <p class="enhance-hero-sub">
             Upload your resume and let AI restructure every section for maximum ATS compatibility. Get a polished, interview-ready PDF in seconds.
         </p>

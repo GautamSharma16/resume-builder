@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'ATS Resume Templates | CvBliss')
-@section('meta_description', 'Browse ATS-friendly resume templates for entry-level, experienced, and senior professionals. Choose a clear design and start building your resume.')
+@section('meta_description', 'Explore professional resume templates for freshers and experienced candidates. Choose a simple ATS-friendly layout and start your resume with CvBliss.')
+@section('meta_keywords', 'Resume Templates, ATS Friendly Resume Templates, Professional Resume Templates, Simple Resume Template, ATS Resume, ATS Friendly Resume, Fresher Resume Templates, Experienced Resume Templates, Professional Resume Format, CvBliss Resume Templates')
 
 @push('structured-data')
     @php
@@ -285,8 +286,7 @@
                     <span class="text-xs font-semibold text-gray-700 tracking-wide">PROFESSIONAL DESIGNS</span>
                 </div>
                 <h1 class="text-5xl md:text-6xl font-bold text-gray-900 mb-4 tracking-tight" style="font-family: var(--font-display);">
-                    Resume 
-                    <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Templates</span>
+                    Professional ATS-Friendly Resume Templates
                 </h1>
                 <p class="text-base text-gray-500 max-w-2xl mx-auto">Choose an ATS-friendly resume template that fits your career stage, then customize it with focused, recruiter-ready content.</p>
             </div>

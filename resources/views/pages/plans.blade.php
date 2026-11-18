@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Resume Builder Plans | CvBliss')
-@section('meta_description', 'Compare CvBliss resume builder plans and choose the option that fits your resume, cover letter, and download needs.')
+@section('meta_description', 'Compare CvBliss resume builder plans for resume creation, cover letters, and downloads. Choose the option that fits your job application needs.')
+@section('meta_keywords', 'Resume Builder Plans, Resume Builder Pricing, AI Resume Builder Plans, Professional Resume Builder, Online Resume Maker Plans, CV Maker Online Plans, Cover Letter Generator Plans, CvBliss Pricing')
 
 @section('content')
 <style>
@@ -428,7 +429,7 @@
     <div class="plans-inner">
 
         <div class="plans-header">
-            <h1>Choose a Resume Builder Plan<br>That Works for <em>You</em></h1>
+            <h1>Compare CvBliss Resume Builder Plans</h1>
             <p>One payment. No hidden charges. No subscriptions. No automatic renewals.</p>
             @if(session('status'))
                 <p style="margin-top:14px;color:#818cf8;font-weight:600">{{ session('status') }}</p>

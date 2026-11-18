@@ -5,25 +5,39 @@
     $categoryMeta = [
         'ats' => [
             'title' => 'ATS Resume Maker | Build ATS-Friendly Resumes - CvBliss',
-            'desc'  => 'Create an ATS-friendly resume optimized for applicant tracking systems with AI recommendations, clean formatting, and tested templates.',
+            'desc'  => 'Create an ATS-friendly resume with CvBliss. Use AI recommendations, clear formatting, and professional templates to present your skills and experience.',
+            'keywords' => 'ATS Friendly Resume Builder, ATS Friendly Resume, ATS Resume, ATS Friendly Resume Templates, AI Resume Builder, Professional Resume Builder, Online Resume Maker, ATS Resume Maker, ATS Resume Templates, CvBliss Resume Builder',
+            'h1' => 'Build an ATS-Friendly Resume with AI Guidance',
         ],
         'fresher' => [
             'title' => 'Resume Maker for Freshers | Entry-Level Resume Builder - CvBliss',
-            'desc'  => 'Build a job-winning entry-level resume with step-by-step guidance, skill highlights, and modern templates designed for freshers.',
+            'desc'  => 'Build your first resume with CvBliss. Highlight your education and skills using guided sections and modern resume templates designed for freshers.',
+            'keywords' => 'Resume Builder for Freshers, AI Resume Builder, Online Resume Maker, Simple Resume Template, ATS Friendly Resume, ATS Friendly Resume Templates, Fresher Resume Templates, Entry Level Resume Builder, Resume Maker, CV Maker Online',
+            'h1' => 'Resume Builder for Freshers and First-Time Job Seekers',
         ],
         'experienced' => [
             'title' => 'Resume Maker for Experienced Professionals | CvBliss',
-            'desc'  => 'Design an executive or experienced professional resume highlighting leadership, measurable impact, and career progression.',
+            'desc'  => 'Create a professional resume with CvBliss. Highlight your experience, leadership, achievements, and career progression in a clear, structured format.',
+            'keywords' => 'Resume Builder for Experienced, Professional Resume Builder, Professional Resume Templates, AI Resume Builder, Online Resume Maker, ATS Friendly Resume, Experienced Professional Resume, Executive Resume Builder, Resume Maker, CvBliss Resume Builder',
+            'h1' => 'Resume Builder for Experienced Professionals',
         ],
     ];
     $activeMeta = $categoryMeta[$resumeCategory] ?? [
         'title' => 'AI Resume Maker | Build Your Resume Online - CvBliss',
-        'desc'  => 'Create an ATS-friendly resume with an AI resume maker, professional templates, and guided sections for every career stage.',
+        'desc'  => 'Create your resume online with CvBliss. Follow guided sections, add your skills and experience, and use AI support to build an ATS-friendly resume.',
+        'keywords' => 'Resume Builder Online, Online Resume Maker, AI Resume Builder, AI Resume Maker, Resume Maker, CV Maker Online, ATS Friendly Resume Builder, Professional Resume Builder, Create Resume Online, CvBliss Resume Creator',
+        'h1' => 'Create Your Resume Online with AI Guidance',
     ];
+    if ($resumeCategory === null && request()->routeIs('resume-maker')) {
+        $activeMeta['desc'] = 'Build your resume online with CvBliss. Add your skills and experience, choose a professional template, and shape your CV with AI guidance.';
+        $activeMeta['keywords'] = 'Online Resume Maker, Resume Maker, CV Maker Online, AI Resume Maker, Resume Builder Online, Professional Resume Builder, ATS Friendly Resume Builder, AI Resume Builder, Resume Builder for Freshers, Resume Builder for Experienced';
+        $activeMeta['h1'] = 'Online Resume Maker for Every Career Stage';
+    }
 @endphp
 
 @section('title', $activeMeta['title'])
 @section('meta_description', $activeMeta['desc'])
+@section('meta_keywords', $activeMeta['keywords'])
 
 @section('content')
     @php
@@ -2302,7 +2316,7 @@
 
         {{-- ══ ONBOARDING ══ --}}
         <div id="rp-onboarding-view" class="rp-onboarding" style="padding: 6rem 1.5rem 4rem;">
-            <h1>Build your resume with AI</h1>
+            <h1>{{ $activeMeta['h1'] }}</h1>
             <p class="ob-sub">Choose how you'd like to get started</p>
             <div class="ob-cards">
                 <div class="ob-card" onclick="document.getElementById('resume-autofill-file').click()">

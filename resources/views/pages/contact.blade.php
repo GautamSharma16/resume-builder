@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Contact Career Support | CvBliss')
-@section('meta_description', 'Contact CvBliss support for help with resumes, cover letters, templates, and your job application tools.')
+@section('meta_description', 'Contact CvBliss for help with the AI resume builder, resume templates, cover letters, and job application tools. Get support for your questions.')
+@section('meta_keywords', 'CvBliss Contact, Resume Builder Support, AI Resume Builder Help, Online Resume Maker Support, Resume Templates Help, Cover Letter Generator Support, CV Maker Online Help, CvBliss Customer Support')
 
 @section('content')
 <style>
@@ -40,7 +41,7 @@
         <section class="contact-head">
             <div>
                 <span class="contact-kicker">Support and sales</span>
-                <h1 class="contact-title">Contact CvBliss career support.</h1>
+                <h1 class="contact-title">Contact CvBliss for Resume Builder Support</h1>
                 <p class="contact-copy">Questions about resumes, templates, billing, ATS scoring, or a broken workflow all land here. We save every message so the team can follow up properly.</p>
                 <div class="contact-points">
                     <div class="contact-point"><span class="contact-icon">?</span><span>Product help for resume builder, cover letter, ATS checker, and downloads.</span></div>

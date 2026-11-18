@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
 @section('title', 'Career Resources | Resume and Job Search')
-@section('meta_description', 'Explore practical career resources for resumes, cover letters, ATS preparation, job searches, and interview readiness.')
+@section('meta_description', 'Explore resume writing guides, cover letter advice, ATS preparation, and job search tips. Find practical career resources for your next application.')
+@section('meta_keywords', 'Resume Writing Guides, Career Resources, ATS Friendly Resume, ATS Resume Tips, Resume Builder for Freshers, Cover Letter Writing Tips, Job Search Tips, Interview Preparation')
 
 @push('structured-data')
     @php
@@ -33,7 +34,7 @@
 <main class="bg-white">
     <section class="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:py-20">
         <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">CvBliss Resource Hub</p>
-        <h1 class="mt-3 max-w-3xl text-4xl font-bold text-slate-950 sm:text-5xl">Career resources for stronger job applications</h1>
+        <h1 class="mt-3 max-w-3xl text-4xl font-bold text-slate-950 sm:text-5xl">Career Resources for Resumes and Job Applications</h1>
         <p class="mt-5 max-w-3xl text-lg leading-8 text-slate-600">Use these focused resources to create a clearer resume, write a tailored cover letter, prepare for interviews, and make each job search step more intentional.</p>
     </section>
 
